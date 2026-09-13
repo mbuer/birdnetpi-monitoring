@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 import json
 import time
 from datetime import datetime
@@ -23,13 +25,14 @@ STATION_TIMEZONE = ZoneInfo(STATION_TIMEZONE_NAME)
 LOGFILE = "/var/log/weather/weather.log"
 INTERVAL_SECONDS = 900
 
-DB_DSN = (
-    "host=localhost "
-    "dbname=birdnet "
-    "user=birdnet "
-    "connect_timeout=5 "
-    "application_name=birdnet-weather"
-)
+DB_CONNECT = {
+    "host": os.getenv("BIRDNET_DB_HOST", "localhost"),
+    "dbname": os.getenv("BIRDNET_DB_NAME", "birdnet"),
+    "user": os.getenv("BIRDNET_DB_USER", "birdnet"),
+    "password": os.getenv("BIRDNET_DB_PASSWORD", ""),
+    "connect_timeout": 5,
+    "application_name": "birdnet-weather",
+}
 
 CURRENT_FIELDS = [
     "temperature_2m",
@@ -152,7 +155,7 @@ def write_database(current):
     sunrise = parse_station_time(current["sunrise"])
     sunset = parse_station_time(current["sunset"])
 
-    with psycopg.connect(DB_DSN) as conn:
+    with psycopg.connect(**DB_CONNECT) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -20,13 +22,14 @@ STATION_TIMEZONE = ZoneInfo(STATION_TIMEZONE_NAME)
 
 FORECAST_HOURS = 48
 
-DB_DSN = (
-    "host=localhost "
-    "dbname=birdnet "
-    "user=birdnet "
-    "connect_timeout=5 "
-    "application_name=birdnet-forecast"
-)
+DB_CONNECT = {
+    "host": os.getenv("BIRDNET_DB_HOST", "localhost"),
+    "dbname": os.getenv("BIRDNET_DB_NAME", "birdnet"),
+    "user": os.getenv("BIRDNET_DB_USER", "birdnet"),
+    "password": os.getenv("BIRDNET_DB_PASSWORD", ""),
+    "connect_timeout": 5,
+    "application_name": "birdnet-forecast",
+}
 
 HOURLY_FIELDS = [
     "temperature_2m",
@@ -135,7 +138,7 @@ def write_database(hourly):
 
     inserted = 0
 
-    with psycopg.connect(DB_DSN) as conn:
+    with psycopg.connect(**DB_CONNECT) as conn:
         with conn.cursor() as cur:
             for index, timestamp in enumerate(hourly["time"]):
                 forecast_for = parse_station_time(timestamp)

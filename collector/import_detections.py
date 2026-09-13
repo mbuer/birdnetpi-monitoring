@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -13,13 +15,14 @@ SQLITE_DB = Path.home() / "BirdNET-Pi" / "scripts" / "birds.db"
 STATE_DIR = Path.home() / ".local" / "state" / "birdnet-db-sync"
 STATE_FILE = STATE_DIR / "last_rowid"
 
-DB_DSN = (
-    "host=localhost "
-    "dbname=birdnet "
-    "user=birdnet "
-    "connect_timeout=5 "
-    "application_name=birdnet-db-sync"
-)
+DB_CONNECT = {
+    "host": os.getenv("BIRDNET_DB_HOST", "localhost"),
+    "dbname": os.getenv("BIRDNET_DB_NAME", "birdnet"),
+    "user": os.getenv("BIRDNET_DB_USER", "birdnet"),
+    "password": os.getenv("BIRDNET_DB_PASSWORD", ""),
+    "connect_timeout": 5,
+    "application_name": "birdnet-db-sync",
+}
 
 STATION_ID = "birdnet"
 STATION_TIMEZONE = ZoneInfo("America/Los_Angeles")
@@ -143,7 +146,7 @@ def main():
 
         rows = sqlite_conn.execute(SELECT_SQL, (last_rowid,))
 
-        with psycopg.connect(DB_DSN) as pg_conn:
+        with psycopg.connect(**DB_CONNECT) as pg_conn:
             with pg_conn.cursor() as cur:
                 for row in rows:
                     (
