@@ -170,15 +170,9 @@ The Ubuntu infrastructure VM provides centralized services.
 Current:
 
 - PostgreSQL
-
-Being migrated next:
-
 - Loki
-
-Related Home Lab services already running on the VM include:
-
 - Prometheus
-- Grafana
+- Grafana OSS
 
 Grafana itself is managed through the separate:
 
