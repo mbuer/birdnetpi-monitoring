@@ -2,12 +2,13 @@
 
 [Unit]
 Description=BirdNET Weather Logger
-Wants=network-online.target postgresql.service
-After=network-online.target postgresql.service
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
 User=birduser
+EnvironmentFile=/home/birduser/.config/birdnet-monitoring/db.env
 WorkingDirectory=/home/birduser/weather
 ExecStart=/usr/bin/python3 -u /home/birduser/weather/weather.py
 Restart=always

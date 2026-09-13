@@ -1,13 +1,12 @@
-# /etc/systemd/system/birdnet-forecast.service
-
 [Unit]
 Description=Collect BirdNET weather forecast
-Wants=network-online.target postgresql.service
-After=network-online.target postgresql.service
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=oneshot
 User=birduser
+EnvironmentFile=/home/birduser/.config/birdnet-monitoring/db.env
 WorkingDirectory=/home/birduser/birdnetPi-monitoring
 ExecStart=/usr/bin/python3 /home/birduser/birdnetPi-monitoring/weather/forecast.py
 TimeoutStartSec=1min
