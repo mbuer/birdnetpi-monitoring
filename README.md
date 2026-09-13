@@ -96,49 +96,47 @@ Loki is not the historical analytical database, and PostgreSQL is not intended t
 
 # Home Lab Architecture
 
-The project is moving from a mostly Pi-local / Grafana Cloud design to a small centralized Home Lab architecture.
+The project has moved from a mostly Pi-local / Grafana Cloud design to a small centralized Home Lab architecture.
 
-The PostgreSQL portion of this architecture is already live. Loki and the local Grafana data path are the current migration phase.
+PostgreSQL and the local Loki / Grafana data path are now live on `ubuntu-infra`.
 
-Target layout:
+Current layout:
 
-    BirdNET Raspberry Pi
-    │
-    ├── microphone / audio
-    ├── BirdNET analysis
-    ├── birds.db
-    │
-    ├── import_detections.py
-    │       │
-    │       └──────────────► PostgreSQL
-    │
-    ├── weather.py
-    │       │
-    │       └──────────────► PostgreSQL
-    │
-    ├── forecast.py
-    │       │
-    │       └──────────────► PostgreSQL
-    │
-    └── Grafana Alloy
-            │
-            └──────────────► Loki
-                               │
-                               ▼
-                            Grafana
+```text
+BirdNET Raspberry Pi
+|
+|-- microphone / audio
+|-- BirdNET analysis
+|-- birds.db
+|
+|-- import_detections.py ----------> PostgreSQL
+|-- weather.py --------------------> PostgreSQL
+|-- forecast.py -------------------> PostgreSQL
+|
+`-- Grafana Alloy
+    |--> Grafana Cloud Loki
+    `--> Local Loki ---------------> Grafana OSS
 
-                              ▲
-                              │
-                       ubuntu-infra
-                       192.168.1.137
+ubuntu-infra (192.168.1.137)
+|-- PostgreSQL
+|-- Loki
+|-- Prometheus
+`-- Grafana OSS
+```
+
+Grafana Alloy currently sends operational logs to both Grafana Cloud Loki and local Loki. This dual-write period is intentional while the local path is validated.
 
 The BirdNET Pi currently uses:
 
-    192.168.1.136
+```text
+192.168.1.136
+```
 
 The infrastructure VM currently uses:
 
-    192.168.1.137
+```text
+192.168.1.137
+```
 
 These addresses describe the current Home Lab deployment and should not be treated as universal configuration defaults.
 
@@ -503,51 +501,67 @@ It currently collects:
 - parsed BirdNET detection logs
 - weather JSONL logs
 
-Historically these logs were sent to Grafana Cloud Loki.
+Operational logs are currently sent to both:
 
-The current migration phase is moving this operational path to a local Loki instance on `ubuntu-infra`.
+- Grafana Cloud Loki
+- local Loki on `ubuntu-infra`
 
-Target:
+The local Loki path is live and has been verified in Grafana OSS.
 
-    BirdNET Pi
-        │
-        ▼
-    Grafana Alloy
-        │
-        ▼
-    Loki on ubuntu-infra
-        │
-        ▼
-    Grafana
+Current flow:
 
-The existing Grafana Cloud configuration should remain available until the local path has been verified.
+```text
+BirdNET Pi
+    |
+    v
+Grafana Alloy
+    |------------------> Grafana Cloud Loki
+    |
+    `------------------> Local Loki on ubuntu-infra
+                              |
+                              v
+                         Grafana OSS
+```
+
+Local Loki currently uses a 30-day retention period.
+
+The dual-write setup is intentional during validation. Grafana Cloud remains available as a reference while the local observability stack is proven stable.
+
+Loki is currently exposed directly on port `3100` within the Home Lab. Network and authentication hardening remain future work.
 
 ---
 
 # Grafana
 
-The existing BirdNET dashboard export lives at:
+The BirdNET dashboard now exists in two repository variants:
 
-    grafana/Bird Home - Burbank.json
+```text
+grafana/Bird Home - Burbank Cloud.json
+grafana/Bird Home - Burbank Local.json
+```
 
-The next phase is to provision this dashboard into the local Home Lab Grafana deployment.
+`Bird Home - Burbank Cloud.json` is the original Grafana Cloud reference export.
+
+`Bird Home - Burbank Local.json` is the active Grafana OSS version. It keeps the existing dashboard design while using the local Home Lab datasources.
 
 Local Grafana is maintained separately in:
 
-    homelab-grafana
+```text
+homelab-grafana
+```
 
-The dashboard currently contains assumptions from the Grafana Cloud deployment.
+The local Grafana instance currently uses:
 
-Before treating the dashboard as fully portable, its datasource references and plugin dependencies need to be reviewed.
+- Loki for BirdNET operational logs and recent detection activity
+- Infinity for Open-Meteo current and forecast data
+- Prometheus for infrastructure metrics
+- PostgreSQL as a separate structured-data source for future historical analysis and prediction work
 
-In particular:
+The Bird Home dashboard itself remains primarily Loki-based. PostgreSQL is not intended to replace Loki in this operational dashboard.
 
-- Loki datasource references may need to change
-- datasource UIDs may differ
-- Infinity/Open-Meteo usage may need local plugin support
-- PostgreSQL can later be added as a historical datasource
+The local dashboard has been verified against the local Loki datasource and the required Infinity plugin is installed.
 
-The goal is to preserve the useful existing dashboard rather than manually rebuild it from scratch.
+The goal remains to preserve the useful existing dashboard rather than rebuild it from scratch.
 
 ---
 
@@ -582,44 +596,47 @@ This distinction should remain visible in future dashboard design.
 
 # Repository Structure
 
-    birdnetPi-monitoring/
-    │
-    ├── README.md
-    ├── AGENTS.md
-    ├── .gitignore
-    │
-    ├── alloy/
-    │   ├── config.alloy
-    │   └── default-alloy
-    │
-    ├── backup/
-    │   ├── backup_postgres.sh
-    │   └── backup_infra_postgres.sh
-    │
-    ├── collector/
-    │   └── import_detections.py
-    │
-    ├── database/
-    │   ├── README.md
-    │   └── schema.sql
-    │
-    ├── deploy/
-    │   └── ubuntu-infra/
-    │       ├── README.md
-    │       ├── postgres/
-    │       └── loki/
-    │
-    ├── docs/
-    │
-    ├── grafana/
-    │   └── Bird Home - Burbank.json
-    │
-    ├── systemd/
-    │
-    └── weather/
-        ├── weather.py
-        ├── forecast.py
-        └── requirements.txt
+```text
+birdnetPi-monitoring/
+|
+|-- README.md
+|-- AGENTS.md
+|-- .gitignore
+|
+|-- alloy/
+|   |-- config.alloy
+|   `-- default-alloy
+|
+|-- backup/
+|   |-- backup_postgres.sh
+|   `-- backup_infra_postgres.sh
+|
+|-- collector/
+|   `-- import_detections.py
+|
+|-- database/
+|   |-- README.md
+|   `-- schema.sql
+|
+|-- deploy/
+|   `-- ubuntu-infra/
+|       |-- README.md
+|       |-- postgres/
+|       `-- loki/
+|
+|-- docs/
+|
+|-- grafana/
+|   |-- Bird Home - Burbank Cloud.json
+|   `-- Bird Home - Burbank Local.json
+|
+|-- systemd/
+|
+`-- weather/
+    |-- weather.py
+    |-- forecast.py
+    `-- requirements.txt
+```
 
 ---
 
@@ -640,23 +657,21 @@ This distinction should remain visible in future dashboard design.
 - PostgreSQL access restriction
 - daily centralized PostgreSQL backups
 - systemd-based backup scheduling
+- local Loki deployment on `ubuntu-infra`
+- local Loki storage and health verification
+- BirdNET journal ingestion into local Loki
+- weather log ingestion into local Loki
+- local Loki datasource in Grafana OSS
+- Infinity datasource and Open-Meteo support
+- local Bird Home dashboard adaptation and verification
 
----
+## Transitional
 
-## Next
+Grafana Alloy currently writes operational logs to both Grafana Cloud Loki and local Loki.
 
-The next Home Lab migration phase is operational observability:
+This dual-write period is intentional. Grafana Cloud remains available as a reference while the local stack is observed over time.
 
-1. deploy Loki on `ubuntu-infra`
-2. verify Loki storage and health
-3. point BirdNET Alloy at local Loki
-4. verify BirdNET journal ingestion
-5. verify weather log ingestion
-6. add local Loki datasource to Grafana
-7. provision the existing BirdNET dashboard
-8. adapt datasource references where necessary
-9. verify dashboards over several days
-10. retire Grafana Cloud dependencies only after local operation is proven
+The next migration decision is to retire the Grafana Cloud Loki output only after local operation has been proven stable.
 
 ---
 
@@ -664,7 +679,6 @@ The next Home Lab migration phase is operational observability:
 
 ## Grafana
 
-- add PostgreSQL as a datasource
 - build long-term activity panels
 - correlate detections with weather
 - visualize forecast versus actual conditions
@@ -674,7 +688,6 @@ The next Home Lab migration phase is operational observability:
 
 ## Database
 
-- create a read-only Grafana PostgreSQL role
 - add database health monitoring
 - review long-term retention requirements
 - periodically test restore procedures

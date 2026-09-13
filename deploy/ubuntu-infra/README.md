@@ -12,7 +12,9 @@ The goal is to keep the BirdNET Raspberry Pi focused on sensing and collection w
 
 Current address:
 
-    192.168.1.136
+```text
+192.168.1.136
+```
 
 Responsibilities:
 
@@ -31,78 +33,75 @@ Responsibilities:
 
 Current address:
 
-    192.168.1.137
+```text
+192.168.1.137
+```
 
 Responsibilities:
 
-Current:
-
 - PostgreSQL
-
-Next:
-
 - Loki
-
-Related services already hosted on the VM:
-
 - Prometheus
-- Grafana
+- Grafana OSS
 
 Grafana is deployed through the separate:
 
-    homelab-grafana
+```text
+homelab-grafana
+```
 
 repository.
 
 ---
 
-# Target Architecture
+# Current Architecture
 
-    BirdNET Pi
-    │
-    ├── birds.db
-    │      │
-    │      ▼
-    │   import_detections.py
-    │      │
-    │      └────────────► PostgreSQL
-    │
-    ├── weather.py ─────► PostgreSQL
-    │
-    ├── forecast.py ────► PostgreSQL
-    │
-    └── Grafana Alloy
-           │
-           ▼
-          Loki
-           │
-           ▼
-        Grafana
+```text
+BirdNET Pi
+|
+|-- birds.db
+|    `-- import_detections.py ------> PostgreSQL
+|-- weather.py --------------------> PostgreSQL
+|-- forecast.py ------------------> PostgreSQL
+|
+`-- Grafana Alloy
+    |--> Grafana Cloud Loki
+    `--> Local Loki ---------------> Grafana OSS
 
-                ubuntu-infra
+ubuntu-infra
+|-- PostgreSQL
+|-- Loki
+|-- Prometheus
+`-- Grafana OSS
+```
 
 PostgreSQL is the structured historical datastore.
 
 Loki is the operational log datastore.
 
-Grafana visualizes both.
+Grafana Alloy currently dual-writes operational logs to Grafana Cloud Loki and the local Loki instance during validation.
+
+Grafana OSS uses Loki for the Bird Home operational dashboard. PostgreSQL is available separately for structured historical analysis and future prediction work.
 
 ---
 
 # Deployment Layout
 
-    deploy/ubuntu-infra/
-    │
-    ├── README.md
-    ├── postgres/
-    │   ├── compose.yaml
-    │   ├── .env.example
-    │   └── .env          # runtime only, ignored
-    │
-    └── loki/
-        └── ...
+```text
+deploy/ubuntu-infra/
+|
+|-- README.md
+|-- postgres/
+|   |-- compose.yaml
+|   |-- .env.example
+|   `-- .env          # runtime only, ignored
+|
+`-- loki/
+    |-- compose.yaml
+    `-- loki-config.yaml
+```
 
-The `loki` deployment is the next migration phase.
+PostgreSQL and Loki are both deployed on `ubuntu-infra`.
 
 ---
 
@@ -282,94 +281,130 @@ Example validation:
 
 ---
 
-# Loki Migration
+# Loki
 
 Status:
 
-    NEXT
+```text
+DEPLOYED
+```
 
-The current Alloy configuration still represents the previous Grafana Cloud logging architecture.
+Container:
 
-The target is:
+```text
+birdnet-loki
+```
 
-    BirdNET Pi Alloy
-           │
-           ▼
-    Loki on ubuntu-infra
-           │
-           ▼
-    local Grafana
+Image:
 
-Planned migration:
+```text
+grafana/loki:3.5.5
+```
 
-1. create local Loki configuration
-2. deploy Loki on `ubuntu-infra`
-3. verify `/ready`
-4. verify persistent storage
-5. confirm Loki survives container restart
-6. update Pi Alloy destination
-7. verify BirdNET journal ingestion
-8. verify weather JSONL ingestion
-9. add Loki datasource to local Grafana
-10. migrate/adapt the BirdNET dashboard
-11. observe the new path for several days
-12. retire Grafana Cloud only after confidence is established
+Published port:
 
-Historical Grafana Cloud Loki data does not necessarily need to be migrated.
+```text
+3100
+```
 
-The old Cloud deployment can remain available temporarily for historical reference while the local Loki database begins at cutover.
+Retention:
+
+```text
+30 days
+```
+
+Persistent storage:
+
+```text
+Docker named volume
+```
+
+Repository configuration:
+
+```text
+deploy/ubuntu-infra/loki/
+```
+
+Grafana Alloy on the BirdNET Pi currently sends operational logs to both Grafana Cloud Loki and local Loki on `ubuntu-infra`.
+
+The local path has been verified for:
+
+- BirdNET journal ingestion
+- parsed detection logs
+- weather JSONL ingestion
+- persistence across container restart
+- Grafana OSS queries
+
+The dual-write period is intentional. Grafana Cloud remains available as a reference while the local stack is observed over time.
+
+Historical Grafana Cloud Loki data is not being migrated into local Loki.
+
+Loki is currently exposed directly on port `3100` within the Home Lab. Network and authentication hardening remain future work.
 
 ---
 
-# Grafana Migration
+# Grafana Integration
 
 Grafana itself is not deployed from this repository.
 
-Local Grafana lives in the Home Lab Grafana project.
+Local Grafana lives in the separate:
+
+```text
+homelab-grafana
+```
+
+repository.
 
 The BirdNET repository owns:
 
-- BirdNET dashboard export
+- BirdNET dashboard exports
 - BirdNET-specific datasource expectations
 - BirdNET data architecture
 
 The Grafana repository owns:
 
 - Grafana container deployment
-- Grafana provisioning
-- global datasource provisioning
-- local dashboard loading
+- global datasource configuration
+- plugin installation
+- local dashboard operation
 
-The existing dashboard export is:
+The BirdNET dashboard exports are:
 
-    grafana/Bird Home - Burbank.json
+```text
+grafana/Bird Home - Burbank Cloud.json
+grafana/Bird Home - Burbank Local.json
+```
 
-Before copying it directly into local provisioning, inspect:
+`Bird Home - Burbank Cloud.json` is the original Grafana Cloud reference export.
 
-- datasource UIDs
-- Loki datasource references
-- Infinity datasource/plugin requirements
-- Grafana Cloud assumptions
-- direct Open-Meteo calls
+`Bird Home - Burbank Local.json` is the active Grafana OSS version.
 
-The objective is to adapt the existing dashboard rather than recreate it manually.
+The local Grafana instance currently uses:
 
----
+- Loki for BirdNET operational logs and recent detection activity
+- Infinity for Open-Meteo current and forecast data
+- Prometheus for infrastructure metrics
+- PostgreSQL for structured historical data and future analysis
 
-# Planned PostgreSQL + Grafana Integration
-
-After local Loki/Grafana migration is stable:
-
-1. create a read-only PostgreSQL role
-2. add PostgreSQL datasource to Grafana
-3. add historical panels
-4. build bird/weather correlation views
-5. add forecast-versus-observation analysis
-
-The ingestion role should not be reused as the Grafana query role.
+The Bird Home dashboard remains primarily Loki-based. PostgreSQL is not intended to replace Loki in this operational dashboard.
 
 ---
 
+# PostgreSQL + Grafana Integration
+
+A dedicated read-only Grafana role is already configured for PostgreSQL.
+
+Grafana can query the `birdnet` database without reusing the BirdNET ingestion role.
+
+PostgreSQL is reserved for structured historical and analytical work such as:
+
+- long-term activity analysis
+- bird and weather correlations
+- forecast-versus-observation analysis
+- seasonal patterns
+- future prediction work
+
+---
 # Prometheus Integration
 
 Prometheus already runs on `ubuntu-infra`.
@@ -385,7 +420,7 @@ Future BirdNET infrastructure monitoring can include:
 - database growth
 - ingestion freshness
 
-This is useful, but it should follow the successful Loki/Grafana migration rather than block it.
+These are future observability improvements and are not required for the current BirdNET data path.
 
 ---
 
@@ -444,18 +479,26 @@ A replacement `ubuntu-infra` VM should eventually be rebuildable without reconst
 - centralized database backup script
 - daily backup systemd service
 - daily backup systemd timer
-
-## Next
-
-- Loki deployment
-- Alloy local Loki cutover
+- local Loki deployment
+- local Loki storage and health verification
+- BirdNET journal ingestion into local Loki
+- weather JSONL ingestion into local Loki
 - local Grafana Loki datasource
-- BirdNET dashboard migration
+- Infinity datasource and Open-Meteo support
+- Bird Home local dashboard adaptation and verification
+- read-only Grafana PostgreSQL role
+- Grafana PostgreSQL datasource
+
+## Transitional
+
+Grafana Alloy currently writes operational logs to both Grafana Cloud Loki and local Loki.
+
+This dual-write period is intentional. Grafana Cloud remains available as a reference while the local stack is observed over time.
+
+Retire the Grafana Cloud Loki output only after local operation has been proven stable.
 
 ## Later
 
-- Grafana PostgreSQL datasource
-- read-only Grafana database role
 - PostgreSQL metrics
 - Loki metrics
 - off-host PostgreSQL backups
