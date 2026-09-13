@@ -1,0 +1,9 @@
+[Unit]
+Description=Backup BirdNET PostgreSQL database
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=infra
+ExecStart=/opt/birdnetpi-monitoring/backup/backup_infra_postgres.sh

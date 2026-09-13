@@ -1,219 +1,280 @@
 # BirdNET-Pi Monitoring
 
-A reproducible observability and long-term data platform for a BirdNET-Pi station.
+A reproducible monitoring and long-term data platform built around a BirdNET-Pi station.
 
-This project surrounds BirdNET-Pi with a small monitoring and data infrastructure built from:
+BirdNET itself remains responsible for listening to the microphone and identifying birds. This repository surrounds that station with the infrastructure needed to collect, preserve, visualize, and eventually analyze the resulting data.
 
-- Grafana Alloy
-- Grafana Cloud Loki
+The project combines:
+
+- BirdNET-Pi
 - PostgreSQL
+- Grafana Alloy
+- Loki
+- Grafana
 - Open-Meteo
 - Python
+- Docker
 - systemd
 
-BirdNET remains responsible for listening to the microphone and identifying birds. This repository does not replace BirdNET and does not contain the BirdNET application itself.
+The main goal is not simply to build another BirdNET dashboard.
 
-Instead, it answers a different set of questions:
-
-- What is BirdNET detecting right now?
-- Is the station healthy?
-- What were the weather conditions when birds were active?
-- How has bird activity changed over weeks, months, and seasons?
-- Can historical bird and weather data eventually predict future activity?
-
-The design deliberately separates **operational observability** from **long-term structured data**.
-
-That distinction is the key to understanding the entire project.
+The longer-term goal is to create a durable dataset that connects bird activity with environmental conditions and can eventually support historical analysis and prediction.
 
 ---
 
-## 1. The Big Picture
+## What This Project Answers
 
-There are two parallel data paths.
+Today the system can help answer questions such as:
 
-### Operational path
+- What birds are being detected right now?
+- Is the BirdNET station still running normally?
+- What were the weather conditions during a detection?
+- How does activity change over days, weeks, months, and seasons?
+- How accurate were weather forecasts compared with what actually happened?
+- Which conditions appear to increase or reduce activity?
 
-BirdNET and weather events are sent to Grafana Cloud for recent monitoring and visualization.
+Longer term, the same dataset can support questions such as:
 
-    BirdNET journal ──► Grafana Alloy ──► Grafana Cloud Loki ──► Grafana
-
-    Weather JSONL ────► Grafana Alloy ──► Grafana Cloud Loki ──► Grafana
-
-This path answers questions such as:
-
-> Is BirdNET running?
-
-> What birds were detected recently?
-
-> What weather data is arriving?
-
-> Are logs still reaching Grafana Cloud?
-
-### Historical data path
-
-Structured bird detections and weather observations are stored permanently in PostgreSQL.
-
-    BirdNET birds.db
-          │
-          ▼
-    import_detections.py
-          │
-          ▼
-      PostgreSQL
-       detections
-
-
-       Open-Meteo
-          │
-          ▼
-       weather.py
-          │
-          ▼
-      PostgreSQL
-    weather_observations
-
-This path answers questions such as:
-
-> How many House Finches were detected last month?
-
-> Does Black Phoebe activity increase after sunrise?
-
-> Does wind speed reduce detection activity?
-
-> Which weather conditions correlate with the greatest number of detections?
-
-> Can tomorrow's weather be used to predict bird activity?
-
-The long-term goal is therefore:
-
-    BirdNET + Weather
-           │
-           ▼
-       PostgreSQL
-           │
-           ▼
-    Historical Analysis
-           │
-           ▼
-    Prediction / ML
+- Which species are most likely to appear tomorrow morning?
+- Does recent weather improve prediction beyond season and time of day?
+- Does wind, precipitation, temperature, or cloud cover affect detection activity?
+- Can forecast weather be used to predict likely bird activity before it occurs?
 
 ---
 
-# 2. Why Both Loki and PostgreSQL?
+# Architecture
 
-At first glance it may seem redundant to store some information twice.
+The system deliberately separates three different kinds of data.
 
-It is intentional.
+## 1. BirdNET source data
 
-## Grafana Cloud Loki
-
-Loki is the **observability system**.
-
-It stores logs and makes them easy to search and visualize in Grafana.
-
-Examples:
-
-- BirdNET journal messages
-- parsed species labels
-- confidence information
-- weather JSON
-- service activity
-
-Loki is excellent for questions about what the system has been doing recently.
-
-Think:
-
-    "What did the system say?"
-
-## PostgreSQL
-
-PostgreSQL is the **historical dataset**.
-
-It stores normalized records that can be queried with SQL and later consumed by data-analysis or machine-learning tools.
-
-Think:
-
-    "What do we know?"
-
-PostgreSQL is intended to accumulate months and eventually years of:
-
-- bird detections
-- weather observations
-- future weather forecasts
-
-The database is therefore much more than another log destination.
-
-It is the foundation of the future bird-activity model.
-
----
-
-# 3. Data Sources
-
-The system currently has three important sources of information.
-
-## BirdNET journal
-
-BirdNET's analysis service writes events into the systemd journal:
-
-    birdnet_analysis.service
-
-Grafana Alloy reads these messages directly from the journal.
-
-For BirdNET detection messages, Alloy extracts:
-
-- common species name
-- Latin species name
-- confidence
-- confidence interval
-
-These fields become Loki labels and can be used in Grafana queries.
-
-This is the fast operational path.
-
----
-
-## BirdNET SQLite database
-
-BirdNET also maintains its own SQLite database:
+BirdNET owns its native SQLite database:
 
     ~/BirdNET-Pi/scripts/birds.db
 
-This database is the authoritative structured source for completed BirdNET detections.
+This remains the authoritative BirdNET source for completed detections.
 
-It contains information such as:
-
-- date
-- time
-- common species name
-- scientific species name
-- confidence
-- latitude
-- longitude
-- cutoff
-- week
-- sensitivity
-- overlap
-- source recording filename
-
-Rather than attempting to reconstruct permanent detection history from logs, this project imports the native BirdNET records into PostgreSQL.
-
-That job belongs to:
-
-    collector/import_detections.py
-
-This is the durable historical path.
+The monitoring project does not modify this database.
 
 ---
 
-## Open-Meteo
+## 2. Structured historical data
 
-Weather information comes from the Open-Meteo API.
+PostgreSQL stores durable, normalized records for analysis.
 
-The collector is:
+Current PostgreSQL tables:
+
+    detections
+    weather_observations
+    weather_forecasts
+
+PostgreSQL answers questions about what the system knows historically.
+
+Think:
+
+    What do we know?
+
+---
+
+## 3. Operational observability
+
+Grafana Alloy collects logs and operational events.
+
+Loki stores those events for Grafana.
+
+This path answers questions about what the system is doing.
+
+Think:
+
+    What is happening?
+
+Keeping PostgreSQL and Loki separate is intentional.
+
+Loki is not the historical analytical database, and PostgreSQL is not intended to replace operational logging.
+
+---
+
+# Home Lab Architecture
+
+The project is moving from a mostly Pi-local / Grafana Cloud design to a small centralized Home Lab architecture.
+
+The PostgreSQL portion of this architecture is already live. Loki and the local Grafana data path are the current migration phase.
+
+Target layout:
+
+    BirdNET Raspberry Pi
+    │
+    ├── microphone / audio
+    ├── BirdNET analysis
+    ├── birds.db
+    │
+    ├── import_detections.py
+    │       │
+    │       └──────────────► PostgreSQL
+    │
+    ├── weather.py
+    │       │
+    │       └──────────────► PostgreSQL
+    │
+    ├── forecast.py
+    │       │
+    │       └──────────────► PostgreSQL
+    │
+    └── Grafana Alloy
+            │
+            └──────────────► Loki
+                               │
+                               ▼
+                            Grafana
+
+                              ▲
+                              │
+                       ubuntu-infra
+                       192.168.1.137
+
+The BirdNET Pi currently uses:
+
+    192.168.1.136
+
+The infrastructure VM currently uses:
+
+    192.168.1.137
+
+These addresses describe the current Home Lab deployment and should not be treated as universal configuration defaults.
+
+---
+
+# Responsibilities
+
+## BirdNET Pi
+
+The Raspberry Pi remains the edge device.
+
+It owns:
+
+- microphone capture
+- BirdNET analysis
+- BirdNET's native SQLite database
+- detection synchronization
+- weather collection
+- weather forecast collection
+- Grafana Alloy
+- local operational logs
+
+Keeping these responsibilities on the Pi means BirdNET can continue collecting data close to the source even as the centralized infrastructure evolves.
+
+---
+
+## ubuntu-infra
+
+The Ubuntu infrastructure VM provides centralized services.
+
+Current:
+
+- PostgreSQL
+
+Being migrated next:
+
+- Loki
+
+Related Home Lab services already running on the VM include:
+
+- Prometheus
+- Grafana
+
+Grafana itself is managed through the separate:
+
+    homelab-grafana
+
+repository.
+
+This separation keeps the BirdNET repository focused on BirdNET-specific data collection and infrastructure rather than owning the entire Home Lab monitoring stack.
+
+---
+
+# Bird Detection Data Path
+
+BirdNET maintains:
+
+    ~/BirdNET-Pi/scripts/birds.db
+
+The synchronization path is:
+
+    birds.db
+       │
+       ▼
+    birdnet-db-sync.timer
+       │
+       ▼
+    birdnet-db-sync.service
+       │
+       ▼
+    collector/import_detections.py
+       │
+       ▼
+    PostgreSQL
+       │
+       ▼
+    detections
+
+The synchronization runs approximately once per minute.
+
+---
+
+## Incremental synchronization
+
+The importer does not repeatedly scan the full BirdNET history.
+
+It stores the last processed SQLite row ID in:
+
+    ~/.local/state/birdnet-db-sync/last_rowid
+
+On subsequent runs, only newer source rows are processed.
+
+This keeps the synchronization lightweight even as the historical dataset grows.
+
+---
+
+## Transaction safety
+
+Synchronization state advances only after the PostgreSQL transaction succeeds.
+
+Conceptually:
+
+    read new BirdNET rows
+            │
+            ▼
+    write PostgreSQL rows
+            │
+            ▼
+       commit succeeds
+            │
+            ▼
+      update last_rowid
+
+If PostgreSQL is unavailable, the state does not advance and the next run can retry the same source records.
+
+---
+
+## SQLite rebuild protection
+
+BirdNET may eventually recreate its SQLite database.
+
+If the current SQLite maximum row ID becomes lower than the synchronization state, the importer assumes that the source database was rebuilt and starts scanning again from row zero.
+
+PostgreSQL uniqueness constraints protect existing historical records from accidental duplication.
+
+---
+
+# Weather Observations
+
+Current weather is collected from Open-Meteo by:
 
     weather/weather.py
 
-The station currently requests:
+The service currently collects approximately every 15 minutes.
+
+Collected fields include:
 
 - temperature
 - dew point
@@ -229,336 +290,26 @@ The station currently requests:
 - sunrise
 - sunset
 
-Temperature is requested in Fahrenheit and wind speed in mph.
-
-The station timezone is explicitly configured as:
+The station timezone is:
 
     America/Los_Angeles
 
-The station location is currently configured directly in `weather.py`.
+Weather observations are stored in:
 
-When deploying the repository to another location, review:
+    weather_observations
 
-    LATITUDE
-    LONGITUDE
-    STATION_TIMEZONE_NAME
-
----
-
-# 4. Bird Detection Synchronization
-
-BirdNET's SQLite database and the PostgreSQL database have different jobs.
-
-BirdNET owns:
-
-    ~/BirdNET-Pi/scripts/birds.db
-
-This project owns the PostgreSQL copy used for long-term analysis.
-
-The synchronization path is:
-
-    birds.db
-       │
-       ▼
-    birdnet-db-sync.timer
-       │
-       ▼
-    birdnet-db-sync.service
-       │
-       ▼
-    import_detections.py
-       │
-       ▼
-    PostgreSQL detections
-
-The timer runs approximately once per minute.
-
----
-
-## Incremental synchronization
-
-The importer does not scan the entire BirdNET database every minute.
-
-SQLite provides an internal `rowid` for each source record.
-
-The importer remembers the last processed row using:
-
-    ~/.local/state/birdnet-db-sync/last_rowid
-
-For example:
-
-    1200
-
-On the next run it asks SQLite only for records where:
-
-    rowid > 1200
-
-This makes normal synchronization extremely small and inexpensive.
-
-A typical run with no new detections looks like:
-
-    Processed 0 detections, imported 0 new detections, last_rowid=1200
-
----
-
-## Transaction safety
-
-The synchronization state is advanced only after the PostgreSQL transaction succeeds.
-
-Conceptually:
-
-    read new SQLite rows
-           │
-           ▼
-    insert into PostgreSQL
-           │
-           ▼
-    PostgreSQL commit succeeds
-           │
-           ▼
-    update last_rowid
-
-If the PostgreSQL operation fails, the state file is not advanced.
-
-The next synchronization can therefore retry those rows.
-
-The state file itself is also replaced atomically rather than rewritten in place.
-
----
-
-## BirdNET database rebuild protection
-
-There is another important edge case.
-
-If BirdNET is reinstalled or its SQLite database is recreated, SQLite row numbers may start again at a lower value.
-
-Imagine the importer remembers:
-
-    last_rowid = 1200
-
-but a newly created BirdNET database contains:
-
-    MAX(rowid) = 25
-
-Without protection, the importer would wait forever for row 1201.
-
-The importer therefore compares the current SQLite maximum with its stored state.
-
-If:
-
-    source MAX(rowid) < stored last_rowid
-
-it assumes the source database has been reset and begins synchronization again from row 0.
-
-PostgreSQL's detection uniqueness rule protects already-existing historical detections from being inserted again.
-
----
-
-## Detection identity
-
-PostgreSQL considers a detection unique using:
-
-    station_id
-    detected_at
-    species_latin
-    file_name
-
-The corresponding unique index prevents accidental duplicate historical detections.
-
-Each imported detection also stores:
-
-    source_rowid
-
-This provides traceability back to the original BirdNET SQLite record.
-
-`source_rowid` itself is deliberately not globally unique because BirdNET may recreate its SQLite database and reuse row numbers.
-
----
-
-# 5. Weather Collection
-
-The weather service runs continuously:
-
-    weather.service
-
-Its application is deployed at:
-
-    /home/birduser/weather/weather.py
-
-The source-controlled copy lives at:
-
-    weather/weather.py
-
-The service waits:
-
-    900 seconds
-
-between collections, which is approximately 15 minutes.
-
----
-
-## Weather request
-
-The collector requests current conditions and daily sunrise/sunset information from Open-Meteo.
-
-The HTTP client includes retries for temporary failures such as:
-
-    HTTP 429
-    HTTP 500
-    HTTP 502
-    HTTP 503
-    HTTP 504
-
-Connection and request timeouts prevent a failed API request from hanging the collector indefinitely.
-
-The response is validated before it is accepted.
-
-Required weather fields must be present before the observation is written.
-
-This prevents an incomplete API response from silently becoming a malformed historical record.
-
----
-
-## Observation time versus collection time
-
-Two timestamps have different meanings.
-
-Open-Meteo supplies:
-
-    time
-
-This is the weather observation timestamp.
-
-The collector additionally creates:
-
-    logged_at
-
-This is the time the Raspberry Pi retrieved the observation.
-
-PostgreSQL uses the Open-Meteo observation time as:
-
-    weather_observations.observed_at
-
-This distinction matters later when correlating weather with bird detections.
-
----
-
-## Weather duplicate protection
-
-Open-Meteo can return the same current observation more than once.
-
-This happens naturally if the weather service is restarted before Open-Meteo advances to its next observation.
-
-PostgreSQL therefore enforces uniqueness on:
-
-    station_id
-    observed_at
-
-The insert uses:
-
-    ON CONFLICT ... DO NOTHING
-
-A restart during the same weather interval therefore does not create another historical observation.
-
----
-
-## Weather JSON and Loki
-
-Weather is also written as JSON Lines to:
+The collector also writes operational JSONL data to:
 
     /var/log/weather/weather.log
 
-Each line contains one weather observation.
+This gives the weather data two useful paths:
 
-Grafana Alloy tails this file and forwards the records to Grafana Cloud Loki.
-
-To avoid generating duplicate Loki events after service restarts, JSON is normally written only when PostgreSQL identifies the observation as new.
-
-If PostgreSQL itself is unavailable, the weather collector still attempts to write the JSON record.
-
-This preserves the operational weather path even during a database problem.
-
-A normal successful collection looks similar to:
-
-    Weather collected (new=True, log_written=True, database=True)
-
-A repeated Open-Meteo observation may look like:
-
-    Weather collected (new=False, log_written=False, database=True)
+    structured history -> PostgreSQL
+    operational events -> Alloy / Loki
 
 ---
 
-# 6. PostgreSQL
-
-PostgreSQL is the permanent structured datastore for this project.
-
-Current database:
-
-    birdnet
-
-Current application role:
-
-    birdnet
-
-The schema is stored in:
-
-    database/schema.sql
-
----
-
-## Tables
-
-### detections
-
-Stores the historical BirdNET detection dataset.
-
-Important fields include:
-
-    detected_at
-    station_id
-    species
-    species_latin
-    confidence
-    latitude
-    longitude
-    cutoff
-    week
-    sensitivity
-    overlap
-    file_name
-    source_rowid
-
----
-
-### weather_observations
-
-Stores actual observed weather conditions.
-
-Important fields include:
-
-    observed_at
-    station_id
-    temperature_f
-    dew_point_f
-    relative_humidity_pct
-    pressure_msl_hpa
-    precipitation_in
-    cloud_cover_pct
-    wind_speed_mph
-    wind_gusts_mph
-    wind_direction_deg
-    weather_code
-    is_day
-    sunrise
-    sunset
-
-These observations can eventually be joined with BirdNET detections by timestamp.
-
----
-
-### weather_forecasts
-
-The `weather_forecasts` table stores historical snapshots of Open-Meteo hourly forecasts.
+# Weather Forecast History
 
 Forecast collection is handled by:
 
@@ -567,1019 +318,491 @@ Forecast collection is handled by:
 and scheduled through:
 
     birdnet-forecast.timer
-        |
-        v
+        │
+        ▼
     birdnet-forecast.service
-        |
-        v
+        │
+        ▼
     weather/forecast.py
-        |
-        v
+        │
+        ▼
     PostgreSQL weather_forecasts
 
-The collector currently runs once per hour and requests a 48-hour hourly forecast.
+The collector stores snapshots of future weather forecasts.
 
-Each stored row contains two important timestamps:
+Each record distinguishes between:
 
     forecast_created_at
+
+and:
+
     forecast_for
 
-`forecast_created_at` identifies when the forecast snapshot was collected.
+This is important.
 
-`forecast_for` identifies the future hour being predicted.
+A prediction for tomorrow at 08:00 may appear in multiple forecast snapshots because the forecast changes as tomorrow approaches.
 
-This means the same future hour can intentionally appear in many forecast snapshots.
+Those records are intentionally preserved.
 
-For example:
+This makes it possible to study:
 
-    22:00 snapshot -> forecast for tomorrow 08:00
-    23:00 snapshot -> forecast for tomorrow 08:00
-    00:00 snapshot -> forecast for tomorrow 08:00
-
-Those rows are not duplicates. They represent how the forecast for the same future hour changed as time progressed.
-
-The table stores fields including:
-
-- forecast creation time
-- forecast target time
-- temperature
-- dew point
-- humidity
-- precipitation probability
-- precipitation
-- cloud cover
-- wind speed
-- wind gusts
-- wind direction
-- pressure
-- UV index
-- weather code
-
-This historical forecast archive will later make it possible to compare forecasts with actual observations and to build bird-activity predictions using only information that was genuinely available at prediction time.
+- how forecasts change over time
+- how forecasts compare with observations
+- which forecast horizon is most useful
+- bird activity predictions using only information that was actually available at prediction time
 
 ---
 
-# 7. Database Backups
+# PostgreSQL
 
-PostgreSQL contains the long-term dataset, so it must be protected independently of Git.
+PostgreSQL is now centralized on `ubuntu-infra`.
 
-Git stores:
+Deployment:
 
-- source code
-- configuration
-- systemd definitions
-- schema
+    deploy/ubuntu-infra/postgres/
 
-Git does **not** store the database contents.
+Container:
 
-A daily backup system therefore creates PostgreSQL custom-format dumps.
+    birdnet-postgres
+
+Database:
+
+    birdnet
+
+Application role:
+
+    birdnet
+
+Schema:
+
+    database/schema.sql
+
+The Pi no longer relies on its local PostgreSQL instance for active ingestion.
+
+The existing Pi PostgreSQL installation is being retained temporarily as a migration fallback.
+
+---
+
+## Portable database configuration
+
+The Python collectors do not hard-code the production database host or password.
+
+They read:
+
+    BIRDNET_DB_HOST
+    BIRDNET_DB_NAME
+    BIRDNET_DB_USER
+    BIRDNET_DB_PASSWORD
+
+The current Pi loads these from:
+
+    ~/.config/birdnet-monitoring/db.env
+
+The real environment file is runtime configuration and must not be committed.
+
+If the environment variables are not provided, the applications retain local defaults where appropriate.
+
+---
+
+# PostgreSQL Migration
+
+Historical PostgreSQL data was migrated from the BirdNET Pi to `ubuntu-infra` using a PostgreSQL custom-format dump.
+
+The migration was validated by comparing source and destination row counts.
+
+Migration baseline:
+
+    detections              7886
+    weather_observations    1573
+    weather_forecasts      17712
+
+After the cutover, new detections and weather observations were confirmed to arrive in the centralized PostgreSQL instance.
+
+The baseline numbers above are migration reference values, not expected current totals.
+
+---
+
+# PostgreSQL Network Access
+
+The PostgreSQL container publishes TCP port:
+
+    5432
+
+Remote PostgreSQL authentication is currently restricted to the BirdNET Pi:
+
+    192.168.1.136/32
+
+The goal is to allow the edge collector to reach PostgreSQL without making the database generally available to the rest of the LAN.
+
+Do not broaden PostgreSQL access without a reason.
+
+---
+
+# PostgreSQL Backups
+
+The centralized database is backed up independently of Docker volumes and Git.
 
 Backup script:
 
-    backup/backup_postgres.sh
+    backup/backup_infra_postgres.sh
 
-Runtime backup directory:
+Runtime backup location:
 
-    ~/backups/postgresql
+    /var/backups/birdnet-postgres
 
-Example:
+Backup format:
 
-    birdnet_2026-08-28_21-58-34.dump
+    PostgreSQL custom archive
 
-The backup uses PostgreSQL's custom archive format:
+The current systemd units are:
 
-    pg_dump --format=custom
+    birdnet-postgres-backup.service
+    birdnet-postgres-backup.timer
 
-This format can be inspected and restored using:
+The timer runs daily at:
 
-    pg_restore
+    03:15 America/Los_Angeles
 
----
-
-## Backup schedule
-
-The systemd timer is:
-
-    birdnet-db-backup.timer
-
-The job runs daily.
-
-A randomized delay of up to 15 minutes avoids requiring an exact midnight execution time.
-
-The timer is persistent, so systemd can catch up after downtime.
-
-The backup service itself is:
-
-    birdnet-db-backup.service
-
-It is a `Type=oneshot` service.
-
-Therefore this is normal after a successful backup:
-
-    inactive (dead)
-
-The timer, not the service, should remain active.
-
----
-
-## Retention
-
-The backup script currently retains approximately:
+Current retention:
 
     14 days
 
-of local PostgreSQL dumps.
+The timer is persistent, allowing systemd to catch up after downtime.
 
-Older matching dump files are automatically removed.
+Git contains the backup logic and service definitions.
+
+Git does not contain database dumps.
 
 ---
 
-## What local backups protect against
+## Backup limitations
 
-These dumps provide protection against problems such as:
+These backups currently remain on `ubuntu-infra`.
 
-- accidental database changes
-- damaged tables
+They protect against:
+
+- accidental data changes
+- database corruption
 - application mistakes
-- needing to restore an earlier database state
+- failed migrations
+- needing an earlier logical database state
 
-They do **not** provide full disaster protection while they remain on the same Raspberry Pi.
+They do not yet provide complete disaster recovery if the infrastructure VM or its underlying storage is lost.
 
-If the SD card fails completely, both PostgreSQL and the local dumps could be lost.
-
-A future improvement should therefore replicate these backups to another system such as:
-
-- a NUC
-- NAS
-- another Linux server
-- remote backup storage
+A future improvement is to replicate backups to separate physical storage.
 
 ---
 
-# 8. Grafana Alloy
+# Operational Logging and Loki
 
-Grafana Alloy provides the operational log pipeline.
+Grafana Alloy runs on the BirdNET Pi.
 
-It currently ingests two sources.
+It currently collects:
 
-## BirdNET journal
+- BirdNET systemd journal events
+- parsed BirdNET detection logs
+- weather JSONL logs
 
-Alloy reads the systemd journal and identifies messages from:
+Historically these logs were sent to Grafana Cloud Loki.
 
-    birdnet_analysis.service
+The current migration phase is moving this operational path to a local Loki instance on `ubuntu-infra`.
 
-For detection messages it extracts:
+Target:
 
-    species
-    species_latin
-    confidence
+    BirdNET Pi
+        │
+        ▼
+    Grafana Alloy
+        │
+        ▼
+    Loki on ubuntu-infra
+        │
+        ▼
+    Grafana
 
-It also generates confidence interval labels.
-
-The resulting logs are forwarded to Grafana Cloud Loki.
-
----
-
-## Weather JSONL
-
-Alloy watches:
-
-    /var/log/weather/weather.log
-
-with the Loki label:
-
-    job = "weather"
-
-These records are forwarded to the same Grafana Cloud Loki destination.
+The existing Grafana Cloud configuration should remain available until the local path has been verified.
 
 ---
 
-## Alloy configuration
+# Grafana
 
-Repository copies:
-
-    alloy/config.alloy
-    alloy/default-alloy
-
-Runtime locations:
-
-    /etc/alloy/config.alloy
-    /etc/default/alloy
-
-Alloy runtime state:
-
-    /var/lib/alloy/data
-
-The runtime state contains information such as file-tail positions.
-
-It should normally be recreated after a fresh installation rather than restored from Git.
-
----
-
-# 9. Grafana
-
-The exported dashboard is stored at:
+The existing BirdNET dashboard export lives at:
 
     grafana/Bird Home - Burbank.json
 
-It visualizes the operational Loki data.
+The next phase is to provision this dashboard into the local Home Lab Grafana deployment.
 
-The dashboard currently depends on the Grafana Cloud Loki datasource used by the station.
+Local Grafana is maintained separately in:
 
-If a rebuilt Grafana environment receives a different datasource UID or name, some panels may need to be pointed to the new datasource.
+    homelab-grafana
 
-The dashboard export does not intentionally contain Grafana Cloud authentication credentials.
+The dashboard currently contains assumptions from the Grafana Cloud deployment.
 
-Long-term PostgreSQL visualization is a future phase.
+Before treating the dashboard as fully portable, its datasource references and plugin dependencies need to be reviewed.
+
+In particular:
+
+- Loki datasource references may need to change
+- datasource UIDs may differ
+- Infinity/Open-Meteo usage may need local plugin support
+- PostgreSQL can later be added as a historical datasource
+
+The goal is to preserve the useful existing dashboard rather than manually rebuild it from scratch.
 
 ---
 
-# 10. Repository Structure
+# Why Grafana and PostgreSQL Both Matter
+
+The dashboard ultimately has two complementary jobs.
+
+## Operational view
+
+From Loki:
+
+- current BirdNET logs
+- recent detections
+- service activity
+- weather logging
+- troubleshooting information
+
+## Historical view
+
+From PostgreSQL:
+
+- long time-range detection statistics
+- species trends
+- weather correlations
+- forecast accuracy
+- seasonal patterns
+- future prediction inputs
+
+This distinction should remain visible in future dashboard design.
+
+---
+
+# Repository Structure
 
     birdnetPi-monitoring/
+    │
+    ├── README.md
+    ├── AGENTS.md
+    ├── .gitignore
     │
     ├── alloy/
     │   ├── config.alloy
     │   └── default-alloy
     │
     ├── backup/
-    │   └── backup_postgres.sh
+    │   ├── backup_postgres.sh
+    │   └── backup_infra_postgres.sh
     │
     ├── collector/
     │   └── import_detections.py
     │
     ├── database/
-    │   ├── schema.sql
-    │   └── README.md
+    │   ├── README.md
+    │   └── schema.sql
+    │
+    ├── deploy/
+    │   └── ubuntu-infra/
+    │       ├── README.md
+    │       ├── postgres/
+    │       └── loki/
     │
     ├── docs/
-    │   ├── alloy-setup.md
-    │   ├── weather-setup.md
-    │   ├── alloy-version.txt
-    │   └── package-version.txt
     │
     ├── grafana/
     │   └── Bird Home - Burbank.json
     │
     ├── systemd/
-    │   ├── alloy.service.txt
-    │   ├── birdnet-db-backup.service
-    │   ├── birdnet-db-backup.timer
-    │   ├── birdnet-db-sync.service
-    │   ├── birdnet-forecast.service
-    │   ├── birdnet-forecast.timer
-    │   ├── birdnet-db-sync.timer
-    │   └── weather.service
     │
-    ├── weather/
-    │   ├── forecast.py
-    │   ├── weather.py
-    │   └── requirements.txt
-    │
-    ├── .gitignore
-    └── README.md
-
-The repository contains the reproducible infrastructure around BirdNET.
-
-It intentionally does not contain BirdNET itself or live runtime data.
+    └── weather/
+        ├── weather.py
+        ├── forecast.py
+        └── requirements.txt
 
 ---
 
-# 11. Fresh Installation / Disaster Recovery
+# Current Migration Status
 
-The recommended recovery order is:
+## Completed
 
-1. Install and verify BirdNET-Pi
-2. Clone this repository
-3. Install PostgreSQL
-4. Create the database and schema
-5. Configure PostgreSQL authentication
-6. Restore the weather collector
-7. Restore BirdNET-to-PostgreSQL synchronization
-8. Restore automated database backups
-9. Restore weather forecast collection
-10. Install Grafana Alloy
-11. Restore Alloy configuration and credentials
-12. Import the Grafana dashboard
-13. Verify every data path
-
-BirdNET should be working before this monitoring layer is restored.
+- BirdNET structured detection synchronization
+- weather observation collection
+- historical weather forecast collection
+- PostgreSQL schema
+- Pi-local PostgreSQL historical dataset
+- centralized PostgreSQL deployment on `ubuntu-infra`
+- historical database migration
+- remote detection ingestion
+- remote weather ingestion
+- remote forecast configuration
+- PostgreSQL access restriction
+- daily centralized PostgreSQL backups
+- systemd-based backup scheduling
 
 ---
 
-## Step 1 — Install BirdNET-Pi
+## Next
 
-Install BirdNET from the appropriate upstream project.
+The next Home Lab migration phase is operational observability:
 
-Before continuing, verify that BirdNET is detecting normally and that its database exists:
-
-    ls -lh ~/BirdNET-Pi/scripts/birds.db
-
-Also verify the analysis service:
-
-    systemctl status birdnet_analysis.service --no-pager
-
-This repository assumes that BirdNET itself is already functional.
-
----
-
-## Step 2 — Clone this repository
-
-Using SSH:
-
-    cd ~
-    git clone git@github.com:mbuer/birdnetPi-monitoring.git
-    cd birdnetPi-monitoring
-
-HTTPS may also be used when GitHub SSH authentication has not been configured.
+1. deploy Loki on `ubuntu-infra`
+2. verify Loki storage and health
+3. point BirdNET Alloy at local Loki
+4. verify BirdNET journal ingestion
+5. verify weather log ingestion
+6. add local Loki datasource to Grafana
+7. provision the existing BirdNET dashboard
+8. adapt datasource references where necessary
+9. verify dashboards over several days
+10. retire Grafana Cloud dependencies only after local operation is proven
 
 ---
 
-## Step 3 — Install PostgreSQL
-
-Install PostgreSQL and the Python PostgreSQL driver:
-
-    sudo apt update
-    sudo apt install -y postgresql python3-psycopg
-
-Verify PostgreSQL:
-
-    pg_isready
-
----
-
-## Step 4 — Create the database
-
-Open PostgreSQL as the administrative user:
-
-    sudo -u postgres psql
-
-Create the application role:
-
-    CREATE USER birdnet WITH PASSWORD 'YOUR_PASSWORD';
-
-Create the database:
-
-    CREATE DATABASE birdnet OWNER birdnet;
-
-Exit:
-
-    \q
-
-Apply the repository schema:
-
-    psql -h localhost -U birdnet -d birdnet -f database/schema.sql
-
-Expected tables:
-
-    detections
-    weather_observations
-    weather_forecasts
-
----
-
-## Step 5 — Configure PostgreSQL authentication
-
-The Python applications do not contain the PostgreSQL password.
-
-Create:
-
-    ~/.pgpass
-
-with:
-
-    localhost:5432:birdnet:birdnet:YOUR_PASSWORD
-
-Protect it:
-
-    chmod 600 ~/.pgpass
-
-Test passwordless application access:
-
-    psql -h localhost -U birdnet -d birdnet -c "SELECT 1;"
-
-The actual password must never be committed to this repository.
-
----
-
-## Step 6 — Restore the weather collector
-
-Install dependencies:
-
-    sudo apt install -y python3-requests python3-psycopg
-
-Create the runtime application directory:
-
-    mkdir -p ~/weather
-
-Deploy the repository copy:
-
-    cp weather/weather.py ~/weather/weather.py
-
-Create the weather log directory:
-
-    sudo mkdir -p /var/log/weather
-    sudo chown birduser:birduser /var/log/weather
-
-Install the service:
-
-    sudo cp systemd/weather.service /etc/systemd/system/weather.service
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now weather.service
-
-Verify:
-
-    systemctl status weather.service --no-pager
-
-Inspect recent activity:
-
-    journalctl -u weather.service -n 20 --no-pager
-
-Inspect the latest JSON observation:
-
-    tail -1 /var/log/weather/weather.log
-
-Remember that the repository copy and deployed runtime copy are separate files.
-
-After changing:
-
-    weather/weather.py
-
-redeploy it with:
-
-    cp weather/weather.py ~/weather/weather.py
-    sudo systemctl restart weather.service
-
----
-
-## Step 7 — Restore BirdNET detection synchronization
-
-Install the synchronization service and timer:
-
-    sudo cp systemd/birdnet-db-sync.service /etc/systemd/system/
-    sudo cp systemd/birdnet-db-sync.timer /etc/systemd/system/
-
-Reload systemd:
-
-    sudo systemctl daemon-reload
-
-Enable the timer:
-
-    sudo systemctl enable --now birdnet-db-sync.timer
-
-On a fresh installation, the importer has no state file and starts at rowid 0.
-
-It therefore scans the existing BirdNET SQLite history and imports detections into PostgreSQL.
-
-The PostgreSQL uniqueness rule prevents duplicate historical records.
-
-After a successful run, the importer creates:
-
-    ~/.local/state/birdnet-db-sync/last_rowid
-
-Verify synchronization:
-
-    journalctl -u birdnet-db-sync.service -n 20 --no-pager
-
-Verify the timer:
-
-    systemctl status birdnet-db-sync.timer --no-pager
-
-`birdnet-db-sync.service` is a oneshot service and normally returns to:
-
-    inactive (dead)
-
-after each successful synchronization.
-
-That is expected.
-
----
-
-## Step 8 — Restore PostgreSQL backups
-
-Install the backup service and timer:
-
-    sudo cp systemd/birdnet-db-backup.service /etc/systemd/system/
-    sudo cp systemd/birdnet-db-backup.timer /etc/systemd/system/
-
-Reload systemd:
-
-    sudo systemctl daemon-reload
-
-Enable the timer:
-
-    sudo systemctl enable --now birdnet-db-backup.timer
-
-Test a backup manually:
-
-    sudo systemctl start birdnet-db-backup.service
-
-Check the result:
-
-    ls -lh ~/backups/postgresql
-
-Verify a dump archive:
-
-    pg_restore --list ~/backups/postgresql/birdnet_*.dump | head
-
-The backup service being inactive after completion is normal.
-
-The backup timer should remain active.
-
----
-
-## Step 9 — Restore weather forecast collection
-
-Install the forecast service and timer:
-
-    sudo cp systemd/birdnet-forecast.service /etc/systemd/system/
-    sudo cp systemd/birdnet-forecast.timer /etc/systemd/system/
-
-Reload systemd:
-
-    sudo systemctl daemon-reload
-
-Enable the hourly timer:
-
-    sudo systemctl enable --now birdnet-forecast.timer
-
-The collector requests a 48-hour hourly forecast from Open-Meteo and stores one historical forecast snapshot per hour.
-
-Test the collector manually:
-
-    python3 weather/forecast.py
-
-Verify the timer:
-
-    systemctl status birdnet-forecast.timer --no-pager
-
-Inspect recent forecast runs:
-
-    journalctl -u birdnet-forecast.service -n 20 --no-pager
-
-Verify the database:
-
-    psql -h localhost -U birdnet -d birdnet -c "
-    SELECT
-        COUNT(*) AS rows,
-        COUNT(DISTINCT forecast_created_at) AS snapshots,
-        MAX(forecast_created_at) AS latest_snapshot,
-        MAX(forecast_for) AS forecast_horizon
-    FROM weather_forecasts;
-    "
-
-`birdnet-forecast.service` is a oneshot service and normally returns to `inactive (dead)` after a successful run.
-
-That is expected.
-
----
-
-## Step 10 — Install Grafana Alloy
-
-Install Grafana Alloy using Grafana's official Debian/Raspberry Pi installation procedure.
-
-The package-managed Alloy service runs approximately as:
-
-    /usr/bin/alloy run \
-      --storage.path=/var/lib/alloy/data \
-      /etc/alloy/config.alloy
-
-The known package service configuration is documented in:
-
-    systemd/alloy.service.txt
-
-Do not blindly replace Grafana's package-provided systemd service with this file.
-
-It is retained primarily as documentation of the known-working installation.
-
----
-
-## Step 11 — Restore Alloy configuration
-
-Create the configuration directory if necessary:
-
-    sudo mkdir -p /etc/alloy
-
-Copy the repository configuration:
-
-    sudo cp alloy/config.alloy /etc/alloy/config.alloy
-    sudo cp alloy/default-alloy /etc/default/alloy
-
-The repository deliberately contains placeholders:
-
-    GRAFANA_CLOUD_USERNAME
-    GRAFANA_CLOUD_PASSWORD
-
-Edit the runtime configuration:
-
-    sudo nano /etc/alloy/config.alloy
-
-Replace the placeholders with the current Grafana Cloud Loki credentials.
-
-Restart Alloy:
-
-    sudo systemctl enable alloy
-    sudo systemctl restart alloy
-
-Verify:
-
-    systemctl status alloy --no-pager
-
-Inspect recent logs:
-
-    journalctl -u alloy -n 50 --no-pager
-
----
-
-## Step 12 — Restore Grafana
-
-Import:
-
-    grafana/Bird Home - Burbank.json
-
-into Grafana.
-
-Verify that its panels reference the correct Grafana Cloud Loki datasource.
-
----
-
-# 12. System Verification
-
-After installation or major changes, verify the stack from the source outward.
-
-## BirdNET
-
-    systemctl status birdnet_analysis.service --no-pager
-
-    journalctl -u birdnet_analysis.service -n 20 --no-pager
-
----
-
-## BirdNET SQLite source
-
-    sqlite3 ~/BirdNET-Pi/scripts/birds.db \
-      'SELECT MAX(rowid), COUNT(*) FROM detections;'
-
----
-
-## Detection synchronization
-
-    systemctl status birdnet-db-sync.timer --no-pager
-
-    journalctl -u birdnet-db-sync.service -n 20 --no-pager
-
-Inspect synchronization state:
-
-    cat ~/.local/state/birdnet-db-sync/last_rowid
-
----
-
-## PostgreSQL
-
-    pg_isready
-
-Detection summary:
-
-    psql -h localhost -U birdnet -d birdnet -c "
-    SELECT
-        COUNT(*) AS detections,
-        MAX(detected_at) AS latest_detection,
-        MAX(source_rowid) AS latest_source_rowid
-    FROM detections;
-    "
-
-Weather summary:
-
-    psql -h localhost -U birdnet -d birdnet -c "
-    SELECT
-        COUNT(*) AS observations,
-        MAX(observed_at) AS latest_observation
-    FROM weather_observations;
-    "
-
----
-
-## Weather
-
-    systemctl status weather.service --no-pager
-
-    journalctl -u weather.service -n 20 --no-pager
-
-    tail -5 /var/log/weather/weather.log
-
----
-
-## Database backups
-
-    systemctl status birdnet-db-backup.timer --no-pager
-
-    journalctl -u birdnet-db-backup.service -n 20 --no-pager
-
-    ls -lh ~/backups/postgresql
-
----
-
-## Weather forecasts
-
-    systemctl status birdnet-forecast.timer --no-pager
-
-    journalctl -u birdnet-forecast.service -n 20 --no-pager
-
-    psql -h localhost -U birdnet -d birdnet -c "
-    SELECT
-        COUNT(*) AS rows,
-        COUNT(DISTINCT forecast_created_at) AS snapshots,
-        MAX(forecast_created_at) AS latest_snapshot,
-        MAX(forecast_for) AS forecast_horizon
-    FROM weather_forecasts;
-    "
-
----
-
-## Alloy
-
-    systemctl status alloy.service --no-pager
-
-    journalctl -u alloy.service -n 50 --no-pager
-
----
+# Future Work
 
 ## Grafana
 
-Finally verify that:
+- add PostgreSQL as a datasource
+- build long-term activity panels
+- correlate detections with weather
+- visualize forecast versus actual conditions
+- create species-specific historical views
+- monitor BirdNET infrastructure health
+- add useful alerting where appropriate
 
-- new BirdNET detections appear
-- species labels populate correctly
-- confidence information is available
-- weather observations continue updating
-- dashboard panels return current data
+## Database
 
-This verifies the complete operational path:
+- create a read-only Grafana PostgreSQL role
+- add database health monitoring
+- review long-term retention requirements
+- periodically test restore procedures
+- remove the old Pi PostgreSQL installation after the migration has proven stable
 
-    source
-      │
-      ▼
-    local collector
-      │
-      ▼
+## Backups
+
+- replicate PostgreSQL dumps off `ubuntu-infra`
+- keep at least one copy on physically separate storage
+- document and periodically test a full restore
+
+## Configuration
+
+- gradually move deployment-specific constants out of source where useful
+- retain safe defaults for simple development
+- avoid turning the project into an unnecessarily complex configuration framework
+
+## Analysis
+
+Potential future analysis includes:
+
+- activity by hour of day
+- activity relative to sunrise and sunset
+- weather correlations
+- species seasonality
+- forecast accuracy
+- detection confidence behavior
+- time-series models
+- species-specific prediction
+- bird activity forecasts
+
+The goal is to build these features on top of the durable PostgreSQL dataset rather than reconstruct historical data from operational logs.
+
+---
+
+# Design Principles
+
+A few decisions guide the project.
+
+## Keep BirdNET independent
+
+The monitoring stack should not interfere with BirdNET's core job.
+
+If Grafana, Loki, PostgreSQL, or the Home Lab infrastructure is temporarily unavailable, BirdNET should still be able to detect birds and maintain its own source database.
+
+## Keep authoritative source data intact
+
+Do not modify `birds.db` as part of monitoring.
+
+Read it and synchronize from it.
+
+## Separate observability from history
+
+Use:
+
+    Loki -> operational logs
+
+and:
+
+    PostgreSQL -> structured historical data
+
+Do not force one datastore to perform both roles.
+
+## Keep infrastructure reproducible
+
+Git should contain:
+
+- source code
+- schema
+- Docker configuration
+- systemd definitions
+- provisioning configuration
+- documentation
+
+Git should not contain:
+
+- passwords
+- `.env` files
+- database dumps
+- Docker volumes
+- runtime logs
+- Alloy state
+- SSH private keys
+
+## Prefer understandable infrastructure
+
+This is a Home Lab project.
+
+The architecture should remain understandable enough that the entire system can be rebuilt and debugged without depending on hidden state.
+
+---
+
+# Project Direction
+
+The project began as a way to visualize BirdNET detections.
+
+It is becoming a small environmental data platform:
+
+    BirdNET
+       +
+    Weather
+       +
+    Historical Forecasts
+       │
+       ▼
+    PostgreSQL
+       │
+       ├── historical analysis
+       ├── Grafana visualization
+       └── prediction / ML
+
+At the same time:
+
+    BirdNET services
+       +
+    Weather logs
+       │
+       ▼
     Alloy
-      │
-      ▼
+       │
+       ▼
     Loki
-      │
-      ▼
+       │
+       ▼
     Grafana
 
-and the historical path:
+These two paths are intentionally complementary.
 
-    source
-      │
-      ▼
-    collector/importer
-      │
-      ▼
-    PostgreSQL
+The immediate goal is a completely local, reproducible Home Lab deployment.
 
----
-
-# 13. Runtime Data
-
-The Git repository contains code and configuration.
-
-It does not contain live telemetry.
-
-Important runtime data includes:
-
-| Data | Location | Purpose |
-|---|---|---|
-| BirdNET SQLite | `~/BirdNET-Pi/scripts/birds.db` | Native BirdNET detection source |
-| Import state | `~/.local/state/birdnet-db-sync/last_rowid` | Last processed SQLite row |
-| Weather JSONL | `/var/log/weather/weather.log` | Operational weather feed for Alloy |
-| PostgreSQL | `birdnet` database | Permanent structured history |
-| PostgreSQL dumps | `~/backups/postgresql` | Local database recovery |
-| Alloy state | `/var/lib/alloy/data` | Alloy runtime/file-tail state |
-| Alloy config | `/etc/alloy/config.alloy` | Live Alloy configuration |
-
-These files have different recovery importance.
-
-The most valuable long-term data is PostgreSQL.
-
-The BirdNET SQLite database is also valuable because it remains the original BirdNET detection source.
-
-Alloy runtime state can normally be recreated.
-
----
-
-# 14. Security
-
-Secrets are deliberately excluded from Git.
-
-The repository Alloy configuration contains placeholders:
-
-    GRAFANA_CLOUD_USERNAME
-    GRAFANA_CLOUD_PASSWORD
-
-Real Grafana Cloud credentials belong only in the live configuration:
-
-    /etc/alloy/config.alloy
-
-PostgreSQL credentials are supplied through:
-
-    ~/.pgpass
-
-The file should have permissions:
-
-    600
-
-Before pushing changes, the repository can be scanned with:
-
-    grep -RniE \
-      'password|token|secret|api[_-]?key|authorization|username' \
-      --exclude-dir=.git .
-
-Expected matches should be reviewed and should contain only documentation or placeholders.
-
-Never commit:
-
-- Grafana Cloud tokens
-- PostgreSQL passwords
-- API credentials
-- private SSH keys
-- other secrets
-
----
-
-# 15. Known Runtime Paths
-
-| Component | Path |
-|---|---|
-| BirdNET | `/home/birduser/BirdNET-Pi` |
-| BirdNET SQLite | `/home/birduser/BirdNET-Pi/scripts/birds.db` |
-| Monitoring repository | `/home/birduser/birdnetPi-monitoring` |
-| Detection importer | `/home/birduser/birdnetPi-monitoring/collector/import_detections.py` |
-| Import state | `/home/birduser/.local/state/birdnet-db-sync/last_rowid` |
-| Weather application | `/home/birduser/weather/weather.py` |
-| Weather log | `/var/log/weather/weather.log` |
-| PostgreSQL backups | `/home/birduser/backups/postgresql` |
-| Alloy configuration | `/etc/alloy/config.alloy` |
-| Alloy defaults | `/etc/default/alloy` |
-| Alloy runtime state | `/var/lib/alloy/data` |
-
----
-
-# 16. Current System Boundaries
-
-Understanding what the project does **not** currently do is just as important as understanding what it does.
-
-The current system does not yet:
-
-- use PostgreSQL as a Grafana datasource
-- generate bird-activity predictions
-- train machine-learning models
-- replicate database backups off the Raspberry Pi
-- replace or modify BirdNET's detection engine
-
-These are future layers built on top of the current data foundation.
-
----
-
-# 17. Where This Is Going
-
-The current project establishes the data pipeline first.
-
-That is deliberate.
-
-A useful prediction model needs historical examples of:
-
-    bird activity + time + weather
-
-The database is now accumulating exactly that information.
-
-Future analysis can derive features such as:
-
-- hour of day
-- day of year
-- season
-- minutes since sunrise
-- minutes until sunset
-- recent detection activity
-- temperature
-- dew point
-- humidity
-- wind
-- wind gusts
-- precipitation
-- cloud cover
-- pressure
-- weather trends
-
-These features do not need to be permanently stored in the raw observation tables.
-
-They can be calculated from the historical dataset when models are trained.
-
----
-
-## First prediction target
-
-A useful initial question might be:
-
-> Given the current time, recent bird activity, and weather conditions, how likely is a bird detection during the next hour?
-
-Later models could become species-specific:
-
-> What is the probability of detecting a Black Phoebe during the next hour?
-
-The first models should remain simple and interpretable.
-
-Potential starting points include:
-
-- logistic regression
-- simple statistical baselines
-- random forests
-- gradient boosting
-
-The current hand-built bird-activity score can remain as a baseline.
-
-A future machine-learning model should prove that it predicts activity better than that simple heuristic before replacing it.
-
----
-
-## Longer-term vision
-
-With enough historical data, the project can evolve from:
-
-    "What birds did I hear?"
-
-to:
-
-    "When do birds usually appear?"
-
-and eventually:
-
-    "What am I likely to hear next, when, and under what conditions?"
-
-That is why PostgreSQL was introduced early.
-
-The database is not merely another monitoring component.
-
-It is the historical memory of the station.
-
----
-
-# 18. Design Philosophy
-
-A few principles guide this project.
-
-### Keep BirdNET independent
-
-BirdNET should remain replaceable and upgradeable without entangling it with the monitoring repository.
-
-### Preserve the native source
-
-BirdNET's SQLite database remains the source for detection ingestion.
-
-### Logs are not the historical database
-
-Loki provides excellent operational observability.
-
-PostgreSQL provides durable structured history.
-
-Each tool has a clear job.
-
-### Prefer simple components
-
-The workload is small enough that PostgreSQL, Python, systemd, Alloy, and a few small scripts are sufficient.
-
-There is no need to introduce a larger orchestration platform simply because one exists.
-
-### Make failures recoverable
-
-Important state is either reproducible from Git or backed up separately.
-
-### Build the dataset before the model
-
-Prediction comes after reliable collection.
-
-A sophisticated model built on unreliable data would be less useful than a simple model built on a trustworthy dataset.
-
----
-
-# 19. Project Purpose
-
-This repository serves four purposes:
-
-1. **Reproducibility**
-   Preserve the custom BirdNET monitoring infrastructure as code.
-
-2. **Disaster recovery**
-   Make it possible to rebuild the monitoring stack without reconstructing it from memory.
-
-3. **Long-term data collection**
-   Build a durable historical dataset combining BirdNET detections with environmental conditions.
-
-4. **Future analysis and prediction**
-   Provide the foundation for understanding and eventually predicting bird activity at this station.
-
-BirdNET itself is installed and maintained separately.
-
-This repository begins where BirdNET ends: observing the system, preserving its data, and turning that data into something that can be understood over time.
+The longer-term goal is to turn the accumulated history into something useful for understanding — and eventually predicting — bird activity.
