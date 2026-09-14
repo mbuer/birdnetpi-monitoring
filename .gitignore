@@ -6,3 +6,5 @@ __pycache__/
 # Local deployment secrets
 deploy/**/.env
 .venv/
+
+ml/reports/runs/
