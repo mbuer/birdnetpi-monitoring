@@ -2,7 +2,7 @@
 
 PostgreSQL is the durable structured datastore for the BirdNET monitoring project.
 
-It stores historical bird detections, actual weather observations, and historical weather forecast snapshots.
+It stores historical bird detections, actual weather observations, historical weather forecast snapshots, and stored ML predictions.
 
 PostgreSQL complements Loki:
 
@@ -223,33 +223,50 @@ The real password must never be committed to Git.
 
 # Initializing a New Database
 
-The Home Lab deployment normally initializes the schema automatically through the PostgreSQL container.
+The Compose file mounts only `database/schema.sql`, and initialization scripts apply only to a fresh data volume. It does not automatically install tonight's view or prediction table.
 
-The schema file is:
+For an existing deployment, first take and inspect a backup and record row counts. Run from the repository root on `ubuntu-infra`. The view file ends with a grant to `grafana_reader`, so that role must already exist (create its login and password privately if rebuilding).
 
-    database/schema.sql
+```bash
+docker exec -i birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet < database/views/bird_activity_hourly.sql
+docker exec -i birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet < database/predictions.sql
+docker exec birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet -c "GRANT USAGE ON SCHEMA public TO grafana_reader; GRANT SELECT ON public.bird_activity_hourly, public.bird_activity_predictions TO grafana_reader;"
+docker exec birdnet-postgres psql -U birdnet -d birdnet -c '\dt'
+docker exec birdnet-postgres psql -U birdnet -d birdnet -c '\dv'
+```
 
-For a manual database, create the role and database first and then apply:
+A fresh manual database also needs the base schema first. Do not delete a populated volume to trigger initialization. `CREATE TABLE IF NOT EXISTS` does not migrate an existing incompatible table.
 
-    psql \
-      -h DATABASE_HOST \
-      -U birdnet \
-      -d birdnet \
-      -f database/schema.sql
+## Hourly activity view
 
-Verify:
+`views/bird_activity_hourly.sql` defines a regular view, not a stored table or materialized view. Per local hour:
 
-    psql \
-      -h DATABASE_HOST \
-      -U birdnet \
-      -d birdnet \
-      -c '\dt'
+```text
+capped_detections = sum(min(detections per species, 10))
+activity_index = species_count + capped_detections
+```
 
-Expected tables:
+It groups by common species name, combines all stations, and applies no additional confidence filter. Weather hours define the output: missing detections become zero, while hours without weather disappear. This cannot distinguish a quiet station from an ingestion outage.
 
-    detections
-    weather_observations
-    weather_forecasts
+`hour_local` is a timestamp without timezone representing Los Angeles wall time. The current hour is included as soon as observations arrive. Repeated autumn DST hours collapse into one bucket. These are known limitations, not a complete hourly quality contract.
+
+## Prediction table
+
+`predictions.sql` defines `bird_activity_predictions`:
+
+| Field | Meaning |
+|---|---|
+| `prediction_created_at` | Actual insertion time, with timezone |
+| `predicted_hour` | Target hour as Los Angeles wall time, without timezone |
+| `model` | Corrected live model: `random_forest_v2_completed`; legacy rows retained |
+| `predicted_activity` | Nonnegative model output |
+| `current_activity` | Saved persistence baseline |
+| `training_rows` | Rows used for that fit |
+| `actual_activity`, `absolute_error`, `scored_at` | Nullable until scored |
+
+The unique key is `(predicted_hour, model)`; repeat prediction attempts preserve the original record. The corrected scorer updates only v2 rows with null actuals, requires creation before the target began, and waits until the target ends plus ten minutes. It leaves all legacy predictions and scores unchanged. It does not revise late actuals. See [ML limitations](../ml/README.md#known-validation-limitations).
+
+For Grafana time-series queries, convert `predicted_hour AT TIME ZONE 'America/Los_Angeles'` into an instant. This cannot recover distinctions already lost at a DST overlap.
 
 ---
 
@@ -283,25 +300,11 @@ These values are historical migration checkpoints and are expected to become out
 
 # Network Security
 
-The PostgreSQL Docker service currently publishes:
+PostgreSQL publishes `5432/tcp`. The earlier Pi rule, `192.168.1.136/32`, covers ingestion only. The current system also has local ML connections and Grafana connections from its Docker network.
 
-    5432/tcp
+The previous session confirmed Grafana access, but the committed Compose file does not capture the live authentication rules. Preserve and document the actual narrow client rules and SCRAM authentication during rebuilds.
 
-PostgreSQL host authentication is restricted to the BirdNET Pi:
-
-    192.168.1.136/32
-
-Authentication uses:
-
-    scram-sha-256
-
-Do not replace this with a broad:
-
-    host all all all ...
-
-rule without a specific reason.
-
-If the Pi receives a new address, update the database access rule deliberately rather than broadly opening the service.
+The Compose bootstrap user is `birdnet`; do not assume it is a least-privilege ingestion role. Audit its privileges separately from `grafana_reader`.
 
 ---
 
@@ -411,19 +414,11 @@ At least one backup copy should eventually survive the loss of `ubuntu-infra`.
 
 # Grafana Access
 
-Grafana does not yet require direct PostgreSQL access for the current BirdNET dashboard migration.
+The existing read-only role is `grafana_reader`. The previous session confirmed SELECT grants on `bird_activity_hourly` and `bird_activity_predictions`. The view SQL includes its grant; the prediction-table SQL does not, so deployment must apply that grant explicitly.
 
-The planned historical dashboard phase should use a dedicated read-only PostgreSQL role rather than the `birdnet` ingestion role.
+The Prediction Lab uses datasource `BirdNET PostgreSQL`, UID `afy5j1yt18b9cb`. The Cloud/Local operational dashboards continue using Loki and Infinity. See [Grafana documentation](../grafana/README.md).
 
-Target model:
-
-    birdnet
-        -> collector write role
-
-    grafana_birdnet
-        -> read-only visualization role
-
-That work should happen when PostgreSQL is connected to Grafana.
+Role creation, credentials, connection rules, and grants must be recoverable separately from database data. A database-only dump does not recreate cluster-wide roles.
 
 ---
 
@@ -494,8 +489,7 @@ The repository should contain enough configuration to rebuild the database servi
 
 Planned improvements include:
 
-- read-only Grafana role
-- Grafana PostgreSQL datasource
+- make the existing Grafana role and grants reproducible
 - historical activity dashboards
 - database health metrics
 - backup age monitoring
@@ -505,7 +499,7 @@ Planned improvements include:
 - analysis views or materialized views if useful
 - long-term bird/weather correlation work
 - forecast accuracy analysis
-- prediction datasets
+- completed-hour, gap-aware, station-specific prediction datasets
 
 Avoid premature database complexity.
 

@@ -43,6 +43,7 @@ Responsibilities:
 - Loki
 - Prometheus
 - Grafana OSS
+- Python ML experiments and hourly prediction/scoring
 
 Grafana is deployed through the separate:
 
@@ -81,7 +82,7 @@ Loki is the operational log datastore.
 
 Grafana Alloy currently dual-writes operational logs to Grafana Cloud Loki and the local Loki instance during validation.
 
-Grafana OSS uses Loki for the Bird Home operational dashboard. PostgreSQL is available separately for structured historical analysis and future prediction work.
+Grafana OSS uses Loki for the Bird Home operational dashboard. PostgreSQL is available separately for structured historical analysis and the Prediction Lab.
 
 ---
 
@@ -138,6 +139,8 @@ Persistent storage:
 Schema initialization:
 
     database/schema.sql
+
+Only the base schema is mounted. The hourly view, prediction table, and Grafana grants require separate application; see [database setup](../../database/README.md#initializing-a-new-database). Initialization does not rerun on an existing volume.
 
 The schema is mounted into:
 
@@ -205,7 +208,9 @@ using:
 
 The Pi has been verified to connect successfully after the restriction was applied.
 
-If addressing changes later, update this rule deliberately.
+That rule covers the Pi only. Grafana also connects through its Docker network, and ML jobs default to the host's loopback address. Preserve the actual live authentication rules; they are not captured in this Compose file.
+
+If addressing changes later, update the relevant client rules deliberately.
 
 Do not simply reopen PostgreSQL to the entire network.
 
@@ -335,7 +340,7 @@ The local path has been verified for:
 - persistence across container restart
 - Grafana OSS queries
 
-The dual-write period is intentional. Grafana Cloud remains available as a reference while the local stack is observed over time.
+The reported live dual-write period is intentional. However, the committed `alloy/config.alloy` still forwards only to Cloud and contains literal credential placeholders. Do not use it to replace the working installed configuration until reconciled.
 
 Historical Grafana Cloud Loki data is not being migrated into local Loki.
 
@@ -373,6 +378,7 @@ The BirdNET dashboard exports are:
 ```text
 grafana/Bird Home - Burbank Cloud.json
 grafana/Bird Home - Burbank Local.json
+grafana/bird-home-prediction-lab.json
 ```
 
 `Bird Home - Burbank Cloud.json` is the original Grafana Cloud reference export.
@@ -384,7 +390,7 @@ The local Grafana instance currently uses:
 - Loki for BirdNET operational logs and recent detection activity
 - Infinity for Open-Meteo current and forecast data
 - Prometheus for infrastructure metrics
-- PostgreSQL for structured historical data and future analysis
+- PostgreSQL for structured history and Prediction Lab
 
 The Bird Home dashboard remains primarily Loki-based. PostgreSQL is not intended to replace Loki in this operational dashboard.
 
@@ -402,7 +408,7 @@ PostgreSQL is reserved for structured historical and analytical work such as:
 - bird and weather correlations
 - forecast-versus-observation analysis
 - seasonal patterns
-- future prediction work
+- stored predictions and experimental accuracy comparisons
 
 ---
 # Prometheus Integration
@@ -438,7 +444,9 @@ A practical rebuild sequence for a replacement infrastructure VM is:
 8. deploy/provision Grafana through `homelab-grafana`
 9. verify Alloy log delivery
 10. verify Grafana datasources and dashboards
-11. verify backups and timers
+11. apply/verify the hourly view, prediction table, and Grafana grants; recreate the ML virtual environment
+12. install the completed-hour v2 fix, inspect pending/scored rows, and restore the ML service/timer deliberately
+13. verify backups and timers
 
 BirdNET itself should remain functional throughout an infrastructure rebuild because its native SQLite database stays on the Pi.
 
@@ -505,7 +513,7 @@ Retire the Grafana Cloud Loki output only after local operation has been proven 
 - restore testing
 - removal of Pi-local PostgreSQL
 - historical analysis
-- prediction work
+- reliable completed-hour prediction and scoring
 
 ---
 
@@ -522,3 +530,46 @@ For major migrations:
 5. retire the old component only when confidence is high
 
 This approach was used for the PostgreSQL migration and should also be used for Loki and Grafana.
+
+# ML Prediction Cycle
+
+The checked-in service runs as `infra` in `/opt/birdnetpi-monitoring`, using the root `.venv` through shell wrappers. It requires Docker. The wrappers obtain the database password from the local container if no password environment variable is present; the service currently has no `EnvironmentFile`.
+
+`OnCalendar=*-*-* *:10:00` runs at minute 10 each hour using the host timezone. `Persistent=true` triggers catch-up activation after downtime, not reconstruction of all missed forecasts. Docker service startup ordering does not establish database readiness.
+
+**Before enabling this on a replacement host:** install the completed-hour v2 code described in [the ML README](../../ml/README.md). It uses completed inputs with a ten-minute grace period, rejects stale/gapped recent input, and scores v2 only after the target ends plus ten minutes. Legacy scores remain untouched. A successful timer run still does not establish full ingestion completeness.
+
+After installing the accompanying fix and verifying schema, permissions, virtual environment and script paths, install the units:
+
+```bash
+cd /opt/birdnetpi-monitoring
+sudo install -m 0644 systemd/birdnet-ml-prediction.service systemd/birdnet-ml-prediction.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now birdnet-ml-prediction.timer
+systemctl list-timers birdnet-ml-prediction.timer --all
+journalctl -u birdnet-ml-prediction.service -n 50 --no-pager
+```
+
+For the current deployment, inspect without creating new predictions:
+
+```bash
+systemctl cat birdnet-ml-prediction.service birdnet-ml-prediction.timer
+systemctl status birdnet-ml-prediction.timer --no-pager
+docker exec birdnet-postgres psql -U birdnet -d birdnet -c "SELECT prediction_created_at, predicted_hour, model, actual_activity, scored_at FROM bird_activity_predictions ORDER BY predicted_hour DESC LIMIT 10;"
+```
+
+A manual `./ml/hourly_prediction_cycle.sh` writes scores and predictions. It is not a read-only health check.
+
+## Recovery details
+
+Database dumps include prediction records and the regular view, but not global roles or runtime secrets. Recreate roles before restoring ownership/grants. Keep predictions as historical evidence; do not regenerate old forecasts and call them live results.
+
+Before resuming collectors after database restoration, reconcile the Pi importer checkpoint with the restored data. A checkpoint newer than the backup can skip detections lost in the restore. Preserve then deliberately reset the checkpoint for replay if needed; uniqueness constraints deduplicate retained SQLite records.
+
+The central backup script writes directly to its final filename and does not validate archives or publish atomically. A failed dump can leave a partial file. Archive listing alone is not a full restore test.
+
+## Dashboard checks
+
+See [Grafana README](../../grafana/README.md) for export formats, datasource mapping and Prediction Lab metric scopes. Its PostgreSQL UID is `afy5j1yt18b9cb`; the view and prediction table need SELECT grants for `grafana_reader`.
+
+The ML service needs bounded execution, database readiness/retry handling, explicit runtime configuration, and freshness/failure monitoring in a follow-up code change.
