@@ -1,0 +1,11 @@
+[Unit]
+Description=BirdNET ML hourly prediction cycle
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=infra
+WorkingDirectory=/opt/birdnetpi-monitoring
+ExecStart=/opt/birdnetpi-monitoring/ml/hourly_prediction_cycle.sh

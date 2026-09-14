@@ -1,0 +1,10 @@
+[Unit]
+Description=Run BirdNET ML prediction cycle hourly
+
+[Timer]
+OnCalendar=*-*-* *:10:00
+Persistent=true
+Unit=birdnet-ml-prediction.service
+
+[Install]
+WantedBy=timers.target
