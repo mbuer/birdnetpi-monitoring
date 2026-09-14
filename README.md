@@ -813,3 +813,18 @@ These two paths are intentionally complementary.
 The immediate goal is a completely local, reproducible Home Lab deployment.
 
 The longer-term goal is to turn the accumulated history into something useful for understanding — and eventually predicting — bird activity.
+
+
+<!-- BIRDNET_ML_START -->
+
+## Machine Learning
+
+The repository includes an experimental ML pipeline for predicting next-hour bird activity from BirdNET history and time-related features.
+
+Current experiments use chronological and rolling validation rather than random train/test splits. A Random Forest using current activity, recent activity history, and sunrise-relative timing currently performs better than a simple persistence baseline across multiple future test windows.
+
+Weather features have not improved the one-hour forecast so far.
+
+See [`ml/README.md`](ml/README.md) for the methodology and [`ml/reports/experiments.md`](ml/reports/experiments.md) for experiment results.
+
+<!-- BIRDNET_ML_END -->
