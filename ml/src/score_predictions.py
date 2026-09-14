@@ -3,6 +3,9 @@ import os
 import psycopg
 
 
+MODEL_NAME = "random_forest_v2_completed"
+
+
 def get_connection():
     return psycopg.connect(
         host=os.environ.get("BIRDNET_DB_HOST", "127.0.0.1"),
@@ -28,8 +31,29 @@ def score_predictions():
                     scored_at = NOW()
                 FROM bird_activity_hourly AS h
                 WHERE
-                    p.predicted_hour = h.hour_local
+                    p.model = %s
                     AND p.actual_activity IS NULL
+                    AND p.predicted_hour = h.hour_local
+
+                    -- Prediction must have existed before
+                    -- the target hour started.
+                    AND p.prediction_created_at <
+                        (
+                            p.predicted_hour
+                            AT TIME ZONE 'America/Los_Angeles'
+                        )
+
+                    -- Target hour must be completely finished,
+                    -- plus ten minutes for ingestion.
+                    AND NOW() >=
+                        (
+                            (
+                                p.predicted_hour
+                                + INTERVAL '1 hour 10 minutes'
+                            )
+                            AT TIME ZONE 'America/Los_Angeles'
+                        )
+
                 RETURNING
                     p.id,
                     p.predicted_hour,
@@ -37,7 +61,8 @@ def score_predictions():
                     p.predicted_activity,
                     p.actual_activity,
                     p.absolute_error;
-                """
+                """,
+                (MODEL_NAME,),
             )
 
             rows = cur.fetchall()

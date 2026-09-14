@@ -5,39 +5,16 @@ import psycopg
 from sklearn.ensemble import RandomForestRegressor
 
 from data import load_hourly_data
-from features import build_features
+from timing import (
+    FEATURES,
+    MODEL_NAME,
+    build_live_training_data,
+    build_prediction_row,
+    latest_completed_hour,
+)
 
 
-MODEL_NAME = "random_forest_v1"
-
-FEATURES = [
-    "hour_of_day",
-    "hours_from_sunrise",
-    "is_day",
-    "activity_index",
-    "activity_lag_1h",
-    "activity_lag_2h",
-    "activity_lag_3h",
-    "activity_lag_24h",
-]
-
-
-def build_prediction_row(raw: pd.DataFrame) -> pd.DataFrame:
-    data = raw.copy()
-
-    data["activity_lag_1h"] = data["activity_index"].shift(1)
-    data["activity_lag_2h"] = data["activity_index"].shift(2)
-    data["activity_lag_3h"] = data["activity_index"].shift(3)
-    data["activity_lag_24h"] = data["activity_index"].shift(24)
-
-    latest = data.iloc[[-1]].copy()
-
-    if latest[FEATURES].isna().any().any():
-        raise RuntimeError(
-            "Latest row does not contain enough history for prediction."
-        )
-
-    return latest
+MIN_TRAINING_ROWS = 192
 
 
 def save_prediction(
@@ -91,10 +68,21 @@ def save_prediction(
 def main():
     raw = load_hourly_data()
 
-    training = build_features(raw)
+    completed_hour = latest_completed_hour()
+
+    training = build_live_training_data(
+        raw,
+        completed_hour,
+    )
+
+    if len(training) < MIN_TRAINING_ROWS:
+        raise RuntimeError(
+            f"Only {len(training)} valid training rows; "
+            f"need at least {MIN_TRAINING_ROWS}."
+        )
 
     X_train = training[FEATURES].copy()
-    y_train = training["target_activity_next_hour"]
+    y_train = training["target_activity"]
 
     X_train["is_day"] = X_train["is_day"].astype(int)
 
@@ -106,7 +94,10 @@ def main():
 
     model.fit(X_train, y_train)
 
-    latest = build_prediction_row(raw)
+    latest = build_prediction_row(
+        raw,
+        completed_hour,
+    )
 
     X_latest = latest[FEATURES].copy()
     X_latest["is_day"] = X_latest["is_day"].astype(int)
@@ -114,10 +105,12 @@ def main():
     prediction = float(model.predict(X_latest)[0])
     prediction = max(0.0, prediction)
 
-    current_hour = latest["hour_local"].iloc[0]
-    predicted_hour = current_hour + pd.Timedelta(hours=1)
+    # Skip the hour already underway.
+    predicted_hour = completed_hour + pd.Timedelta(hours=2)
 
-    current_activity = float(latest["activity_index"].iloc[0])
+    current_activity = float(
+        latest["activity_index"].iloc[0]
+    )
 
     inserted = save_prediction(
         predicted_hour=predicted_hour,
@@ -131,7 +124,7 @@ def main():
     print("============================")
     print()
     print(f"Model:                 {MODEL_NAME}")
-    print(f"Latest completed hour: {current_hour}")
+    print(f"Latest completed hour: {completed_hour}")
     print(f"Current activity:      {current_activity:.1f}")
     print()
     print(f"Predicted hour:        {predicted_hour}")
@@ -144,7 +137,10 @@ def main():
     if inserted:
         print("Prediction stored in PostgreSQL.")
     else:
-        print("Prediction already exists; original prediction preserved.")
+        print(
+            "Prediction already exists; "
+            "original prediction preserved."
+        )
 
 
 if __name__ == "__main__":
