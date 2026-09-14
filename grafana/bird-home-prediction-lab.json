@@ -1,0 +1,1223 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 🐦 Bird Home — Prediction Lab\n**One-hour-ahead bird activity forecasting** · live forward validation  \nPredictions are stored before the outcome is known and scored automatically against observed BirdNET activity."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "NEXT HOUR FORECAST",
+      "description": "Latest one-hour-ahead Random Forest prediction",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_activity AS \"Forecast\" FROM bird_activity_predictions ORDER BY predicted_hour DESC LIMIT 1;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 36
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "CURRENT ACTIVITY",
+      "description": "Latest observed BirdNET activity index",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 5,
+        "y": 3,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT activity_index AS \"Activity\" FROM bird_activity_hourly ORDER BY hour_local DESC LIMIT 1;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 36
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "LIVE MAE",
+      "description": "Mean absolute error across scored forward predictions. Lower is better.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 3,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(absolute_error) AS \"MAE\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 4
+              },
+              {
+                "color": "orange",
+                "value": 6
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "MODEL EDGE",
+      "description": "Percentage improvement in MAE versus persistence. Positive is better.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 3,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN COUNT(*) = 0 OR AVG(ABS(current_activity - actual_activity)) = 0 THEN NULL ELSE 100.0 * (AVG(ABS(current_activity - actual_activity)) - AVG(absolute_error)) / AVG(ABS(current_activity - actual_activity)) END AS \"Edge\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "unit": "percent",
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "SCORED FORECASTS",
+      "description": "Number of true forward forecasts whose outcome is known",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Scored\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 32
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Forecast vs Reality",
+      "description": "True forward ML forecasts compared with observed activity and the persistence baseline",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\", predicted_activity AS \"ML Forecast\" FROM bird_activity_predictions WHERE $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') ORDER BY predicted_hour;"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\", actual_activity AS \"Actual Activity\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') ORDER BY predicted_hour;"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\", current_activity AS \"Persistence\" FROM bird_activity_predictions WHERE $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') ORDER BY predicted_hour;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "showPoints": "always",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "Activity Index",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ML Forecast"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 12
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Actual Activity"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 4
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persistence"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Prediction Error",
+      "description": "Absolute error for ML and persistence. Lower is better.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\", absolute_error AS \"ML Error\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') ORDER BY predicted_hour;"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\", ABS(current_activity - actual_activity) AS \"Persistence Error\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') ORDER BY predicted_hour;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 55,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "Absolute Error",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ML Error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persistence Error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Daily MAE — ML vs Persistence",
+      "description": "Daily average absolute error. The ML line should trend below persistence.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\", AVG(absolute_error) AS \"ML MAE\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') GROUP BY 1 ORDER BY 1;"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\", AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles') GROUP BY 1 ORDER BY 1;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 8,
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "MAE",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ML MAE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persistence MAE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "MODEL WIN RATE",
+      "description": "Percentage of scored hours where ML has lower absolute error than persistence",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 100.0 * AVG(CASE WHEN absolute_error < ABS(current_activity - actual_activity) THEN 1.0 ELSE 0.0 END) AS \"Win Rate\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 40
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 60
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 30
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "ML MAE",
+      "description": "Average absolute error of the live ML forecasts",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 26,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(absolute_error) AS \"ML MAE\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 30
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "PERSISTENCE MAE",
+      "description": "Average error if next hour is assumed to equal the current hour",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 30
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "BEST FORECAST",
+      "description": "Smallest absolute forward-prediction error recorded so far",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 26,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT MIN(absolute_error) AS \"Best Error\" FROM bird_activity_predictions WHERE actual_activity IS NOT NULL;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "orange",
+                "value": 6
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 30
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Recent Predictions",
+      "description": "True forward predictions, their outcomes, and comparison against persistence",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "afy5j1yt18b9cb"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "afy5j1yt18b9cb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Forecast Hour\", model AS \"Model\", ROUND(predicted_activity::numeric, 1) AS \"Forecast\", ROUND(current_activity::numeric, 1) AS \"Persistence\", ROUND(actual_activity::numeric, 1) AS \"Actual\", ROUND(absolute_error::numeric, 1) AS \"ML Error\", CASE WHEN actual_activity IS NULL THEN NULL ELSE ROUND(ABS(current_activity - actual_activity)::numeric, 1) END AS \"Persistence Error\", CASE WHEN actual_activity IS NULL THEN 'PENDING' WHEN absolute_error < ABS(current_activity - actual_activity) THEN 'ML WIN' WHEN absolute_error > ABS(current_activity - actual_activity) THEN 'PERSISTENCE WIN' ELSE 'TIE' END AS \"Result\" FROM bird_activity_predictions ORDER BY predicted_hour DESC LIMIT 50;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Forecast"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Actual"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persistence"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Result"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "PENDING": {
+                        "color": "blue",
+                        "index": 0,
+                        "text": "PENDING"
+                      },
+                      "ML WIN": {
+                        "color": "green",
+                        "index": 1,
+                        "text": "ML WIN"
+                      },
+                      "PERSISTENCE WIN": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "PERSISTENCE"
+                      },
+                      "TIE": {
+                        "color": "yellow",
+                        "index": 3,
+                        "text": "TIE"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### 🧪 Reading the Prediction Lab\n**Blue** = ML forecast · **Green** = observed activity · **Orange** = persistence baseline  \nThe goal is not to predict every hour perfectly. The model is useful if it produces **lower error consistently over time**."
+      }
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 41,
+  "tags": [
+    "bird-home",
+    "birdnet",
+    "machine-learning",
+    "prediction",
+    "home-lab"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now+2h"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ],
+    "time_options": [
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "14d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "Bird Home — Prediction Lab",
+  "uid": "bird-home-prediction-lab",
+  "version": 2,
+  "weekStart": "monday"
+}
