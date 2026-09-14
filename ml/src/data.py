@@ -33,7 +33,14 @@ def load_hourly_data() -> pd.DataFrame:
     )
 
     try:
-        return pd.read_sql_query(QUERY, conn)
+        with conn.cursor() as cur:
+            cur.execute(QUERY)
+
+            rows = cur.fetchall()
+            columns = [description.name for description in cur.description]
+
+        return pd.DataFrame(rows, columns=columns)
+
     finally:
         conn.close()
 

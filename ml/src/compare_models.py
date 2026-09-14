@@ -98,7 +98,20 @@ print("-" * 42)
 for name, mae, rmse in sorted(results, key=lambda x: x[1]):
     print(f"{name:<24} {mae:>8.3f} {rmse:>8.3f}")
 
+persistence_predictions = test["activity_index"]
+
+persistence_mae = mean_absolute_error(
+    y_test,
+    persistence_predictions,
+)
+persistence_rmse = np.sqrt(
+    mean_squared_error(
+        y_test,
+        persistence_predictions,
+    )
+)
+
 print()
 print("Persistence baseline")
-print("MAE:  4.234")
-print("RMSE: 7.272")
+print(f"MAE:  {persistence_mae:.3f}")
+print(f"RMSE: {persistence_rmse:.3f}")
