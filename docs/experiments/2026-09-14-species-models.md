@@ -9,10 +9,11 @@
 
 Test whether individual bird species can be predicted for the next full future hour using the same leakage-safe timing convention as the aggregate activity model.
 
-Initial species:
+Species evaluated:
 
 - House Finch
 - Black Phoebe
+- American Crow
 
 The target is binary:
 
@@ -38,7 +39,7 @@ It is independent of weather availability and retains `station_id`, allowing the
 
 ## Features
 
-The first classifier uses:
+The classifier uses:
 
 - `hour_of_day`
 - current species presence
@@ -50,7 +51,7 @@ The first classifier uses:
 - total bird detections
 - number of species detected
 
-Weather is not included in this first experiment.
+Weather is not included in this experiment.
 
 ## Models
 
@@ -164,27 +165,29 @@ Threshold tuning should be evaluated before using binary alerts for species at t
 
 ## Conclusions
 
-Species-level prediction is already useful with the current dataset.
+Species-level prediction is already useful for commonly observed species in the current dataset.
 
-The first two experiments show that:
+The experiments show that:
 
 - species presence contains predictable temporal structure
-- ML clearly outperforms persistence
+- ML clearly outperforms persistence for House Finch and Black Phoebe
 - model performance differs by species
 - one model should not automatically be assumed best for every species
-- XGBoost currently provides stronger threshold-based classification
+- XGBoost currently provides stronger threshold-based classification for Black Phoebe
 - Random Forest remains particularly strong for House Finch probability ranking
+- sparse species can still have useful probability ranking even when a 0.5 classification threshold performs poorly
+- prevalence and class imbalance must be considered when interpreting accuracy and threshold-based metrics
 
-No universal species model is promoted yet.
+No universal species model is promoted.
 
 ## Next Steps
 
-1. Test American Crow as a more sparsely observed species.
-2. Determine where prediction quality begins to degrade as positive examples decrease.
-3. Evaluate probability thresholds instead of assuming `0.5`.
-4. Add sunrise/daylight features.
-5. Later test weather features.
-6. Continue accumulating data and repeat the same experiments.
+1. Evaluate alternative probability thresholds, especially for sparse species.
+2. Add sunrise and daylight-related features.
+3. Later test weather features.
+4. Continue accumulating data and repeat the same experiments.
+5. Compare performance across additional species as sufficient positive examples become available.
+6. Use live stored predictions for forward validation rather than relying only on retrospective experiments.
 
 ## Reproducibility
 
@@ -198,6 +201,5 @@ Experiment script:
 
 Example:
 
-`--species "House Finch"`
-
-The same script supports any species present in the database.
+```bash
+.venv/bin/python ml/src/compare_species_models.py --species "House Finch"
