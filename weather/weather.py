@@ -56,6 +56,7 @@ API_PARAMS = {
     "timezone": STATION_TIMEZONE_NAME,
     "temperature_unit": "fahrenheit",
     "wind_speed_unit": "mph",
+    "precipitation_unit": "inch",
 }
 
 REQUIRED_CURRENT_FIELDS = {
