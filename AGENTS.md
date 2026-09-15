@@ -2,7 +2,7 @@
 
 Guidance for automated coding agents and future development sessions working in this repository.
 
-Use this file as a concise architectural and operational guardrail. For implementation details, follow the component READMEs and current code.
+Use this file as an architectural and operational guardrail. For implementation details, follow the component READMEs and current code.
 
 ---
 
@@ -10,9 +10,7 @@ Use this file as a concise architectural and operational guardrail. For implemen
 
 This repository contains the monitoring, structured data collection, observability integration, machine-learning experiments, and Home Lab deployment surrounding a BirdNET-Pi station.
 
-BirdNET itself is not part of this repository.
-
-Do not attempt to replace or absorb BirdNET's core application into this project.
+BirdNET itself is not part of this repository. Do not attempt to replace or absorb BirdNET's core application into this project.
 
 ---
 
@@ -20,9 +18,7 @@ Do not attempt to replace or absorb BirdNET's core application into this project
 
 ## BirdNET Pi
 
-The Raspberry Pi is the edge device.
-
-It owns:
+The Raspberry Pi is the edge device. It owns:
 
 - microphone and audio capture
 - BirdNET analysis
@@ -33,40 +29,27 @@ It owns:
 - Grafana Alloy
 - local operational logs
 
-BirdNET's native database is:
+BirdNET's native database is `~/BirdNET-Pi/scripts/birds.db`.
 
-`~/BirdNET-Pi/scripts/birds.db`
-
-Treat this as authoritative source data for completed detections.
-
-Monitoring code may read from it. Do not modify it merely to simplify this project.
+Treat it as authoritative source data for completed detections. Monitoring code may read from it; do not modify it merely to simplify this project.
 
 ## ubuntu-infra
 
-The infrastructure VM owns centralized services and ML execution.
-
-Current services include:
+The infrastructure VM owns centralized services and ML execution:
 
 - PostgreSQL
 - Loki
 - Prometheus
 - Grafana OSS
 - Python ML experiments
-- automated aggregate activity prediction and scoring
+- automated aggregate activity prediction/scoring
+- automated species prediction/scoring for the currently configured live species
 
-Grafana deployment itself is maintained in the separate:
-
-`homelab-grafana`
-
-repository.
-
-Do not move Grafana deployment into this repository unless the architecture is explicitly changed.
+Grafana deployment itself is maintained in the separate `homelab-grafana` repository.
 
 ---
 
 # Data Roles
-
-Keep responsibilities separate.
 
 ## BirdNET SQLite
 
@@ -76,7 +59,7 @@ Authoritative BirdNET detection source.
 
 Durable structured historical and analytical data.
 
-Core tables include:
+Core tables:
 
 - `detections`
 - `weather_observations`
@@ -84,7 +67,7 @@ Core tables include:
 - `bird_activity_predictions`
 - `bird_species_predictions`
 
-Analytical views include:
+Analytical views:
 
 - `bird_activity_hourly`
 - `bird_species_hourly`
@@ -97,9 +80,7 @@ Operational logs and observability.
 
 Visualization across operational and analytical data.
 
-Do not treat Loki as the permanent structured historical database.
-
-Do not turn PostgreSQL into a replacement for operational logging.
+Do not treat Loki as the permanent structured historical database, and do not turn PostgreSQL into a replacement for operational logging.
 
 ---
 
@@ -107,25 +88,11 @@ Do not turn PostgreSQL into a replacement for operational logging.
 
 Production BirdNET PostgreSQL runs on `ubuntu-infra`.
 
-Deployment:
-
-`deploy/ubuntu-infra/postgres/`
-
-Container:
-
-`birdnet-postgres`
-
-Database:
-
-`birdnet`
-
-Application role:
-
-`birdnet`
-
-Read-only Grafana role:
-
-`grafana_reader`
+Deployment: `deploy/ubuntu-infra/postgres/`  
+Container: `birdnet-postgres`  
+Database: `birdnet`  
+Application role: `birdnet`  
+Read-only Grafana role: `grafana_reader`
 
 Applications use:
 
@@ -136,42 +103,30 @@ Applications use:
 
 Do not hard-code production passwords.
 
-Avoid hard-coding deployment-specific addresses when environment configuration is reasonable.
-
-Database schema and analytical objects are documented in:
-
-`database/README.md`
+Database schema and analytical objects are documented in `database/README.md`.
 
 ---
 
 # Machine Learning
 
-The project currently has two ML tracks.
+The project has two live ML tracks.
 
 ## Aggregate activity prediction
 
-Current live model:
+Current live model: `random_forest_v2_completed`
 
-`random_forest_v2_completed`
+Timing convention: **completed hour T → target hour T+2**
 
-Timing convention:
-
-**completed hour T → target hour T+2**
-
-The current hourly automation scores previous eligible forecasts first, then generates a new activity forecast.
-
-Relevant files include:
+The coordinated hourly automation is driven by:
 
 - `ml/src/timing.py`
-- `ml/src/predict_next_hour.py`
-- `ml/src/score_predictions.py`
 - `ml/hourly_prediction_cycle.sh`
 - `systemd/birdnet-ml-prediction.service`
 - `systemd/birdnet-ml-prediction.timer`
 
 ## Species prediction
 
-Species prediction code and storage are implemented.
+Species prediction code, storage, scoring, dashboarding, and hourly execution are implemented.
 
 Relevant files include:
 
@@ -182,11 +137,17 @@ Relevant files include:
 - `ml/src/score_species_predictions.py`
 - `grafana/Bird Home - Species Prediction.json`
 
-Species prediction is not yet represented by its own committed systemd automation.
+The existing hourly cycle currently performs:
 
-Prefer integrating species work into the existing hourly ML cycle rather than creating unnecessary parallel timers unless there is a clear operational reason.
+```text
+score aggregate
+predict aggregate
+score species
+predict House Finch
+predict Black Phoebe
+```
 
-Do not claim species automation is deployed until the committed runtime path actually invokes it.
+Do not add separate species timers unless there is a clear operational reason. Keep coordinated hourly work in the existing cycle where practical.
 
 ## ML rules
 
@@ -194,48 +155,55 @@ Do not claim species automation is deployed until the committed runtime path act
 - Do not use random train/test shuffling for time-series claims.
 - Prevent target leakage.
 - Compare against simple baselines.
-- Store live forecasts before their outcomes occur.
+- Store live forecasts before outcomes occur.
 - Treat retrospective results and live forward validation as different evidence.
 - Do not promote a more complex model for trivial metric improvements.
 - Preserve older experiment code/results as historical methodology unless deliberately superseded and documented.
+- Run the timing/leakage regression tests after changing `ml/src/timing.py` or related live feature construction.
 
-Stable methodology belongs in:
+Current regression test command:
 
-`docs/ml.md`
+```bash
+.venv/bin/python -m unittest ml/tests/test_timing.py -v
+```
 
-Curated experiment results belong in:
-
-`docs/experiments/`
-
-Operational ML instructions belong in:
-
-`ml/README.md`
+Stable methodology: `docs/ml.md`  
+Curated experiment results: `docs/experiments/`  
+Operational ML instructions: `ml/README.md`
 
 ---
 
 # Time Semantics
 
-The current deployment uses:
-
-`America/Los_Angeles`
+The current deployment uses `America/Los_Angeles`.
 
 Several analytical objects store local wall-clock hours as `timestamp without time zone`.
 
 Grafana time-series queries should convert prediction targets with:
 
-`predicted_hour AT TIME ZONE 'America/Los_Angeles'`
+```sql
+predicted_hour AT TIME ZONE 'America/Los_Angeles'
+```
 
-Known limitation:
+Known limitation: local wall-clock timestamps cannot uniquely represent both occurrences of the repeated autumn DST hour. Do not silently treat these values as UTC.
 
-local wall-clock timestamps cannot uniquely represent both occurrences of the repeated autumn DST hour.
+---
 
-Do not silently treat these values as UTC.
+# Weather
+
+The repository weather collectors explicitly request:
+
+- Fahrenheit temperature
+- mph wind speed
+- inches for precipitation
+
+The database columns `precipitation_in` assume inch values. Historical rows collected before the explicit `precipitation_unit=inch` fix may have different unit provenance and should not be silently converted without verification.
+
+The live Pi files must be compared with the checked-in versions before repository weather changes are deployed there.
 
 ---
 
 # Grafana
-
-This repository owns BirdNET dashboard exports and BirdNET-specific datasource expectations.
 
 Current dashboard exports include:
 
@@ -244,17 +212,11 @@ Current dashboard exports include:
 - `grafana/bird-home-prediction-lab.json`
 - `grafana/Bird Home - Species Prediction.json`
 
-The PostgreSQL datasource currently uses UID:
-
-`afy5j1yt18b9cb`
+The PostgreSQL datasource currently uses UID `afy5j1yt18b9cb`.
 
 Do not assume a dashboard can be copied to another Grafana instance without checking datasource UIDs, datasource names, plugins, and query compatibility.
 
 Grafana deployment itself belongs in `homelab-grafana`.
-
-See:
-
-`grafana/README.md`
 
 ---
 
@@ -262,11 +224,9 @@ See:
 
 Local Loki is deployed on `ubuntu-infra`.
 
-The reported live Pi Alloy configuration dual-writes operational logs to local Loki and Grafana Cloud Loki during validation.
+The intended Pi Alloy architecture dual-writes operational logs to local Loki and Grafana Cloud Loki during validation. The repository sample now reflects that architecture, but the installed Pi configuration still needs to be compared before replacement.
 
-The repository sample may not exactly match the installed live Alloy configuration.
-
-Do not overwrite a known-working installed Alloy configuration merely because a repository sample differs. Reconcile first.
+Do not overwrite a known-working installed Alloy configuration merely because the repository changed. Reconcile first.
 
 Historical Grafana Cloud Loki data does not need to be migrated unless a concrete need appears.
 
@@ -285,17 +245,13 @@ Never commit:
 - SSH private keys
 - API tokens
 
-Commit examples such as `.env.example` when useful.
-
 Examples must contain placeholders only.
 
 ---
 
 # Runtime State
 
-Keep runtime state outside Git.
-
-Examples:
+Keep runtime state outside Git:
 
 - PostgreSQL Docker volumes
 - Loki storage
@@ -313,9 +269,7 @@ Git should contain enough configuration and documentation to recreate services, 
 
 # Systemd
 
-When an installed systemd unit changes, update the corresponding file under:
-
-`systemd/`
+When an installed systemd unit changes, update the corresponding file under `systemd/`.
 
 Do not fix only `/etc/systemd/system/...` and leave the repository stale.
 
@@ -327,20 +281,11 @@ Before adding a new timer, check whether the work belongs in an existing coordin
 
 Prefer Docker Compose for server-side stateful services where practical.
 
-Deployment configuration should be:
-
-- reproducible
-- understandable
-- version controlled
-- secret-free
-- explicit about persistent storage
-- explicit about health checks
+Deployment configuration should be reproducible, understandable, version-controlled, secret-free, and explicit about persistent storage and health checks.
 
 Prefer pinned container versions over floating `latest` tags when a tested version is known.
 
-Deployment and rebuild guidance lives in:
-
-`deploy/ubuntu-infra/README.md`
+Deployment and rebuild guidance lives in `deploy/ubuntu-infra/README.md`.
 
 ---
 
@@ -365,26 +310,16 @@ Remember that `CREATE TABLE IF NOT EXISTS` is not a migration mechanism for inco
 
 # Backups
 
-Current centralized backup script:
-
-`backup/backup_infra_postgres.sh`
-
-Runtime destination:
-
-`/var/backups/birdnet-postgres`
-
-Current retention:
-
-14 days
+Current centralized backup script: `backup/backup_infra_postgres.sh`  
+Runtime destination: `/var/backups/birdnet-postgres`  
+Retention: 14 days
 
 Systemd units:
 
 - `birdnet-postgres-backup.service`
 - `birdnet-postgres-backup.timer`
 
-At least one backup should eventually exist outside the same VM/storage as PostgreSQL.
-
-Do not treat archive listing as equivalent to a tested restore.
+At least one backup should eventually exist outside the same VM/storage as PostgreSQL. Do not treat archive listing as equivalent to a tested restore.
 
 ---
 
@@ -392,9 +327,7 @@ Do not treat archive listing as equivalent to a tested restore.
 
 BirdNET's primary function is bird detection.
 
-Monitoring infrastructure should not prevent the station from performing that job.
-
-If PostgreSQL, Loki, Grafana, or the Home Lab infrastructure is unavailable, BirdNET should continue collecting its own native source data whenever possible.
+Monitoring infrastructure should not prevent the station from performing that job. If PostgreSQL, Loki, Grafana, or the Home Lab infrastructure is unavailable, BirdNET should continue collecting its own native source data whenever possible.
 
 Prefer recoverable asynchronous data flows over fragile tight coupling.
 
@@ -416,36 +349,16 @@ Use the existing documentation roles:
 - `deploy/ubuntu-infra/README.md` — deployment and recovery runbook
 - `ml/reports/` — raw or legacy historical experiment material
 
-When architecture changes, update the relevant documentation in the same change.
+When architecture changes, update relevant documentation in the same change.
 
-Prefer correcting existing documentation over appending contradictory sections.
-
-Do not describe completed work as future work.
-
-Do not describe planned work as deployed.
+Do not describe completed work as future work or planned work as deployed.
 
 ---
 
 # Editing Style
 
-Favor:
+Favor small understandable components, explicit configuration, simple deployment commands, validation after changes, reversible migrations, and preserved historical experiment context.
 
-- small understandable components
-- explicit configuration
-- comments where behavior is non-obvious
-- simple deployment commands
-- validation after changes
-- reversible migrations
-- preserving historical experiment context
-
-Avoid:
-
-- hidden runtime assumptions
-- duplicated configuration without reason
-- credentials in source
-- unnecessary frameworks
-- needless directory reshuffling
-- replacing working components without a rollback path
-- silently changing model methodology while retaining the same model label
+Avoid hidden runtime assumptions, duplicated configuration without reason, credentials in source, unnecessary frameworks, needless directory reshuffling, replacing working components without a rollback path, or silently changing model methodology while retaining the same model label.
 
 This is a Home Lab project, but it should remain maintainable, reproducible, and honest about the limits of its data and experiments.
