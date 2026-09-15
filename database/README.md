@@ -2,70 +2,113 @@
 
 PostgreSQL is the durable structured datastore for the BirdNET monitoring project.
 
-It stores historical bird detections, actual weather observations, historical weather forecast snapshots, and stored ML predictions.
+It stores:
+
+- BirdNET detections
+- weather observations
+- historical weather forecast snapshots
+- aggregate activity predictions
+- species-presence predictions
 
 PostgreSQL complements Loki:
 
-    Loki        -> operational logs and observability
-    PostgreSQL  -> structured historical data and analysis
+```text
+Loki        -> operational logs and observability
+PostgreSQL  -> structured historical data and analysis
+```
 
-The database is intended to accumulate months and eventually years of station history.
+BirdNET's native SQLite database remains the authoritative source for completed detections. PostgreSQL is the durable analytical copy used by dashboards, experiments, and prediction scoring.
 
 ---
 
 # Current Deployment
 
-The primary PostgreSQL instance runs on:
+Primary PostgreSQL host:
 
-    ubuntu-infra
+```text
+ubuntu-infra
+192.168.1.137
+```
 
-Current Home Lab address:
+Container:
 
-    192.168.1.137
-
-Docker container:
-
-    birdnet-postgres
+```text
+birdnet-postgres
+```
 
 Database:
 
-    birdnet
+```text
+birdnet
+```
 
 Application role:
 
-    birdnet
+```text
+birdnet
+```
 
-TCP port:
+Read-only Grafana role:
 
-    5432
+```text
+grafana_reader
+```
+
+Published port:
+
+```text
+5432
+```
 
 Deployment configuration:
 
-    deploy/ubuntu-infra/postgres/
-
-Schema:
-
-    database/schema.sql
+```text
+deploy/ubuntu-infra/postgres/
+```
 
 The BirdNET Pi currently connects from:
 
-    192.168.1.136
+```text
+192.168.1.136
+```
+
+These addresses describe the current Home Lab deployment and are not intended as universal defaults.
 
 ---
 
-# Tables
+# Database Objects
 
-## detections
+The database layer is split between the base schema, derived views, and prediction tables.
+
+```text
+database/
+├── schema.sql
+├── predictions.sql
+├── species_predictions.sql
+└── views/
+    ├── bird_activity_hourly.sql
+    └── bird_species_hourly.sql
+```
+
+## Base tables
+
+`database/schema.sql` defines the durable source tables.
+
+### `detections`
 
 Stores BirdNET detections imported from BirdNET's native SQLite database.
 
 Source:
 
-    ~/BirdNET-Pi/scripts/birds.db
+```text
+~/BirdNET-Pi/scripts/birds.db
+```
 
 Importer:
 
-    collector/import_detections.py
+```text
+collector/import_detections.py
+```
 
 Important fields include:
 
@@ -74,74 +117,30 @@ Important fields include:
 - common species name
 - scientific species name
 - confidence
-- latitude
-- longitude
-- cutoff
-- week
-- sensitivity
+- latitude / longitude
+- BirdNET cutoff and sensitivity values
 - overlap
 - source filename
 - source SQLite row ID
 
-The BirdNET SQLite database remains the authoritative source for completed detections.
-
-PostgreSQL provides the durable analytical copy.
-
----
-
-## weather_observations
+### `weather_observations`
 
 Stores actual weather conditions collected from Open-Meteo.
 
-Important fields include:
+Important fields include temperature, humidity, pressure, precipitation, cloud cover, wind, weather code, day/night state, sunrise, and sunset.
 
-- observation timestamp
-- station ID
-- temperature
-- dew point
-- relative humidity
-- atmospheric pressure
-- precipitation
-- cloud cover
-- wind speed
-- wind gusts
-- wind direction
-- weather code
-- day/night state
-- sunrise
-- sunset
+### `weather_forecasts`
 
-The uniqueness rule prevents duplicate storage when Open-Meteo returns the same current observation more than once.
+Stores historical snapshots of future Open-Meteo forecasts.
 
----
+The two important timestamps are:
 
-## weather_forecasts
+```text
+forecast_created_at
+forecast_for
+```
 
-Stores snapshots of future weather forecasts.
-
-Collector:
-
-    weather/forecast.py
-
-The important timestamps are:
-
-    forecast_created_at
-    forecast_for
-
-`forecast_created_at` is when the snapshot was collected.
-
-`forecast_for` is the future hour being predicted.
-
-The same `forecast_for` time can therefore appear in multiple snapshots.
-
-This is intentional and allows analysis of how a forecast changed as the target time approached.
-
-Potential uses include:
-
-- forecast accuracy analysis
-- identifying useful forecast horizons
-- comparing predicted and actual weather
-- future bird-activity prediction using information available at prediction time
+Multiple snapshots for the same future hour are retained intentionally. This allows later comparison of how the forecast changed as the target approached.
 
 ---
 
@@ -149,294 +148,408 @@ Potential uses include:
 
 The detection path is:
 
-    BirdNET birds.db
-          │
-          ▼
-    birdnet-db-sync.timer
-          │
-          ▼
-    birdnet-db-sync.service
-          │
-          ▼
-    import_detections.py
-          │
-          ▼
-    PostgreSQL detections
+```text
+BirdNET birds.db
+      |
+      v
+birdnet-db-sync.timer
+      |
+      v
+birdnet-db-sync.service
+      |
+      v
+collector/import_detections.py
+      |
+      v
+PostgreSQL detections
+```
 
 The timer runs approximately once per minute.
 
----
-
 ## Incremental state
 
-The importer stores its last processed source row ID in:
+The importer stores its last processed SQLite row ID in:
 
-    ~/.local/state/birdnet-db-sync/last_rowid
+```text
+~/.local/state/birdnet-db-sync/last_rowid
+```
 
-Normal runs only inspect rows newer than that value.
+The checkpoint advances only after a successful PostgreSQL transaction, allowing failed writes to be retried.
 
-The state advances only after the PostgreSQL transaction succeeds.
-
-This allows failed imports to be retried safely.
-
----
-
-## Source database rebuild handling
-
-If BirdNET recreates its SQLite database, source row IDs may restart at lower values.
-
-The importer detects:
-
-    SQLite MAX(rowid) < stored last_rowid
-
-and restarts synchronization from row zero.
-
-Existing PostgreSQL uniqueness constraints prevent normal historical records from being inserted twice.
+If BirdNET recreates its SQLite database and source row IDs restart, the importer can detect a source `MAX(rowid)` below the saved checkpoint and rescan. PostgreSQL uniqueness constraints protect against normal duplicate replay.
 
 ---
 
 # Connection Configuration
 
-The collectors use environment-based PostgreSQL configuration.
+Collectors use:
 
-Supported variables:
+```text
+BIRDNET_DB_HOST
+BIRDNET_DB_NAME
+BIRDNET_DB_USER
+BIRDNET_DB_PASSWORD
+```
 
-    BIRDNET_DB_HOST
-    BIRDNET_DB_NAME
-    BIRDNET_DB_USER
-    BIRDNET_DB_PASSWORD
+The BirdNET Pi currently loads these through systemd from:
 
-The current Pi loads these values through systemd from:
+```text
+/home/birduser/.config/birdnet-monitoring/db.env
+```
 
-    /home/birduser/.config/birdnet-monitoring/db.env
+Real credentials must remain outside Git.
 
-Example structure:
-
-    BIRDNET_DB_HOST=database-host
-    BIRDNET_DB_NAME=birdnet
-    BIRDNET_DB_USER=birdnet
-    BIRDNET_DB_PASSWORD=...
-
-The real password must never be committed to Git.
+ML jobs use the same database variable names. Current wrappers can obtain the local PostgreSQL password from the `birdnet-postgres` container when `BIRDNET_DB_PASSWORD` is not already supplied.
 
 ---
 
-# Initializing a New Database
+# Installing Database Objects
 
-The Compose file mounts only `database/schema.sql`, and initialization scripts apply only to a fresh data volume. It does not automatically install tonight's view or prediction table.
+The PostgreSQL Compose deployment mounts only:
 
-For an existing deployment, first take and inspect a backup and record row counts. Run from the repository root on `ubuntu-infra`. The view file ends with a grant to `grafana_reader`, so that role must already exist (create its login and password privately if rebuilding).
+```text
+database/schema.sql
+```
+
+and PostgreSQL initialization scripts run only when a new data volume is created.
+
+The analytical views and prediction tables therefore need to be applied separately.
+
+For an existing deployment, first create and inspect a backup. Then run from the repository root on `ubuntu-infra`:
 
 ```bash
-docker exec -i birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet < database/views/bird_activity_hourly.sql
-docker exec -i birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet < database/predictions.sql
-docker exec birdnet-postgres psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet -c "GRANT USAGE ON SCHEMA public TO grafana_reader; GRANT SELECT ON public.bird_activity_hourly, public.bird_activity_predictions TO grafana_reader;"
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/views/bird_activity_hourly.sql
+
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/views/bird_species_hourly.sql
+
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/predictions.sql
+
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/species_predictions.sql
+```
+
+Then ensure Grafana has read-only access to the analytical objects:
+
+```bash
+docker exec birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet -c "
+GRANT USAGE ON SCHEMA public TO grafana_reader;
+GRANT SELECT ON
+  public.bird_activity_hourly,
+  public.bird_species_hourly,
+  public.bird_activity_predictions,
+  public.bird_species_predictions
+TO grafana_reader;
+"
+```
+
+Verify:
+
+```bash
 docker exec birdnet-postgres psql -U birdnet -d birdnet -c '\dt'
 docker exec birdnet-postgres psql -U birdnet -d birdnet -c '\dv'
 ```
 
-A fresh manual database also needs the base schema first. Do not delete a populated volume to trigger initialization. `CREATE TABLE IF NOT EXISTS` does not migrate an existing incompatible table.
+A fresh manually created database also needs `database/schema.sql` first.
 
-## Hourly activity view
+Do not delete a populated PostgreSQL volume merely to rerun initialization.
 
-`views/bird_activity_hourly.sql` defines a regular view, not a stored table or materialized view. Per local hour:
+`CREATE TABLE IF NOT EXISTS` is not a migration mechanism for an already incompatible table definition.
+
+---
+
+# Aggregate Activity View
+
+`database/views/bird_activity_hourly.sql` defines `bird_activity_hourly`.
+
+Per local hour:
 
 ```text
 capped_detections = sum(min(detections per species, 10))
 activity_index = species_count + capped_detections
 ```
 
-It groups by common species name, combines all stations, and applies no additional confidence filter. Weather hours define the output: missing detections become zero, while hours without weather disappear. This cannot distinguish a quiet station from an ingestion outage.
+The view combines detection activity with hourly weather data.
 
-`hour_local` is a timestamp without timezone representing Los Angeles wall time. The current hour is included as soon as observations arrive. Repeated autumn DST hours collapse into one bucket. These are known limitations, not a complete hourly quality contract.
+Important limitations:
 
-## Prediction table
+- weather hours define the output timeline
+- bird hours without weather can disappear
+- weather hours without detections become zero-activity hours
+- stations are currently combined
+- no additional confidence filter is applied in the view
+- a zero-activity hour cannot by itself distinguish quiet conditions from ingestion or station failure
 
-`predictions.sql` defines `bird_activity_predictions`:
+`hour_local` is stored as Los Angeles wall time without timezone. Repeated autumn DST hours therefore cannot always be represented uniquely.
 
-| Field | Meaning |
-|---|---|
-| `prediction_created_at` | Actual insertion time, with timezone |
-| `predicted_hour` | Target hour as Los Angeles wall time, without timezone |
-| `model` | Corrected live model: `random_forest_v2_completed`; legacy rows retained |
-| `predicted_activity` | Nonnegative model output |
-| `current_activity` | Saved persistence baseline |
-| `training_rows` | Rows used for that fit |
-| `actual_activity`, `absolute_error`, `scored_at` | Nullable until scored |
-
-The unique key is `(predicted_hour, model)`; repeat prediction attempts preserve the original record. The corrected scorer updates only v2 rows with null actuals, requires creation before the target began, and waits until the target ends plus ten minutes. It leaves all legacy predictions and scores unchanged. It does not revise late actuals. See [ML limitations](../ml/README.md#known-validation-limitations).
-
-For Grafana time-series queries, convert `predicted_hour AT TIME ZONE 'America/Los_Angeles'` into an instant. This cannot recover distinctions already lost at a DST overlap.
+The current aggregate ML pipeline handles additional freshness and gap checks in Python. See [ML methodology](../docs/ml.md).
 
 ---
 
-# Current Migration
+# Species Hourly View
 
-The original structured database ran locally on the BirdNET Pi.
+`database/views/bird_species_hourly.sql` defines `bird_species_hourly`.
 
-It was migrated to `ubuntu-infra` using:
+Its purpose is different from the aggregate activity view: it creates a continuous species-presence dataset independent of weather availability.
 
-    pg_dump -Fc
+For each station, the view:
 
-and restored into the centralized PostgreSQL instance.
+1. finds the first and latest detection hour
+2. generates a continuous hourly timeline between them
+3. builds the list of species observed by that station
+4. creates one row for every station/species/hour combination
+5. left-joins the actual detections
+6. explicitly represents absence with zero detections
 
-The source dump was validated with:
+Columns include:
 
-    pg_restore -l
+| Field | Meaning |
+|---|---|
+| `station_id` | BirdNET station identifier |
+| `hour_local` | Los Angeles local wall-clock hour |
+| `species` | Common species name |
+| `species_latin` | Scientific name |
+| `detection_count` | Number of detections in that hour |
+| `present` | `1` when at least one detection exists, otherwise `0` |
+| `avg_confidence` | Average confidence for detections in the hour |
+| `max_confidence` | Maximum confidence for detections in the hour |
 
-Migration baseline row counts were:
+This makes zero-detection hours explicit and provides the canonical dataset for the current species classifiers.
 
-    detections              7886
-    weather_observations    1573
-    weather_forecasts      17712
+The timeline currently ends at the latest detection hour for each station. Live prediction code can extend its working frame through the latest completed hour when necessary.
 
-Destination row counts matched exactly.
+As with the aggregate view, `hour_local` is a local timestamp without timezone and retains the DST overlap limitation.
 
-After migration, live detection and weather ingestion were confirmed by observing the destination row counts increase.
+---
 
-These values are historical migration checkpoints and are expected to become outdated as new records arrive.
+# Aggregate Prediction Table
+
+`database/predictions.sql` defines `bird_activity_predictions`.
+
+Important fields:
+
+| Field | Meaning |
+|---|---|
+| `prediction_created_at` | Actual insertion time with timezone |
+| `predicted_hour` | Target Los Angeles wall-clock hour |
+| `model` | Model identifier |
+| `predicted_activity` | Model output |
+| `current_activity` | Saved persistence baseline |
+| `training_rows` | Rows used to train that fit |
+| `actual_activity` | Target activity after scoring |
+| `absolute_error` | Absolute model error after scoring |
+| `scored_at` | Scoring time |
+
+Current live aggregate model:
+
+```text
+random_forest_v2_completed
+```
+
+The unique key is:
+
+```text
+(predicted_hour, model)
+```
+
+This preserves the first stored forecast for a target/model pair.
+
+The current scorer waits until the target hour has completed plus the ingestion grace period before filling the outcome fields. Legacy prediction rows remain stored separately.
+
+---
+
+# Species Prediction Table
+
+`database/species_predictions.sql` defines `bird_species_predictions`.
+
+Important fields:
+
+| Field | Meaning |
+|---|---|
+| `prediction_created_at` | Actual insertion time with timezone |
+| `station_id` | Station being predicted |
+| `species` | Species being predicted |
+| `predicted_hour` | Target Los Angeles wall-clock hour |
+| `model` | Species model identifier |
+| `probability` | Predicted probability of presence |
+| `threshold` | Classification threshold, currently normally `0.5` |
+| `predicted_present` | Binary forecast derived from the threshold |
+| `current_present` | Presence state in the latest completed input hour |
+| `training_rows` | Rows used to train that fit |
+| `actual_present` | Observed target state after scoring |
+| `correct` | Whether the binary prediction matched the outcome |
+| `scored_at` | Scoring time |
+
+The unique key is:
+
+```text
+(station_id, species, predicted_hour, model)
+```
+
+Current species model identifiers are:
+
+```text
+random_forest_species_v1
+xgboost_species_v1
+```
+
+Species models store both probabilities and thresholded present/absent decisions. For sparse species, the probability can be more informative than the default `0.5` decision threshold.
+
+See [ML methodology](../docs/ml.md) and the [species experiment record](../docs/experiments/2026-09-14-species-models.md).
+
+---
+
+# Time Handling
+
+The current analytical prediction hours use Los Angeles local wall time without timezone.
+
+For Grafana time-series queries, convert them to an instant with:
+
+```sql
+predicted_hour AT TIME ZONE 'America/Los_Angeles'
+```
+
+This handles normal display conversion but cannot recover two distinct autumn DST hours after they have already been represented by the same local timestamp.
+
+A future multi-station architecture should move toward explicit UTC instants plus station timezone metadata.
+
+---
+
+# Historical Migration
+
+The original structured PostgreSQL database ran locally on the BirdNET Pi and was migrated to `ubuntu-infra` with a custom-format `pg_dump`.
+
+Historical migration checkpoint:
+
+```text
+detections              7886
+weather_observations    1573
+weather_forecasts      17712
+```
+
+Destination counts matched at migration time, and live ingestion was confirmed afterward.
+
+These numbers are historical checkpoints, not current totals.
 
 ---
 
 # Network Security
 
-PostgreSQL publishes `5432/tcp`. The earlier Pi rule, `192.168.1.136/32`, covers ingestion only. The current system also has local ML connections and Grafana connections from its Docker network.
+PostgreSQL publishes `5432/tcp`.
 
-The previous session confirmed Grafana access, but the committed Compose file does not capture the live authentication rules. Preserve and document the actual narrow client rules and SCRAM authentication during rebuilds.
+The system currently needs access for more than the BirdNET Pi alone:
 
-The Compose bootstrap user is `birdnet`; do not assume it is a least-privilege ingestion role. Audit its privileges separately from `grafana_reader`.
+- BirdNET ingestion from the Pi
+- ML jobs on `ubuntu-infra`
+- Grafana through its Docker network
 
----
+Use narrow SCRAM-authenticated client rules rather than reopening PostgreSQL broadly to the LAN.
 
-# Backups
+The committed Compose file does not fully reproduce the live `pg_hba.conf` rules, so the active authentication configuration must be preserved and documented during rebuilds.
 
-The centralized database is backed up using:
-
-    backup/backup_infra_postgres.sh
-
-Runtime destination:
-
-    /var/backups/birdnet-postgres
-
-Backup format:
-
-    PostgreSQL custom archive
-
-Example:
-
-    birdnet-2026-09-13_15-22-15.dump
-
-The backup can be inspected with:
-
-    pg_restore -l backup.dump
-
----
-
-## Schedule
-
-systemd units:
-
-    birdnet-postgres-backup.service
-    birdnet-postgres-backup.timer
-
-Current schedule:
-
-    03:15 America/Los_Angeles
-
-The timer is persistent.
-
-Retention:
-
-    14 days
-
-Old matching dumps are automatically removed.
-
----
-
-# Restore Procedure
-
-Do not test restore procedures directly against the live production database.
-
-A safe general workflow is:
-
-1. identify the desired dump
-2. validate it with `pg_restore -l`
-3. create a temporary test database
-4. restore into the temporary database
-5. verify tables and row counts
-6. only then plan any production restore
-
-Example inspection:
-
-    pg_restore -l \
-      /var/backups/birdnet-postgres/birdnet-YYYY-MM-DD_HH-MM-SS.dump
-
-The project should periodically perform a real test restore into a temporary database.
-
-A backup that has never been restored is not fully proven.
-
----
-
-# Backup Scope
-
-The PostgreSQL custom-format dump protects the logical database contents.
-
-It does not back up:
-
-- BirdNET audio
-- BirdNET's native `birds.db`
-- Docker images
-- Grafana dashboards outside Git
-- Loki data
-- the VM itself
-- operating system configuration not represented in Git
-
-Those concerns should be handled separately.
-
----
-
-# Disaster Recovery
-
-The current dumps live on the same infrastructure VM as PostgreSQL.
-
-This is useful but not sufficient for complete disaster recovery.
-
-A future improvement should copy backups to physically separate storage such as:
-
-- an external backup drive
-- NAS
-- another server
-- remote storage
-
-At least one backup copy should eventually survive the loss of `ubuntu-infra`.
+The `birdnet` role is the current application/bootstrap role and should not automatically be treated as a least-privilege account.
 
 ---
 
 # Grafana Access
 
-The existing read-only role is `grafana_reader`. The previous session confirmed SELECT grants on `bird_activity_hourly` and `bird_activity_predictions`. The view SQL includes its grant; the prediction-table SQL does not, so deployment must apply that grant explicitly.
+Grafana uses the read-only role:
 
-The Prediction Lab uses datasource `BirdNET PostgreSQL`, UID `afy5j1yt18b9cb`. The Cloud/Local operational dashboards continue using Loki and Infinity. See [Grafana documentation](../grafana/README.md).
+```text
+grafana_reader
+```
 
-Role creation, credentials, connection rules, and grants must be recoverable separately from database data. A database-only dump does not recreate cluster-wide roles.
+The PostgreSQL datasource currently uses UID:
+
+```text
+afy5j1yt18b9cb
+```
+
+Grafana analytical dashboards currently depend on:
+
+```text
+bird_activity_hourly
+bird_activity_predictions
+bird_species_hourly
+bird_species_predictions
+```
+
+See [Grafana documentation](../grafana/README.md).
+
+Role creation, credentials, connection rules, and grants are cluster/runtime configuration and must remain recoverable separately from database contents.
 
 ---
 
-# Monitoring
+# Backups
 
-Useful future PostgreSQL monitoring includes:
+Central backup script:
 
-- database availability
-- database size
-- row growth
-- backup success
-- age of newest backup
-- connection count
-- failed connections
-- table growth
-- query performance if needed
+```text
+backup/backup_infra_postgres.sh
+```
 
-Prometheus already exists on `ubuntu-infra`, so PostgreSQL metrics can later be integrated into the existing monitoring stack.
+Runtime destination:
+
+```text
+/var/backups/birdnet-postgres
+```
+
+Format:
+
+```text
+PostgreSQL custom archive
+```
+
+systemd units:
+
+```text
+birdnet-postgres-backup.service
+birdnet-postgres-backup.timer
+```
+
+Current schedule:
+
+```text
+03:15 America/Los_Angeles
+```
+
+Current retention:
+
+```text
+14 days
+```
+
+The logical database dump includes prediction tables and regular views. It does not include cluster-wide roles, runtime secrets, BirdNET audio, the native BirdNET SQLite database, Loki data, Grafana state, or the VM itself.
+
+Current dumps remain on the same infrastructure VM as PostgreSQL, so off-host backup replication remains important future work.
+
+---
+
+# Restore Guidance
+
+Do not test restoration directly against the live database.
+
+A safe workflow is:
+
+1. identify a backup
+2. inspect it with `pg_restore -l`
+3. create a temporary database
+4. restore the dump there
+5. verify objects and row counts
+6. verify analytical views
+7. verify prediction tables
+8. only then plan a production restore if needed
+
+A backup that has never been restored is not fully proven.
+
+When restoring an older database snapshot, also reconcile the BirdNET Pi importer checkpoint. A checkpoint newer than the restored database could otherwise skip detections still present in BirdNET's source SQLite database.
 
 ---
 
@@ -444,28 +557,27 @@ Prometheus already exists on `ubuntu-infra`, so PostgreSQL metrics can later be 
 
 The project intentionally distinguishes source and derived data.
 
-## Authoritative source
+```text
+BirdNET birds.db
+    -> authoritative detection source
 
-Bird detections:
+PostgreSQL detections
+    -> durable analytical copy
 
-    BirdNET birds.db
+Open-Meteo
+    -> external environmental source
 
-## Durable analytical copy
+PostgreSQL weather_observations / weather_forecasts
+    -> historical environmental copy
 
-    PostgreSQL detections
+PostgreSQL views
+    -> reproducible derived datasets
 
-## External environmental source
+PostgreSQL prediction tables
+    -> historical record of forecasts issued before outcomes were known
+```
 
-    Open-Meteo
-
-## Historical environmental copy
-
-    PostgreSQL weather_observations
-    PostgreSQL weather_forecasts
-
-This distinction matters during recovery and troubleshooting.
-
-PostgreSQL is important, but BirdNET's own source database should not be modified merely to make the monitoring stack easier.
+The raw historical data is more valuable long term than any particular trained model. Derived views and models can be recreated; lost source observations generally cannot.
 
 ---
 
@@ -477,30 +589,26 @@ Never commit:
 - `.env` files
 - `db.env`
 - database dumps
-- private SSH keys
-- Grafana tokens
+- SSH private keys
+- Grafana credentials or tokens
 - Grafana Cloud credentials
 
-The repository should contain enough configuration to rebuild the database service without containing production credentials or live data.
+The repository should contain enough code and schema to understand and rebuild the service without containing production secrets or live database contents.
 
 ---
 
 # Future Database Work
 
-Planned improvements include:
+Priorities include:
 
-- make the existing Grafana role and grants reproducible
-- historical activity dashboards
-- database health metrics
-- backup age monitoring
-- off-host backup replication
-- periodic restore testing
-- eventual removal of the old Pi PostgreSQL installation
-- analysis views or materialized views if useful
-- long-term bird/weather correlation work
-- forecast accuracy analysis
-- completed-hour, gap-aware, station-specific prediction datasets
+- make role creation and grants fully reproducible
+- preserve and document narrow live PostgreSQL access rules
+- add database and backup-health monitoring
+- replicate backups off `ubuntu-infra`
+- periodically test real restores
+- eventually retire the old Pi PostgreSQL instance
+- improve station-health / ingestion-completeness evidence
+- move analytical timestamps toward UTC plus explicit station timezone metadata
+- add materialized views or indexes only when real query patterns justify them
 
 Avoid premature database complexity.
-
-Add indexes, derived tables, or materialized views when actual query patterns justify them.
