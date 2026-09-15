@@ -1,4 +1,16 @@
-# BirdNET ML Experiments
+# BirdNET ML Experiments — Legacy Historical Notes
+
+> **Historical record:** This file preserves the early aggregate-activity experiments and their original results.
+>
+> It is **not** the current ML methodology or the current live-model evaluation.
+>
+> For the current methodology, timing rules, leakage prevention, and live-vs-retrospective conventions, see [`docs/ml.md`](../../docs/ml.md).
+>
+> For curated current experiment results, see [`docs/experiments/`](../../docs/experiments/).
+
+The results below are intentionally preserved as part of the project's development history. They were produced before the current completed-hour **T → T+2** methodology was adopted, so they should not be compared directly with the newer v2 experiments or live forward-validation results.
+
+---
 
 ## Goal
 
@@ -8,6 +20,23 @@ Primary metric: **MAE**
 Secondary metric: **RMSE**
 
 Lower is better for both.
+
+---
+
+## Historical Methodology
+
+These experiments used the original aggregate ML pipeline.
+
+Important differences from the current v2 methodology:
+
+- target timing used the older next-row / one-step horizon
+- lag features were based on row shifts rather than the current gap-aware completed-hour logic
+- results were retrospective only
+- these runs predate the current live `random_forest_v2_completed` model
+- they do not include the later matched Random Forest vs XGBoost v2 comparison
+- they do not include species-level classification experiments
+
+This file should therefore be treated as a development log, not as the authoritative current benchmark.
 
 ---
 
@@ -160,12 +189,18 @@ Current activity plus sunrise timing captures most of the useful signal, but the
 
 ---
 
-## Current conclusion
+## Historical Conclusion
 
-The strongest model so far is a **Random Forest using time, sunrise-relative timing, current activity, and recent activity history**.
+At this stage of the project, the strongest model was a **Random Forest using time, sunrise-relative timing, current activity, and recent activity history**.
 
-The model appears to contain real predictive signal because it improves on persistence across multiple chronological future test windows.
+The early results suggested real predictive signal because Random Forest improved on persistence across multiple chronological future test windows.
 
-Weather has not yet improved one-hour forecasts.
+Observed weather did not improve these early one-hour forecasts.
 
-The dataset is still small. Model tuning should remain conservative until substantially more historical data has accumulated.
+These conclusions remain useful as historical context, but they have been superseded for current model decisions by the completed-hour v2 experiments and live forward-validation pipeline.
+
+Current references:
+
+- [`docs/ml.md`](../../docs/ml.md) — current methodology
+- [`docs/experiments/2026-09-14-activity-models.md`](../../docs/experiments/2026-09-14-activity-models.md) — matched v2 aggregate model comparison
+- [`docs/experiments/2026-09-14-species-models.md`](../../docs/experiments/2026-09-14-species-models.md) — species classification experiments
