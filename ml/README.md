@@ -1,170 +1,367 @@
 # BirdNET ML
 
-Machine-learning experiments for predicting BirdNET activity from historical detections, time, weather, and eventually weather forecasts.
+Machine-learning code for BirdNET activity and species prediction.
 
-This lives inside the larger `birdnetpi-monitoring` project.
+This directory contains the executable ML workflows. Stable methodology lives in [docs/ml.md](../docs/ml.md), while dated experiment results live in [docs/experiments/](../docs/experiments/).
 
-The first goal remains simple:
+The current prediction convention is:
 
-> Predict the BirdNET activity index for the next hour.
+**completed hour T → target hour T+2**
 
-The important part is building honest baselines, avoiding data leakage, and comparing sensible models on unseen data. The repository now includes experiments, stored predictions, scoring, an hourly systemd cycle, and a PostgreSQL dashboard.
-
-**Current status:** this README describes the accompanying completed-hour fix, which must be installed first. The pipeline is experimental. V2 enforces completed inputs, a ten-minute grace period, fresh recent history, and scoring after target completion. It cannot prove ingestion completeness or repair legacy scores.
+At 14:10, for example, the latest completed input hour is 13:00–14:00 and the forecast target is 15:00–16:00.
 
 ---
 
-## Current Dataset
+## Current ML Workflows
 
-Data comes from `bird_activity_hourly`, defined in [the hourly view SQL](../database/views/bird_activity_hourly.sql). It combines BirdNET activity with weather observations.
+There are two active ML tracks.
 
-The initial September 13 snapshot reported 405 hourly rows spanning August 27–September 13, 195 active hours, average activity 6.15, and maximum 49. These are historical observations, not current totals or quality guarantees. The initial dataset covered about 17 days; it cannot establish seasonal behavior.
+### Aggregate activity prediction
 
-Weather hours define the view. Bird hours without weather are omitted; weather hours without detections have zero activity. The view includes incomplete current hours and combines stations. See [database documentation](../database/README.md) for the exact data contract.
+Predicts the project `activity_index` for a future hour.
 
-## Activity Index
+Current live model:
 
-Raw detection count can be misleading because one persistent bird can generate many detections.
+`random_forest_v2_completed`
 
-```text
-capped detections = sum(min(species detections, 10))
-activity index = species count + capped detections
-```
-
-This makes repeated calls from one species less dominant. It is a practical project metric, not an established ecological measure. It measures recorded detections, which also depend on station uptime and detection settings.
-
-## Prediction Features
-
-The live model and main comparison scripts use the same feature names:
-
-- hour of day
-- hours from sunrise
-- day/night
-- current activity
-- activity lags of 1, 2, 3, and 24 hours in v2 (row shifts in the older experiments)
-
-V2 reindexes hourly history and rejects input windows containing gaps or ambiguous DST hours. The older experiment scripts still rely on row continuity and retain their original target horizon.
-
-Temperature, humidity, wind, cloud cover, and precipitation remain in the loaded dataset. They are used by the older `train.py` experiment, but **not** by the current live Random Forest or main comparison/rolling scripts.
-
-Historical weather experiments did not improve the early one-hour results. That is a dataset-specific observation, not evidence that weather is generally irrelevant.
-
-## Current Model and Baseline
-
-The corrected live model label is `random_forest_v2_completed`:
-
-```text
-RandomForestRegressor
-n_estimators = 300
-min_samples_leaf = 3
-random_state = 42
-```
-
-Each invocation fits a new model on valid completed feature/target rows, requiring at least 192 training examples. At 14:10, the feature bucket is 13:00–14:00 and the forecast target is 15:00–16:00. V2 training uses the same two-hour offset between bucket starts. It does not load a persisted model artifact or implement a champion/challenger promotion system.
-
-Persistence predicts that the target activity equals the latest input activity. That value is stored as `current_activity`, so later comparisons use the baseline available with the original forecast.
-
-## Experiments and Evaluation
-
-No random train/test shuffling is used.
-
-| Script | Purpose |
-|---|---|
-| `src/data.py` | Load completed hours with a ten-minute ingestion grace period |
-| `src/timing.py` | V2 time-based horizon, hourly gap checks, freshness and DST guards |
-| `src/features.py` | Row shifts for lags and next-row target |
-| `src/evaluate.py` | Persistence, chronological 80/20 split |
-| `src/train.py` | Older time/weather/activity HistGradientBoosting experiment |
-| `src/compare_models.py` | Poisson, Random Forest, HistGradientBoosting and persistence; 80/20 split |
-| `src/rolling_validation.py` | Expanding training window: initially 192 rows, 24-row test windows |
-| `src/feature_importance.py` | Random Forest impurity-based feature importance |
-| `src/ablation.py` | Five feature sets, expanding 192/24-row evaluation |
-| `run_experiments.sh` | Run comparison, rolling validation, importance and ablation; save a report |
-
-The rolling script's comment still says 48 hours; its active value is 24 rows. Each test row uses its own historical activity inputs. These are repeated one-step evaluations with a model fixed within each fold, not a 24-hour forecast issued all at once.
-
-MAE measures average absolute error. RMSE gives more weight to large errors. The rolling summary averages fold RMSEs; it is not a pooled RMSE calculation. Compare models and persistence on the same valid rows.
-
-The old experiment scripts still use a one-row target horizon. Their results are not directly comparable with v2; matched retrospective evaluation remains follow-up work.
-
-The historical [experiment log](reports/experiments.md) records the early results, including Random Forest average MAE 3.874 versus persistence 4.274 in seven 24-row windows. These results have not been reproduced against a frozen dataset in this review.
-
-`train.py` still prints hard-coded persistence scores. Use `evaluate.py` or `compare_models.py` for a baseline calculated from the current data.
-
-## Running Experiments
-
-Run on `ubuntu-infra` from `/opt/birdnetpi-monitoring`. The scripts expect a root-level `.venv`.
-
-```bash
-cd /opt/birdnetpi-monitoring
-python3 -m venv .venv
-.venv/bin/python -m pip install -r ml/requirements.txt
-./ml/run_experiments.sh
-```
-
-The checked-in requirements pin pandas, scikit-learn, and psycopg. They import NumPy transitively; recording it explicitly would improve reproducibility.
-
-The shell wrappers use `BIRDNET_DB_HOST`, `BIRDNET_DB_NAME`, `BIRDNET_DB_USER`, and `BIRDNET_DB_PASSWORD`. Defaults are `127.0.0.1`, `birdnet`, and `birdnet`. When no password is supplied, the wrappers read `POSTGRES_PASSWORD` from the local `birdnet-postgres` container. This requires Docker access and couples the job to that container. Never paste the resulting secret into Git or a report.
-
-Reports go to `ml/reports/runs/run_YYYY-MM-DD_HH-MM-SS.txt`. This directory and `.venv/` are already ignored. Keep curated conclusions in `reports/experiments.md`.
-
-## Live Prediction and Scoring
+Current live automation:
 
 ```text
 birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
-        -> score_predictions.sh -> src/score_predictions.py
-        -> predict_next_hour.sh -> src/predict_next_hour.py
-    -> PostgreSQL bird_activity_predictions
-    -> Grafana Prediction Lab
+        -> score_predictions.sh
+        -> predict_next_hour.sh
 ```
 
-The cycle scores first, then predicts. Shell failure handling stops the cycle if scoring fails.
+Predictions are stored in:
 
-The prediction requires the previous completed local hour and targets the next full local hour: at 14:10, use 13:00 inputs for 15:00. It validates freshness again after fitting and checks the issue hour at insertion. It stores model output, persistence, training-row count, and insertion time. Duplicate target-hour/model pairs preserve the first forecast.
+`bird_activity_predictions`
 
-The corrected scorer updates only unscored `random_forest_v2_completed` rows, after the target ends plus ten minutes and only if the prediction was created before the target began. It stores actual activity, absolute error, and scoring time. A missing target view row remains pending. An already scored row is not revised when late detections arrive.
+and visualized in:
 
-The [deployment runbook](../deploy/ubuntu-infra/README.md) describes the `infra` service account, paths, timer, installation, and checks. The timer runs at minute 10 each hour in the host timezone and is persistent; it does not generate every missed forecast after downtime.
+`grafana/bird-home-prediction-lab.json`
 
-## Known Validation Limitations
+### Species presence prediction
 
-The accompanying fix addresses unfinished inputs, premature v2 scoring, stale prediction inputs, and compressed live lags. Ten offline regression checks cover issue timing, training horizon, gaps, stale data and DST intervals.
+Estimates the probability that an individual species will be detected during the target hour.
 
-- Ten minutes after hour end is an ingestion grace period, not proof that all detections arrived. Station heartbeat/completeness checks and late-data reconciliation remain open.
-- Existing v1 predictions and scores are preserved and no longer scored by the corrected job. Audit them before any repair; do not compare their scores directly with v2.
-- The SQL view still combines stations and uses local timestamp keys. V2 skips ambiguous recent DST windows; a UTC/station-key migration remains later work.
-- The original retrospective scripts retain their one-row horizon and row-based lag handling. They need a matched v2 evaluation before their results support conclusions about the corrected model.
-- Input snapshots, exact cutoff and dependency/code provenance are not yet stored per prediction. The model label separates the timing change but is not a full reproducibility record.
-- Missing weather can exclude hours and zero detections can conceal outages. New scoring leaves already scored actuals unchanged if data later arrives.
+Current live-capable scripts:
 
-## Checking the Fix
+- `src/predict_species_live.py`
+- `src/score_species_predictions.py`
 
-Run `ml/tests/test_timing.py` with the repository virtual environment. The Python entry points support `--check`: prediction fits/validates without inserting, and scoring counts eligible records without updating. Supply the normal database environment when invoking Python directly. The provided installer performs these checks before resuming the timer.
+Current model labels:
 
-## Grafana
+- `random_forest_species_v1`
+- `xgboost_species_v1`
 
-[Prediction Lab](../grafana/README.md) reads the prediction table and hourly view through `grafana_reader`. Pending forecasts are expected before a valid actual is ready. The accompanying updated dashboard filters all prediction queries to v2; its summary statistics cover all scored v2 rows, while chart panels use the selected time range. Import that JSON to activate the filtering; copying it to the repository is insufficient.
+Predictions are stored in:
 
-Legacy records remain stored and are excluded from the updated dashboard. The first v2 accuracy metrics appear only after a target has ended and been scored.
+`bird_species_predictions`
 
-## Weather Observations vs Forecasts
+and visualized in:
 
-Future weather-aware models must use forecasts available at issue time, not future observed weather. Existing `forecast_created_at` values are rounded to the collection hour; exact retrieval timestamps are not stored in the forecast table. Add provenance before claiming exact as-of availability.
+`grafana/Bird Home - Species Prediction.json`
 
-Both weather collectors currently write precipitation to an `_in` column without explicitly requesting precipitation units. Audit units and historical values before adding those fields to model comparisons.
+The species predictor and scorer are committed and working, but they are **not yet wired into a committed systemd schedule**. Until that automation is added, species prediction runs are manual.
 
-## Next Work
+---
 
-- Run matched retrospective v2 evaluation and add stronger ingestion-completeness checks.
-- Record dataset cutoffs, code/dependency versions, and comparable baseline results.
-- Accumulate a larger history and inspect daytime, zero-activity, and burst errors separately.
-- Revisit weather and species-specific targets when data supports them.
-- Consider uncertainty estimates and champion/challenger experiments later.
+## Environment
 
-## Guiding Principle
+The current deployment runs ML on `ubuntu-infra` from:
 
-The goal is to build the simplest model that reliably predicts future activity better than straightforward baselines.
+```text
+/opt/birdnetpi-monitoring
+```
 
-If the data eventually justifies more complexity, we can add it then.
+The repository uses a root-level virtual environment:
+
+```bash
+cd /opt/birdnetpi-monitoring
+python3 -m venv .venv
+.venv/bin/python -m pip install -r ml/requirements.txt
+```
+
+Current pinned dependencies are:
+
+- pandas 3.0.5
+- scikit-learn 1.9.1
+- psycopg 3.3.5
+- XGBoost 3.4.1
+
+---
+
+## Database Configuration
+
+ML scripts use the standard database environment variables:
+
+```text
+BIRDNET_DB_HOST
+BIRDNET_DB_NAME
+BIRDNET_DB_USER
+BIRDNET_DB_PASSWORD
+```
+
+Typical local values are:
+
+```text
+BIRDNET_DB_HOST=127.0.0.1
+BIRDNET_DB_NAME=birdnet
+BIRDNET_DB_USER=birdnet
+```
+
+Never commit or paste the database password into documentation or source files.
+
+The existing activity shell wrappers can retrieve `POSTGRES_PASSWORD` from the local `birdnet-postgres` container when `BIRDNET_DB_PASSWORD` is not already set. This requires Docker access and couples the wrappers to the local container deployment.
+
+---
+
+# Aggregate Activity
+
+## Dataset
+
+Aggregate models use:
+
+`database/views/bird_activity_hourly.sql`
+
+The view includes:
+
+- hourly activity
+- species count
+- capped detections
+- day/night information
+- sunrise-relative timing
+- weather observations
+
+The current live model uses time and recent activity features, not weather variables.
+
+The activity index is:
+
+```text
+capped detections = sum(min(detections per species, 10))
+activity index = species count + capped detections
+```
+
+The aggregate view is weather-backed, so missing weather hours can remove hours from the analytical timeline. See [database/README.md](../database/README.md) and [docs/ml.md](../docs/ml.md) for the data-quality implications.
+
+## Current live feature set
+
+The corrected v2 activity model uses:
+
+- `hour_of_day`
+- `hours_from_sunrise`
+- `is_day`
+- `activity_index`
+- `activity_lag_1h`
+- `activity_lag_2h`
+- `activity_lag_3h`
+- `activity_lag_24h`
+
+`src/timing.py` owns the completed-hour timing convention, hourly reindexing and recent-gap handling used by the live v2 path.
+
+## Live prediction
+
+The activity cycle runs scoring first and prediction second:
+
+```text
+ml/hourly_prediction_cycle.sh
+    -> ml/score_predictions.sh
+    -> ml/predict_next_hour.sh
+```
+
+The Python entry points are:
+
+```text
+src/score_predictions.py
+src/predict_next_hour.py
+```
+
+The current service timer runs at minute 10 each hour. The ten-minute delay is an ingestion grace period, not proof that every detection has arrived.
+
+Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table's uniqueness rule.
+
+## Aggregate experiments
+
+Current v2 comparison:
+
+```bash
+BIRDNET_DB_PASSWORD="..." \
+  .venv/bin/python ml/src/compare_v2_xgboost.py
+```
+
+This compares:
+
+- persistence
+- Random Forest
+- XGBoost
+
+The current documented result keeps Random Forest as the live model because XGBoost's aggregate advantage was too small to justify a change.
+
+See:
+
+`docs/experiments/2026-09-14-activity-models.md`
+
+---
+
+# Species Prediction
+
+## Dataset
+
+Species models use:
+
+`database/views/bird_species_hourly.sql`
+
+This view creates a continuous station/species/hour timeline and explicitly represents zero-detection hours.
+
+Unlike `bird_activity_hourly`, it is independent of weather availability.
+
+## Species experiment
+
+Run the generic classifier comparison with:
+
+```bash
+BIRDNET_DB_PASSWORD="..." \
+  .venv/bin/python ml/src/compare_species_models.py --species "House Finch"
+```
+
+The same script can evaluate any species present in the dataset.
+
+Current comparison models are:
+
+- prevalence baseline
+- persistence
+- Random Forest
+- XGBoost
+
+See:
+
+`docs/experiments/2026-09-14-species-models.md`
+
+## Manual live prediction
+
+Example:
+
+```bash
+cd /opt/birdnetpi-monitoring
+
+BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)" \
+  .venv/bin/python ml/src/predict_species_live.py --species "House Finch"
+```
+
+Another species can be run by changing `--species`.
+
+The current live species pipeline has been tested with House Finch and Black Phoebe.
+
+## Manual species scoring
+
+```bash
+cd /opt/birdnetpi-monitoring
+
+BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)" \
+  .venv/bin/python ml/src/score_species_predictions.py
+```
+
+Scoring waits until the target hour has ended plus the same ten-minute grace period.
+
+A prediction remains pending if a valid target outcome is not yet available.
+
+---
+
+# Script Map
+
+## Current v2 / live work
+
+| Script | Purpose |
+|---|---|
+| `src/timing.py` | Completed-hour timing, hourly preparation and v2 guards |
+| `src/predict_next_hour.py` | Live aggregate Random Forest prediction |
+| `src/score_predictions.py` | Score eligible aggregate predictions |
+| `src/compare_v2_xgboost.py` | Leakage-safe v2 Random Forest vs XGBoost comparison |
+| `src/compare_species_models.py` | Generic species walk-forward model comparison |
+| `src/predict_species_live.py` | Live species probability prediction |
+| `src/score_species_predictions.py` | Score eligible species predictions |
+
+## Historical experiment code
+
+The repository also retains earlier scripts such as:
+
+- `src/features.py`
+- `src/evaluate.py`
+- `src/train.py`
+- `src/compare_models.py`
+- `src/rolling_validation.py`
+- `src/feature_importance.py`
+- `src/ablation.py`
+
+These are useful historical methodology, but several use the older row-based target convention and should not be treated as directly comparable with the corrected T → T+2 v2 results.
+
+`ml/reports/experiments.md` is likewise a historical experiment log. Current curated results belong in `docs/experiments/`.
+
+---
+
+# Validation Rules
+
+Current v2 experiments use chronological evaluation rather than random train/test shuffling.
+
+For walk-forward validation, a training target is included only when that target would already have been observable at the simulated issue time.
+
+This prevents future outcomes from leaking into training.
+
+For species classification, accuracy alone is not sufficient because many species are sparse. Use precision, recall, F1, ROC-AUC and PR-AUC together with prevalence.
+
+See [docs/ml.md](../docs/ml.md) for the full methodology.
+
+---
+
+# Data Quality Limits
+
+Current prediction results should remain experimental.
+
+Important limitations include:
+
+- the ten-minute grace period does not prove ingestion completeness
+- a quiet station and a failed station can both appear as zero detections
+- the aggregate activity view depends on weather-backed hourly coverage
+- local wall-clock timestamps have DST ambiguity
+- late detections can arrive after a forecast has already been scored
+- the historical dataset is still short and does not support strong seasonal conclusions
+
+The raw dataset and stored live forecasts are more important long-term than any current model artifact.
+
+---
+
+# Grafana
+
+Aggregate prediction dashboard:
+
+`grafana/bird-home-prediction-lab.json`
+
+Species prediction dashboard:
+
+`grafana/Bird Home - Species Prediction.json`
+
+Both use PostgreSQL through the read-only Grafana datasource.
+
+Pending forecasts are normal until their target hour has completed and scoring has occurred.
+
+See [grafana/README.md](../grafana/README.md) for dashboard details.
+
+---
+
+# Next Operational Work
+
+The immediate ML infrastructure task is to automate species scoring and prediction without creating unnecessary scheduler complexity.
+
+The preferred direction is to integrate species work into the existing hourly ML cycle rather than create multiple unrelated timers.
+
+After that, priorities are:
+
+- accumulate forward-validation history
+- evaluate species probability thresholds
+- add stronger ingestion/uptime completeness checks
+- repeat model comparisons as the dataset grows
+- add sunrise/daylight and later weather features where justified
+
+Keep the implementation simple enough that every prediction path remains understandable and reproducible.
