@@ -1,31 +1,36 @@
-// Sample config for Alloy.
+// BirdNET Alloy sample configuration.
 //
-// For a full configuration reference, see https://grafana.com/docs/alloy
+// The current Home Lab design sends BirdNET operational logs to both
+// Grafana Cloud Loki and the local Loki instance on ubuntu-infra.
+// Replace the Grafana Cloud credential placeholders after copying this file
+// to /etc/alloy/config.alloy. Never commit real credentials.
+
 loki.source.journal "read" {
     relabel_rules = loki.relabel.journal.rules
-    forward_to = [loki.process.local.receiver]
+    forward_to    = [loki.process.local.receiver]
 }
 
 loki.relabel "journal" {
     forward_to = []
+
     rule {
         source_labels = ["__journal__systemd_unit"]
-        target_label = "unit"
+        target_label  = "unit"
     }
 }
 
 local.file_match "weather" {
-  path_targets = [
-    {
-      __path__ = "/var/log/weather/weather.log",
-      job = "weather",
-    },
-  ]
+    path_targets = [
+        {
+            __path__ = "/var/log/weather/weather.log",
+            job      = "weather",
+        },
+    ]
 }
 
 loki.source.file "weather" {
-  targets    = local.file_match.weather.targets
-  forward_to = [loki.process.weather.receiver]
+    targets    = local.file_match.weather.targets
+    forward_to = [loki.process.weather.receiver]
 }
 
 loki.process "local" {
@@ -38,12 +43,13 @@ loki.process "local" {
 
         stage.labels {
             values = {
-                species = "",
+                species       = "",
                 species_latin = "",
-                confidence = "",
+                confidence    = "",
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.5\""
 
@@ -53,6 +59,7 @@ loki.process "local" {
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.6\""
 
@@ -62,6 +69,7 @@ loki.process "local" {
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.7\""
 
@@ -71,6 +79,7 @@ loki.process "local" {
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.8\""
 
@@ -80,6 +89,7 @@ loki.process "local" {
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.9\""
 
@@ -89,6 +99,7 @@ loki.process "local" {
             }
         }
     }
+
     stage.match {
         selector = "{unit=\"birdnet_analysis.service\"} |= \", 1.\""
 
@@ -98,27 +109,41 @@ loki.process "local" {
             }
         }
     }
-    stage.match {
-      selector = "{unit=\"birdnet_analysis.service\"}"
 
-      stage.pack {
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"}"
+
+        stage.pack {
             labels = ["confidence"]
         }
     }
 
-    forward_to = [loki.write.cloud.receiver]
+    forward_to = [
+        loki.write.cloud.receiver,
+        loki.write.local.receiver,
+    ]
 }
 
 loki.process "weather" {
-  forward_to = [loki.write.cloud.receiver]
+    forward_to = [
+        loki.write.cloud.receiver,
+        loki.write.local.receiver,
+    ]
 }
 
 loki.write "cloud" {
     endpoint {
         url = "https://logs-prod-021.grafana.net/loki/api/v1/push"
+
         basic_auth {
             username = "GRAFANA_CLOUD_USERNAME"
             password = "GRAFANA_CLOUD_PASSWORD"
         }
+    }
+}
+
+loki.write "local" {
+    endpoint {
+        url = "http://192.168.1.137:3100/loki/api/v1/push"
     }
 }
