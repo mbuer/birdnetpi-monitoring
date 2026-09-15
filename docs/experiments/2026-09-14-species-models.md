@@ -130,12 +130,37 @@ XGBoost performs best across the principal classification metrics and improves r
 
 ---
 
+## American Crow
+
+Positive target hours:
+
+**25 / 252 — 9.9%**
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| Persistence | 0.154 | 0.160 | 0.157 | 0.532 | 0.108 |
+| Random Forest | 0.000 | 0.000 | 0.000 | 0.768 | 0.241 |
+| XGBoost | 0.143 | 0.040 | 0.062 | 0.783 | 0.254 |
+
+### Interpretation
+
+American Crow is substantially sparser than House Finch and Black Phoebe.
+
+The models still show useful probability-ranking ability, with ROC-AUC around 0.77–0.78, but the default 0.5 decision threshold performs poorly.
+
+This suggests that sparse species should initially be treated as probability forecasts rather than hard present/absent predictions.
+
+Threshold tuning should be evaluated before using binary alerts for species at this prevalence level.
+
+---
+
 ## Species Comparison
 
 | Species | Positive Rate | Best F1 | Best ROC-AUC | Best PR-AUC |
 |---|---:|---|---|---|
 | House Finch | 27.4% | XGBoost — 0.692 | RF — 0.898 | RF — 0.740 |
 | Black Phoebe | 15.1% | XGBoost — 0.489 | XGBoost — 0.841 | XGBoost — 0.438 |
+| American Crow | 9.9% | Persistence — 0.157 | XGBoost — 0.783 | XGBoost — 0.254 |
 
 ## Conclusions
 
