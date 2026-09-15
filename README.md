@@ -140,6 +140,8 @@ The Pi remains the authoritative source for completed BirdNET detections.
 
 The history includes environmental fields such as temperature, humidity, pressure, precipitation, wind, cloud cover, day/night state, sunrise, and sunset.
 
+The collector explicitly requests imperial precipitation units before writing `precipitation_in`. Historical rows collected before that fix may require a provenance audit before precipitation is used quantitatively.
+
 Weather data also enters the operational logging path so collector behavior can be observed independently from the analytical database.
 
 ## Weather forecasts
@@ -179,30 +181,28 @@ completed hour T -> target hour T+2
 
 At 14:10, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00.
 
-The hourly systemd cycle scores eligible previous predictions first and then creates a new forecast.
-
 Random Forest currently remains the live aggregate model. XGBoost has been evaluated as a challenger, but its improvement on the current dataset was too small to justify replacing the simpler live choice.
 
 ## Species presence
 
 The species pipeline predicts the probability that a particular species will be detected during a future hourly period.
 
-The generic classifier supports multiple species and currently compares:
+The live hourly cycle currently scores stored species predictions and creates House Finch and Black Phoebe forecasts with both Random Forest and XGBoost. American Crow remains an experiment/threshold-tuning case because its lower prevalence makes a fixed `0.5` threshold less useful.
 
-- prevalence baseline
-- persistence
-- Random Forest
-- XGBoost
+The coordinated cycle is:
 
-Initial experiments include:
+```text
+birdnet-ml-prediction.timer
+    -> birdnet-ml-prediction.service
+    -> ml/hourly_prediction_cycle.sh
+        -> score aggregate predictions
+        -> predict aggregate activity
+        -> score species predictions
+        -> predict House Finch
+        -> predict Black Phoebe
+```
 
-- House Finch
-- Black Phoebe
-- American Crow
-
-The results show that predictability differs substantially by species and prevalence. Probability output is especially important for sparse species, where a fixed `0.5` classification threshold can be misleading.
-
-Live species prediction and scoring code exists and stores forecasts in PostgreSQL. Unlike the aggregate activity pipeline, species prediction is **not yet wired into the committed hourly systemd cycle**. That is an intentional next operational step rather than something to hide behind documentation.
+Keeping the existing aggregate work first means a species-side failure does not prevent the primary activity forecast from being created during that run.
 
 ## Validation philosophy
 
@@ -215,8 +215,7 @@ The current methodology emphasizes:
 - training only on labels that would already have been observable
 - strong persistence/prevalence baselines
 - stored live forecasts for true forward validation
-
-A retrospective model can look good while still benefiting from future information accidentally leaking into training. Avoiding that is more important than maximizing a headline metric.
+- regression tests around completed-hour timing, gaps, lags, and DST ambiguity
 
 See:
 
@@ -246,8 +245,6 @@ The operational dashboard primarily uses Loki and Infinity/Open-Meteo.
 
 The prediction dashboards use PostgreSQL.
 
-This distinction matters: raw detection logs, accepted SQLite detections, and derived SQL activity indexes are related but are not interchangeable datasets.
-
 See [grafana/README.md](grafana/README.md) for datasource, import, time-zone, and scoring details.
 
 ---
@@ -256,34 +253,11 @@ See [grafana/README.md](grafana/README.md) for datasource, import, time-zone, an
 
 The centralized PostgreSQL instance is backed up daily using custom-format PostgreSQL archives.
 
-Current schedule:
-
-```text
-03:15 America/Los_Angeles
-```
-
-Current retention:
-
-```text
-14 days
-```
-
-Runtime backup location:
-
-```text
-/var/backups/birdnet-postgres
-```
+Current schedule: `03:15 America/Los_Angeles`  
+Current retention: `14 days`  
+Runtime backup location: `/var/backups/birdnet-postgres`
 
 The repository intentionally keeps backup logic in Git but not the dumps themselves.
-
-A database backup protects structured PostgreSQL data. It does not replace backups for:
-
-- BirdNET audio
-- the Pi's native `birds.db`
-- Loki data
-- VM configuration outside Git
-- Grafana state outside exported configuration
-- secrets
 
 The main remaining backup improvement is an off-host copy that survives loss of `ubuntu-infra` itself.
 
@@ -298,8 +272,8 @@ The core data path is operational.
 | Area | Status |
 |---|---|
 | BirdNET detection synchronization | Deployed |
-| Weather observations | Deployed |
-| Historical weather forecasts | Deployed |
+| Weather observations | Deployed; repo now explicitly requests precipitation in inches |
+| Historical weather forecasts | Deployed; repo now explicitly requests precipitation in inches |
 | Central PostgreSQL | Deployed |
 | PostgreSQL backups | Deployed |
 | Local Loki | Deployed |
@@ -307,8 +281,8 @@ The core data path is operational.
 | Alloy local + Cloud dual-write | Transitional |
 | Aggregate activity ML | Live hourly prediction/scoring |
 | Species ML experiments | Working |
-| Species live prediction code | Working manually |
-| Species scheduled automation | Not yet integrated |
+| Species live prediction/scoring | Integrated into hourly ML cycle for House Finch and Black Phoebe |
+| ML timing/leakage regression tests | 7 tests passing on ubuntu-infra |
 | Off-host database backup | Planned |
 
 Grafana Cloud Loki remains temporarily available during the local observability transition. The working previous path should not be removed until the local replacement has been observed long enough to justify doing so.
@@ -329,7 +303,7 @@ Grafana Cloud Loki remains temporarily available during the local observability 
 | [`ml/`](ml/README.md) | ML scripts and operational prediction workflow |
 | [`docs/ml.md`](docs/ml.md) | Stable ML methodology |
 | `docs/experiments/` | Dated, reproducible experiment conclusions |
-| `systemd/` | Collector, backup, weather, and activity-ML service/timer definitions |
+| `systemd/` | Collector, backup, weather, forecast, and ML service/timer definitions |
 | [`AGENTS.md`](AGENTS.md) | Guardrails and current architecture for future coding/AI work |
 
 The repository structure is intentionally simple. Prefer updating the documentation and existing components over repeatedly reorganizing directories.
@@ -337,8 +311,6 @@ The repository structure is intentionally simple. Prefer updating the documentat
 ---
 
 # Documentation Map
-
-Use the root README as the project overview. More detailed responsibilities are intentionally split out:
 
 | Document | Role |
 |---|---|
@@ -350,56 +322,16 @@ Use the root README as the project overview. More detailed responsibilities are 
 | [`deploy/ubuntu-infra/README.md`](deploy/ubuntu-infra/README.md) | Deployment, rebuild, recovery, and operational checks |
 | [`AGENTS.md`](AGENTS.md) | Project guardrails for future development sessions |
 
-This separation is deliberate: detailed implementation notes should live next to the component they describe instead of making this README a full operations manual.
-
 ---
 
 # Design Principles
 
-## Keep BirdNET independent
-
-Monitoring must not become a prerequisite for bird detection.
-
-If the Home Lab infrastructure disappears temporarily, BirdNET should continue doing its core work and preserve its own source data whenever possible.
-
-## Protect source data
-
-Do not modify BirdNET's native SQLite database merely to simplify the monitoring stack.
-
-Read from it and synchronize elsewhere.
-
-## Separate observability from analytical history
-
-Use Loki for operational logs and PostgreSQL for durable structured analysis.
-
-Do not force either datastore to become the other.
-
-## Prefer honest models over impressive models
-
-A sophisticated model with leakage or weak validation is less useful than a simpler model with trustworthy evaluation.
-
-Baselines, chronological validation, data cutoffs, timing semantics, and stored live forecasts matter.
-
-## Keep history reproducible
-
-Preserve raw detections, timestamps, confidence, station identity, weather observations, forecast snapshots, historical predictions, and scored outcomes.
-
-Models can always be replaced later. Historical source data cannot.
-
-## Keep infrastructure understandable
-
-This is a Home Lab project, not a platform engineering exercise.
-
-Prefer:
-
-- small components
-- explicit configuration
-- pinned versions where useful
-- clear ownership
-- recoverable migrations
-- documented assumptions
-
-Avoid adding complexity merely because it is technically possible.
+- **Keep BirdNET independent.** Monitoring must not become a prerequisite for bird detection.
+- **Protect source data.** Read from BirdNET's native SQLite database; do not modify it merely to simplify monitoring.
+- **Separate observability from analytical history.** Loki is for operational logs; PostgreSQL is for durable structured analysis.
+- **Prefer honest models over impressive models.** Timing semantics, baselines, leakage prevention, and stored live forecasts matter more than headline metrics.
+- **Keep history reproducible.** Preserve raw detections, timestamps, weather observations, forecast snapshots, predictions, and scored outcomes.
+- **Keep infrastructure understandable.** Prefer small components, explicit configuration, clear ownership, and recoverable migrations.
 
 ---
 
@@ -407,32 +339,21 @@ Avoid adding complexity merely because it is technically possible.
 
 Git should contain enough information to understand and rebuild the system, but not live secrets or state.
 
-Do not commit:
-
-- PostgreSQL passwords
-- Grafana credentials or tokens
-- `.env` or `db.env`
-- database dumps
-- private SSH keys
-- live logs
-- Docker volumes
-- Alloy state
-
-Runtime credentials and persistent service data belong outside the repository.
+Do not commit PostgreSQL/Grafana credentials, `.env` or `db.env`, database dumps, private SSH keys, live logs, Docker volumes, or Alloy state.
 
 ---
 
 # Near-Term Direction
 
-The highest-value next steps are intentionally practical rather than architectural:
+The highest-value next steps are:
 
-1. integrate species scoring/prediction into the existing hourly ML cycle instead of creating unnecessary parallel timers
-2. continue collecting live forward-validation history
-3. evaluate useful probability thresholds for sparse species
-4. add daylight/sunrise features to species experiments
-5. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
-6. create an off-host PostgreSQL backup copy and periodically test restores
-7. finish validating local Loki/Grafana before retiring the Cloud Loki path
+1. continue collecting live forward-validation history
+2. evaluate species probability thresholds, especially for sparse species
+3. add daylight/sunrise features to species experiments
+4. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
+5. create an off-host PostgreSQL backup copy and periodically test restores
+6. finish validating local Loki/Grafana before retiring the Cloud Loki path
+7. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
 
 Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
 
