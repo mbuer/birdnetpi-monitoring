@@ -165,15 +165,16 @@ The project currently works with two prediction problems.
 
 ## Aggregate bird activity
 
-The aggregate model predicts the project's hourly activity index.
+The aggregate pipeline predicts the project's hourly activity index.
 
-The live model is:
+The live aggregate models are:
 
 ```text
 random_forest_v2_completed
+xgboost_v2_completed
 ```
 
-It uses completed historical input and follows the current timing convention:
+Both use the same completed historical input and timing convention:
 
 ```text
 completed hour T -> target hour T+2
@@ -181,7 +182,7 @@ completed hour T -> target hour T+2
 
 At 14:10, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00.
 
-Random Forest currently remains the live aggregate model. XGBoost has been evaluated as a challenger, but its improvement on the current dataset was too small to justify replacing the simpler live choice.
+Random Forest remains the established live reference model. XGBoost was previously kept only as a challenger because its retrospective improvement was very small, but it is now also issued live for the same target hour so the two models can accumulate true forward-validation evidence side by side. Each model is stored as a separate row in `bird_activity_predictions` under its own model label.
 
 ## Species presence
 
@@ -196,13 +197,13 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> predict aggregate activity
+        -> predict aggregate activity with Random Forest + XGBoost
         -> score species predictions
         -> predict House Finch
         -> predict Black Phoebe
 ```
 
-Keeping the existing aggregate work first means a species-side failure does not prevent the primary activity forecast from being created during that run.
+Keeping the existing aggregate work first means a species-side failure does not prevent the primary activity forecasts from being created during that run.
 
 ## Validation philosophy
 
@@ -238,7 +239,7 @@ Current dashboard exports:
 |---|---|
 | `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference |
 | `Bird Home - Burbank Local.json` | Local Grafana OSS operational dashboard |
-| `bird-home-prediction-lab.json` | Aggregate activity forecasts and scoring |
+| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts and scoring |
 | `Bird Home - Species Prediction.json` | Species probability and classification forecasts |
 
 The operational dashboard primarily uses Loki and Infinity/Open-Meteo.
@@ -279,7 +280,7 @@ The core data path is operational.
 | Local Loki | Deployed |
 | Grafana OSS integration | Deployed |
 | Alloy local + Cloud dual-write | Transitional |
-| Aggregate activity ML | Live hourly prediction/scoring |
+| Aggregate activity ML | Live hourly Random Forest + XGBoost prediction/scoring |
 | Species ML experiments | Working |
 | Species live prediction/scoring | Integrated into hourly ML cycle for House Finch and Black Phoebe |
 | ML timing/leakage regression tests | 7 tests passing on ubuntu-infra |
@@ -347,13 +348,14 @@ Do not commit PostgreSQL/Grafana credentials, `.env` or `db.env`, database dumps
 
 The highest-value next steps are:
 
-1. continue collecting live forward-validation history
-2. evaluate species probability thresholds, especially for sparse species
-3. add daylight/sunrise features to species experiments
-4. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
-5. create an off-host PostgreSQL backup copy and periodically test restores
-6. finish validating local Loki/Grafana before retiring the Cloud Loki path
-7. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
+1. continue collecting live forward-validation history for both aggregate models
+2. compare Random Forest and XGBoost on the same scored live target hours before changing the aggregate champion
+3. evaluate species probability thresholds, especially for sparse species
+4. add daylight/sunrise features to species experiments
+5. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
+6. create an off-host PostgreSQL backup copy and periodically test restores
+7. finish validating local Loki/Grafana before retiring the Cloud Loki path
+8. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
 
 Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
 
