@@ -21,13 +21,13 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> create aggregate prediction
+        -> create aggregate Random Forest + XGBoost predictions
         -> score species predictions
         -> predict House Finch
         -> predict Black Phoebe
 ```
 
-The aggregate work intentionally runs first so a later species-side failure does not prevent the primary activity forecast from being issued.
+The aggregate work intentionally runs first so a later species-side failure does not prevent the primary activity forecasts from being issued.
 
 Predictions are stored in PostgreSQL:
 
@@ -89,7 +89,7 @@ Aggregate models use:
 
 The view includes hourly activity, species count, capped detections, day/night information, sunrise-relative timing, and weather observations.
 
-The current live model does not use weather as a feature.
+The current live models do not use weather as a feature.
 
 Activity index:
 
@@ -100,11 +100,14 @@ activity index = species count + capped detections
 
 The aggregate view is weather-backed, so missing weather hours can remove hours from the analytical timeline.
 
-## Live model
+## Live models
 
-Model label:
+Model labels:
 
-`random_forest_v2_completed`
+- `random_forest_v2_completed`
+- `xgboost_v2_completed`
+
+Both models use the same feature frame, timing, target hour, and training rows so their live results are directly comparable.
 
 Features:
 
@@ -117,11 +120,32 @@ Features:
 - `activity_lag_3h`
 - `activity_lag_24h`
 
+Random Forest configuration:
+
+```text
+n_estimators = 300
+min_samples_leaf = 3
+random_state = 42
+```
+
+XGBoost configuration:
+
+```text
+n_estimators = 300
+max_depth = 3
+learning_rate = 0.03
+subsample = 0.8
+colsample_bytree = 0.8
+objective = reg:squarederror
+tree_method = hist
+random_state = 42
+```
+
 `src/timing.py` owns completed-hour timing, hourly preparation, and recent-gap handling.
 
 The timer runs at minute 10 each hour. This is an ingestion grace period, not proof that every detection has arrived.
 
-Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule.
+Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule. Because uniqueness includes both `predicted_hour` and `model`, Random Forest and XGBoost can safely store independent forecasts for the same target hour.
 
 ## Aggregate experiments
 
@@ -134,7 +158,7 @@ BIRDNET_DB_PASSWORD="..." \
 
 It compares persistence, Random Forest, and XGBoost.
 
-The current documented result keeps Random Forest live because XGBoost's aggregate improvement was too small to justify a change.
+The retrospective result showed only a very small XGBoost advantage, so Random Forest remains the established reference model. XGBoost is now also issued live so the project can compare both models using true forward-validation history rather than relying only on retrospective testing.
 
 See `docs/experiments/2026-09-14-activity-models.md`.
 
@@ -236,7 +260,7 @@ Run these tests after changing `src/timing.py` or related live feature construct
 | Script | Purpose |
 |---|---|
 | `src/timing.py` | Completed-hour timing, hourly preparation, and v2 guards |
-| `src/predict_next_hour.py` | Live aggregate Random Forest prediction |
+| `src/predict_next_hour.py` | Live aggregate Random Forest + XGBoost prediction |
 | `src/score_predictions.py` | Score eligible aggregate predictions |
 | `src/compare_v2_xgboost.py` | Leakage-safe aggregate RF vs XGBoost comparison |
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
@@ -254,6 +278,8 @@ Earlier scripts such as `features.py`, `evaluate.py`, `train.py`, `compare_model
 Current v2 experiments use chronological evaluation rather than random train/test shuffling.
 
 A training target is included only when that target would already have been observable at the simulated issue time.
+
+For live aggregate comparison, compare Random Forest and XGBoost only across target hours where both have scored forecasts. Do not mix duplicate model rows into a single forecast count or aggregate metric.
 
 For species classification, accuracy alone is insufficient because many species are sparse. Use precision, recall, F1, ROC-AUC, and PR-AUC together with prevalence.
 
@@ -282,7 +308,8 @@ The raw dataset and stored live forecasts are more valuable long-term than any c
 
 Priorities now are:
 
-- accumulate forward-validation history
+- accumulate matched live Random Forest and XGBoost forward-validation history
+- compare the two aggregate models only after enough shared scored target hours exist
 - evaluate species probability thresholds
 - add stronger ingestion/uptime completeness checks
 - repeat model comparisons as the dataset grows
