@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import psycopg
 from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 
 from data import load_hourly_data
 from timing import (
@@ -19,6 +20,7 @@ MIN_TRAINING_ROWS = 192
 
 def save_prediction(
     predicted_hour,
+    model_name,
     predicted_activity,
     current_activity,
     training_rows,
@@ -48,7 +50,7 @@ def save_prediction(
                 """,
                 (
                     predicted_hour,
-                    MODEL_NAME,
+                    model_name,
                     predicted_activity,
                     current_activity,
                     training_rows,
@@ -84,15 +86,32 @@ def main():
     X_train = training[FEATURES].copy()
     y_train = training["target_activity"]
 
+    for column in FEATURES:
+        X_train[column] = pd.to_numeric(
+            X_train[column],
+            errors="coerce",
+        )
+
     X_train["is_day"] = X_train["is_day"].astype(int)
 
-    model = RandomForestRegressor(
-        n_estimators=300,
-        random_state=42,
-        min_samples_leaf=3,
-    )
-
-    model.fit(X_train, y_train)
+    models = {
+        MODEL_NAME: RandomForestRegressor(
+            n_estimators=300,
+            random_state=42,
+            min_samples_leaf=3,
+        ),
+        "xgboost_v2_completed": XGBRegressor(
+            n_estimators=300,
+            max_depth=3,
+            learning_rate=0.03,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            objective="reg:squarederror",
+            tree_method="hist",
+            random_state=42,
+            n_jobs=-1,
+        ),
+    }
 
     latest = build_prediction_row(
         raw,
@@ -100,10 +119,14 @@ def main():
     )
 
     X_latest = latest[FEATURES].copy()
-    X_latest["is_day"] = X_latest["is_day"].astype(int)
 
-    prediction = float(model.predict(X_latest)[0])
-    prediction = max(0.0, prediction)
+    for column in FEATURES:
+        X_latest[column] = pd.to_numeric(
+            X_latest[column],
+            errors="coerce",
+        )
+
+    X_latest["is_day"] = X_latest["is_day"].astype(int)
 
     # Skip the hour already underway.
     predicted_hour = completed_hour + pd.Timedelta(hours=2)
@@ -112,35 +135,38 @@ def main():
         latest["activity_index"].iloc[0]
     )
 
-    inserted = save_prediction(
-        predicted_hour=predicted_hour,
-        predicted_activity=prediction,
-        current_activity=current_activity,
-        training_rows=len(training),
-    )
-
     print()
     print("BirdNET next-hour prediction")
     print("============================")
     print()
-    print(f"Model:                 {MODEL_NAME}")
     print(f"Latest completed hour: {completed_hour}")
     print(f"Current activity:      {current_activity:.1f}")
-    print()
     print(f"Predicted hour:        {predicted_hour}")
-    print(f"Predicted activity:    {prediction:.1f}")
-    print()
     print(f"Persistence prediction: {current_activity:.1f}")
     print(f"Training rows:          {len(training)}")
     print()
 
-    if inserted:
-        print("Prediction stored in PostgreSQL.")
-    else:
-        print(
-            "Prediction already exists; "
-            "original prediction preserved."
+    for model_name, model in models.items():
+        model.fit(X_train, y_train)
+
+        prediction = float(model.predict(X_latest)[0])
+        prediction = max(0.0, prediction)
+
+        inserted = save_prediction(
+            predicted_hour=predicted_hour,
+            model_name=model_name,
+            predicted_activity=prediction,
+            current_activity=current_activity,
+            training_rows=len(training),
         )
+
+        print(f"{model_name}: {prediction:.1f}")
+
+        if inserted:
+            print("  Prediction stored in PostgreSQL.")
+        else:
+            print("  Prediction already exists; original preserved.")
+
 
 
 if __name__ == "__main__":
