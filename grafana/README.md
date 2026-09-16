@@ -20,7 +20,7 @@ PostgreSQL                -> Species Prediction
 |---|---|---|
 | `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Burbank Local.json` | Active local Grafana OSS operational dashboard | `dashboard.grafana.app/v2` resource |
-| `bird-home-prediction-lab.json` | Aggregate activity forecasts, outcomes, and error metrics | Classic dashboard JSON |
+| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts, outcomes, and error metrics | Classic dashboard JSON |
 | `Bird Home - Species Prediction.json` | Per-species forecast probabilities, decisions, and scored results | Classic dashboard JSON |
 
 The two Bird Home operational exports retain the same internal dashboard identity. Their filenames alone do not make them separate Grafana dashboards. Check the import preview before loading both into the same Grafana instance.
@@ -109,19 +109,23 @@ Required PostgreSQL objects:
 - `bird_activity_hourly`
 - `bird_activity_predictions`
 
-The live aggregate model is:
+The live aggregate model labels are:
 
 ```text
 random_forest_v2_completed
+xgboost_v2_completed
 ```
+
+Both models predict the same target hour from the same completed-hour feature frame. They are stored as separate rows so live forward-validation can compare them directly.
 
 The dashboard compares:
 
 - Random Forest forecast
+- XGBoost forecast
 - observed activity
 - persistence baseline
-- absolute prediction error
-- MAE
+- per-model absolute prediction error
+- per-model MAE
 - model edge over persistence
 - model win rate
 - recent prediction records
@@ -129,6 +133,8 @@ The dashboard compares:
 The aggregate pipeline uses the completed-hour T → T+2 timing convention documented in [ML methodology](../docs/ml.md).
 
 Pending forecasts are expected before the target hour has completed and the scoring grace period has elapsed.
+
+A newly enabled model can therefore show a current forecast while its MAE, edge, win rate, and best-error fields remain empty until at least one prediction is scored.
 
 A missing or stale forecast should not automatically be interpreted as zero predicted activity.
 
@@ -140,12 +146,15 @@ Current panels intentionally use different scopes.
 
 | Panel/group | Query scope |
 |---|---|
-| Next Hour Forecast | Latest stored v2 forecast |
-| Latest Completed Activity | Latest sufficiently completed activity hour |
-| Live MAE / Model Edge / Scored Forecasts | All scored v2 rows |
-| Forecast vs Reality / Prediction Error / Daily MAE | Selected Grafana time range |
-| Model Win Rate / ML MAE / Persistence MAE / Best Forecast | All scored v2 rows |
-| Recent Predictions | Most recent prediction records |
+| Next Hour Forecast | Latest shared target hour for Random Forest and XGBoost |
+| Current Activity | Latest observed aggregate activity |
+| Live Model MAE / Model Edge | All scored rows, separated by model |
+| Scored Hours | Distinct scored target hours, not total model rows |
+| Forecast vs Reality / Prediction Error / Daily MAE | Selected Grafana time range, separated by model where applicable |
+| Model Win Rate / Model MAE / Persistence MAE / Best Forecast Error | All scored live rows with model-aware aggregation |
+| Recent Predictions | Most recent Random Forest and XGBoost records |
+
+Because both live models create one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
 
 “Daily MAE” is grouped by local calendar day. It is not a rolling moving average.
 
@@ -217,7 +226,7 @@ correct = NULL
 
 This is expected behavior rather than a dashboard error.
 
-The current species prediction Python scripts are committed, but repository-managed systemd automation for that species cycle is not yet complete. The dashboard therefore reflects whatever live species predictions have actually been written to PostgreSQL.
+Species prediction and scoring are integrated into the same hourly ML cycle as aggregate forecasting for the currently scheduled species.
 
 ---
 
@@ -286,8 +295,8 @@ Important limitations across the analytical dashboards include:
 - scoring uses an ingestion grace period rather than a formal completeness signal
 - late detections can change historical reality after a prediction has already been scored
 - aggregate activity depends on weather-backed hourly coverage
+- the XGBoost aggregate live history starts later than the Random Forest history, so early aggregate metrics are not directly matched across both models
 - species prediction thresholds are still experimental
-- species live automation is not yet fully represented in committed systemd units
 
 These dashboards should therefore be treated as experimental analytical tools rather than authoritative ecological forecasting systems.
 
