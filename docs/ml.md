@@ -122,7 +122,7 @@ This limitation is one reason the species dataset uses an independent continuous
 
 ## Aggregate Features
 
-The current v2 activity model uses:
+The current v2 activity models use:
 
 - `hour_of_day`
 - `hours_from_sunrise`
@@ -133,7 +133,7 @@ The current v2 activity model uses:
 - activity lag 3h
 - activity lag 24h
 
-Weather variables are available in the aggregate view but are not used by the current live Random Forest.
+Weather variables are available in the aggregate view but are not used by the current live Random Forest or XGBoost models.
 
 ---
 
@@ -145,9 +145,12 @@ Current comparison models include:
 - Random Forest
 - XGBoost
 
-The current live aggregate model remains:
+The current live aggregate model labels are:
 
-`random_forest_v2_completed`
+```text
+random_forest_v2_completed
+xgboost_v2_completed
+```
 
 Random Forest configuration:
 
@@ -157,9 +160,22 @@ min_samples_leaf = 3
 random_state = 42
 ```
 
-XGBoost is retained as a challenger.
+XGBoost configuration:
 
-The current dataset showed only a very small aggregate XGBoost advantage, which was not large enough to justify replacing the live Random Forest.
+```text
+n_estimators = 300
+max_depth = 3
+learning_rate = 0.03
+subsample = 0.8
+colsample_bytree = 0.8
+objective = reg:squarederror
+tree_method = hist
+random_state = 42
+```
+
+The current retrospective dataset showed only a very small aggregate XGBoost advantage, which was not large enough to justify replacing Random Forest as the established reference model.
+
+Instead, both models are now issued live for the same target hour using the same feature frame and training rows. This creates a clean forward-validation comparison while preserving Random Forest as the existing reference.
 
 See:
 
@@ -363,6 +379,8 @@ Penalizes large prediction errors more strongly.
 
 Models should be compared on exactly the same forecast rows.
 
+For live Random Forest versus XGBoost comparison, this means comparing only target hours where both models have scored predictions. Counting database rows directly would double-count shared forecast hours once both models are active.
+
 ---
 
 ## Classification
@@ -420,6 +438,8 @@ These are not equivalent.
 
 The project therefore stores live predictions before their target hour occurs and scores them later.
 
+For aggregate activity, Random Forest and XGBoost now issue independent predictions for the same target hour. Their shared target hours provide a direct live comparison that is stronger evidence than comparing unmatched historical periods.
+
 This provides true forward-validation evidence.
 
 Historical experiments remain useful for model development, but long-term model trust should increasingly depend on stored live forecasts and outcomes.
@@ -433,6 +453,8 @@ Current live models are retrained from available historical data when prediction
 There is no persisted model registry or automated champion/challenger deployment system.
 
 This is intentional while the dataset remains relatively small.
+
+Random Forest remains the established aggregate reference while XGBoost accumulates live challenger history. Any future model-selection decision should be based on enough matched scored target hours rather than a small early sample.
 
 Model complexity should increase only when the accumulated data justifies it.
 
@@ -449,6 +471,7 @@ Current limitations include:
 - aggregate activity currently depends on weather-backed hourly coverage
 - local wall-clock timestamps have DST ambiguity
 - late-arriving detections can change historical reality after a forecast has already been scored
+- XGBoost aggregate live history begins later than Random Forest history, so early all-history metrics are not directly matched
 - the dataset currently covers only a short time period
 - seasonal conclusions are therefore premature
 
