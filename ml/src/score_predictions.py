@@ -3,7 +3,10 @@ import os
 import psycopg
 
 
-MODEL_NAME = "random_forest_v2_completed"
+MODEL_NAMES = (
+    "random_forest_v2_completed",
+    "xgboost_v2_completed",
+)
 
 
 def get_connection():
@@ -31,7 +34,7 @@ def score_predictions():
                     scored_at = NOW()
                 FROM bird_activity_hourly AS h
                 WHERE
-                    p.model = %s
+                    p.model IN (%s, %s)
                     AND p.actual_activity IS NULL
                     AND p.predicted_hour = h.hour_local
 
@@ -62,7 +65,7 @@ def score_predictions():
                     p.actual_activity,
                     p.absolute_error;
                 """,
-                (MODEL_NAME,),
+                MODEL_NAMES,
             )
 
             rows = cur.fetchall()
