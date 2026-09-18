@@ -1,7 +1,7 @@
 # /etc/systemd/system/birdnet-db-backup.service
 
 [Unit]
-Description=Backup BirdNET PostgreSQL database
+Description=Legacy Pi-local BirdNET PostgreSQL backup
 Wants=postgresql.service
 After=postgresql.service
 
