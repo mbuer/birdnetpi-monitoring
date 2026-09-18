@@ -188,7 +188,7 @@ Random Forest remains the established live reference model. XGBoost was previous
 
 The species pipeline predicts the probability that a particular species will be detected during a future hourly period.
 
-The live hourly cycle currently scores stored species predictions and creates House Finch and Black Phoebe forecasts with both Random Forest and XGBoost. American Crow remains an experiment/threshold-tuning case because its lower prevalence makes a fixed `0.5` threshold less useful.
+The live hourly cycle scores stored species predictions and creates reference Random Forest + XGBoost forecasts for House Finch, Black Phoebe, and American Crow. It also issues separate challenger forecasts for Black Phoebe (tuned XGBoost) and American Crow (class-balanced bootstrap XGBoost ensemble), so the alternatives can accumulate matched forward-validation history without replacing the reference models.
 
 The coordinated cycle is:
 
@@ -199,8 +199,8 @@ birdnet-ml-prediction.timer
         -> score aggregate predictions
         -> predict aggregate activity with Random Forest + XGBoost
         -> score species predictions
-        -> predict House Finch
-        -> predict Black Phoebe
+        -> predict configured reference species
+        -> predict configured species challengers
 ```
 
 Keeping the existing aggregate work first means a species-side failure does not prevent the primary activity forecasts from being created during that run.
@@ -224,6 +224,8 @@ See:
 - [ML operations](ml/README.md)
 - [activity experiment](docs/experiments/2026-09-14-activity-models.md)
 - [species experiment](docs/experiments/2026-09-14-species-models.md)
+- [species challenger comparison](docs/experiments/2026-09-18-species-challengers.md)
+- [American Crow bootstrap experiment](docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md)
 
 Historical experiment material under `ml/reports/` is retained as project history and should not be confused with the current v2 methodology.
 
@@ -282,8 +284,8 @@ The core data path is operational.
 | Alloy local + Cloud dual-write | Transitional |
 | Aggregate activity ML | Live hourly Random Forest + XGBoost prediction/scoring |
 | Species ML experiments | Working |
-| Species live prediction/scoring | Integrated into hourly ML cycle for House Finch and Black Phoebe |
-| ML timing/leakage regression tests | 7 tests passing on ubuntu-infra |
+| Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
+| ML timing/leakage/scoring regression tests | Automated unittest suite under `ml/tests/` |
 | Off-host database backup | Planned |
 
 Grafana Cloud Loki remains temporarily available during the local observability transition. The working previous path should not be removed until the local replacement has been observed long enough to justify doing so.
@@ -350,8 +352,8 @@ The highest-value next steps are:
 
 1. continue collecting live forward-validation history for both aggregate models
 2. compare Random Forest and XGBoost on the same scored live target hours before changing the aggregate champion
-3. evaluate species probability thresholds, especially for sparse species
-4. add daylight/sunrise features to species experiments
+3. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
+4. evaluate species-specific thresholds and add daylight/sunrise features where justified
 5. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
 6. create an off-host PostgreSQL backup copy and periodically test restores
 7. finish validating local Loki/Grafana before retiring the Cloud Loki path
