@@ -283,11 +283,19 @@ The same generic species code can evaluate different species through a command-l
 
 There is currently no universal best species model.
 
-Performance depends strongly on species prevalence and behavior.
+Performance depends strongly on species prevalence and behavior. The live architecture therefore preserves reference models while allowing selected species-specific challengers to run under separate labels:
+
+- Black Phoebe: tuned single XGBoost challenger
+- American Crow: class-balanced bootstrap XGBoost probability ensemble
+- Anna's Hummingbird: retrospective only for now
+
+Bootstrap ensemble members are trained from balanced positive/negative samples with replacement and their probabilities are averaged. These challengers remain experimental until enough matched live forecasts have been scored.
 
 See:
 
-`docs/experiments/2026-09-14-species-models.md`
+- `docs/experiments/2026-09-14-species-models.md`
+- `docs/experiments/2026-09-18-species-challengers.md`
+- `docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`
 
 ---
 
@@ -403,15 +411,11 @@ PR-AUC becomes particularly useful as positive examples become rare.
 
 # Probability Thresholds
 
-The current binary species output uses a default threshold of:
+Reference species models currently use a `0.5` threshold. Challenger configuration stores a threshold per species/model in `ml/species_challengers.json`.
 
-```text
-0.5
-```
+No threshold is assumed to be universally optimal.
 
-This is not assumed to be optimal.
-
-The American Crow experiment already showed that a model can have useful ranking ability while performing poorly at the 0.5 threshold.
+The sparse-species experiments showed that useful probability ranking can coexist with poor fixed-threshold classification. Threshold selection must use development/validation predictions only; a final diagnostic or live evaluation period must not be reused to tune the threshold.
 
 Future work should evaluate thresholds according to the intended use case.
 
@@ -514,6 +518,14 @@ Aggregate model comparison:
 Species model comparison:
 
 `docs/experiments/2026-09-14-species-models.md`
+
+Species challenger comparison:
+
+`docs/experiments/2026-09-18-species-challengers.md`
+
+American Crow bootstrap detail:
+
+`docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`
 
 ---
 
