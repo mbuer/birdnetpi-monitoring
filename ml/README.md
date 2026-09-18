@@ -260,7 +260,7 @@ The ensemble experiment:
 
 For a species whose holdout has already been inspected in an earlier experiment, treat that same window as diagnostic rather than untouched. The script does not modify live prediction, scheduled species, or stored forecasts.
 
-See `docs/experiments/2026-09-14-species-models.md`.
+See `docs/experiments/2026-09-14-species-models.md` and `docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`.
 
 ## Manual live prediction
 
