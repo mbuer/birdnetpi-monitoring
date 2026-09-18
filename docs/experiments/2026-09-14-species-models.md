@@ -5,6 +5,8 @@
 **Prediction horizon:** T → T+2  
 **Validation:** Chronological walk-forward
 
+**Follow-up:** Species-specific tuning, bootstrap tests, and the current live challenger choices are documented in [2026-09-18-species-challengers.md](2026-09-18-species-challengers.md). This file remains the original v2 baseline experiment.
+
 ## Objective
 
 Test whether individual bird species can be predicted for the next full future hour using the same leakage-safe timing convention as the aggregate activity model.
