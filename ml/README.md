@@ -230,18 +230,16 @@ Scoring waits until the target hour has ended plus the ten-minute grace period.
 
 # Regression Tests
 
-Timing and leakage-sensitive behavior is covered by:
+Timing, leakage-sensitive behavior, and aggregate scoring coverage are tested under `ml/tests/`.
 
-`ml/tests/test_timing.py`
-
-Run:
+Run the full current suite with:
 
 ```bash
 cd /opt/birdnetpi-monitoring
-.venv/bin/python -m unittest ml/tests/test_timing.py -v
+.venv/bin/python -m unittest discover -s ml/tests -v
 ```
 
-The current suite verifies:
+The timing suite verifies:
 
 - completed-hour selection after the grace period
 - behavior before the grace period
@@ -251,7 +249,14 @@ The current suite verifies:
 - T → T+2 training targets
 - 1h / 2h / 3h / 24h lag construction
 
-Run these tests after changing `src/timing.py` or related live feature construction.
+The aggregate scoring suite verifies:
+
+- both live aggregate model labels are included in scoring
+- scoring remains limited to unscored prediction rows
+- scoring still matches predictions to their target hour
+- the issue-time and target-completion guards remain present
+
+Run the full suite after changing `src/timing.py`, aggregate prediction/scoring logic, or related live feature construction.
 
 ---
 
