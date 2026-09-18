@@ -265,7 +265,7 @@ python3 -m json.tool grafana/bird-home-prediction-lab.json > /dev/null
 python3 -m json.tool "grafana/Bird Home - Species Prediction.json" > /dev/null
 ```
 
-For the operational exports, use an import method compatible with their Grafana resource format.
+All current dashboard exports use Grafana's `dashboard.grafana.app/v2` resource format, so use an import method compatible with that format.
 
 After importing any dashboard, verify:
 
