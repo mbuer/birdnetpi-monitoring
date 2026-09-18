@@ -174,6 +174,8 @@ birdnet-postgres-backup.service
 birdnet-postgres-backup.timer
 ```
 
+The older `backup/backup_postgres.sh` and `birdnet-db-backup.*` units are retained only as Pi-local migration/recovery history. They are not the current centralized backup path.
+
 Validate an archive with:
 
 ```bash
