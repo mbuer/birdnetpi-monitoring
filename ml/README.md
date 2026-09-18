@@ -23,8 +23,8 @@ birdnet-ml-prediction.timer
         -> score aggregate predictions
         -> create aggregate Random Forest + XGBoost predictions
         -> score species predictions
-        -> predict House Finch
-        -> predict Black Phoebe
+        -> predict configured reference species
+        -> predict configured species challengers
 ```
 
 The aggregate work intentionally runs first so a later species-side failure does not prevent the primary activity forecasts from being issued.
@@ -274,7 +274,7 @@ The ensemble experiment:
 
 For a species whose holdout has already been inspected in an earlier experiment, treat that same window as diagnostic rather than untouched. The script does not modify live prediction, scheduled species, or stored forecasts.
 
-See `docs/experiments/2026-09-14-species-models.md` and `docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`.
+See `docs/experiments/2026-09-14-species-models.md`, `docs/experiments/2026-09-18-species-challengers.md`, and `docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`.
 
 ## Manual live prediction
 
@@ -300,7 +300,7 @@ Scoring waits until the target hour has ended plus the ten-minute grace period.
 
 # Regression Tests
 
-Timing, leakage-sensitive behavior, and aggregate scoring coverage are tested under `ml/tests/`.
+Timing, leakage-sensitive behavior, and aggregate/species scoring coverage are tested under `ml/tests/`.
 
 Run the full current suite with:
 
@@ -326,7 +326,15 @@ The aggregate scoring suite verifies:
 - scoring still matches predictions to their target hour
 - the issue-time and target-completion guards remain present
 
-Run the full suite after changing `src/timing.py`, aggregate prediction/scoring logic, or related live feature construction.
+The species scoring suite verifies:
+
+- baseline and challenger labels share the explicit `_species_v1` suffix
+- only unscored rows are eligible
+- scoring joins the correct species/target hour
+- the prediction existed before the target hour began
+- the target-completion grace period remains enforced
+
+Run the full suite after changing timing, live feature construction, or either scoring path.
 
 ---
 
@@ -391,7 +399,8 @@ Priorities now are:
 
 - accumulate matched live Random Forest and XGBoost forward-validation history
 - compare the two aggregate models only after enough shared scored target hours exist
-- evaluate species probability thresholds
+- accumulate matched live challenger scoring for Black Phoebe and American Crow
+- evaluate species-specific thresholds without reusing diagnostic holdouts
 - add stronger ingestion/uptime completeness checks
 - repeat model comparisons as the dataset grows
 - add sunrise/daylight and later weather features where justified
