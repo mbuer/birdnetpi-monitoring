@@ -1,7 +1,7 @@
 # /etc/systemd/system/birdnet-db-backup.timer
 
 [Unit]
-Description=Daily BirdNET PostgreSQL backup
+Description=Legacy daily Pi-local BirdNET PostgreSQL backup
 
 [Timer]
 OnCalendar=daily
