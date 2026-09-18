@@ -240,6 +240,26 @@ The optimizer:
 
 The holdout must not be used to iterate on parameters after seeing its result. Treat any tuned model as a challenger until it also builds live forward-validation history.
 
+To test the class-balanced bootstrap ensemble proposed for sparse species:
+
+```bash
+BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)" \
+  .venv/bin/python ml/src/bootstrap_species_ensemble.py \
+  --species "American Crow"
+```
+
+The ensemble experiment:
+
+- reuses the leakage-safe chronological development/holdout split
+- finds XGBoost hyperparameters on development folds only
+- builds multiple class-balanced bootstrap samples with replacement
+- trains one XGBoost model per bootstrap sample
+- averages member probabilities rather than majority-voting hard labels
+- tunes the single-model and ensemble thresholds on development predictions only
+- reports a chronological holdout comparison against the current XGBoost baseline
+
+For a species whose holdout has already been inspected in an earlier experiment, treat that same window as diagnostic rather than untouched. The script does not modify live prediction, scheduled species, or stored forecasts.
+
 See `docs/experiments/2026-09-14-species-models.md`.
 
 ## Manual live prediction
@@ -307,6 +327,7 @@ Run the full suite after changing `src/timing.py`, aggregate prediction/scoring 
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
 | `src/species_candidates.py` | Rank species by live-prediction history/signal |
 | `src/optimize_species_xgboost.py` | Chronological randomized XGBoost/threshold optimization |
+| `src/bootstrap_species_ensemble.py` | Class-balanced bootstrap XGBoost probability ensemble experiment |
 | `src/predict_species_live.py` | Live species probability prediction |
 | `src/score_species_predictions.py` | Score eligible species predictions |
 | `live_species.txt` | Scheduled species consumed by the hourly prediction cycle |
