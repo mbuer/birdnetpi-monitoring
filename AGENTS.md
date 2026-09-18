@@ -113,7 +113,10 @@ The project has two live ML tracks.
 
 ## Aggregate activity prediction
 
-Current live model: `random_forest_v2_completed`
+Current live model labels:
+
+- `random_forest_v2_completed` — established reference
+- `xgboost_v2_completed` — live comparison model
 
 Timing convention: **completed hour T → target hour T+2**
 
@@ -134,18 +137,22 @@ Relevant files include:
 - `database/species_predictions.sql`
 - `ml/src/compare_species_models.py`
 - `ml/src/predict_species_live.py`
+- `ml/src/predict_species_challengers.py`
 - `ml/src/score_species_predictions.py`
+- `ml/species_challengers.json`
 - `grafana/Bird Home - Species Prediction.json`
 
 The existing hourly cycle currently performs:
 
 ```text
 score aggregate
-predict aggregate
-score species
-predict House Finch
-predict Black Phoebe
+predict aggregate Random Forest + XGBoost
+score species predictions
+predict configured reference species
+predict configured species challengers
 ```
+
+Reference species are configured in `ml/live_species.txt`. Per-species challenger strategies live in `ml/species_challengers.json`. Challenger rows use distinct model labels and must not overwrite reference forecasts.
 
 Do not add separate species timers unless there is a clear operational reason. Keep coordinated hourly work in the existing cycle where practical.
 
@@ -164,8 +171,10 @@ Do not add separate species timers unless there is a clear operational reason. K
 Current regression test command:
 
 ```bash
-.venv/bin/python -m unittest ml/tests/test_timing.py -v
+.venv/bin/python -m unittest discover -s ml/tests -v
 ```
+
+The suite covers timing/leakage behavior plus aggregate and species scoring guards.
 
 Stable methodology: `docs/ml.md`  
 Curated experiment results: `docs/experiments/`  
