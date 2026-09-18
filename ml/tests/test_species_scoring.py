@@ -1,7 +1,14 @@
+import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from ml.src import score_species_predictions
+
+ROOT = Path(__file__).resolve().parents[2]
+SRC = ROOT / "ml" / "src"
+sys.path.insert(0, str(SRC))
+
+import score_species_predictions  # noqa: E402
 
 
 class FakeCursor:
