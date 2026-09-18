@@ -221,6 +221,25 @@ Current comparison models:
 - Random Forest
 - XGBoost
 
+For sparse species where the fixed XGBoost configuration or 0.5 threshold is weak, run the leakage-safe randomized search:
+
+```bash
+BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)" \
+  .venv/bin/python ml/src/optimize_species_xgboost.py \
+  --species "American Crow"
+```
+
+The optimizer:
+
+- reserves the newest 20% of rows as an untouched chronological holdout
+- searches XGBoost hyperparameters only on earlier chronological folds
+- optimizes mean validation PR-AUC
+- includes class-imbalance weighting through `scale_pos_weight`
+- chooses a decision threshold from development predictions only
+- compares the current XGBoost baseline and tuned challenger on the same final walk-forward holdout
+
+The holdout must not be used to iterate on parameters after seeing its result. Treat any tuned model as a challenger until it also builds live forward-validation history.
+
 See `docs/experiments/2026-09-14-species-models.md`.
 
 ## Manual live prediction
@@ -287,6 +306,7 @@ Run the full suite after changing `src/timing.py`, aggregate prediction/scoring 
 | `src/compare_v2_xgboost.py` | Leakage-safe aggregate RF vs XGBoost comparison |
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
 | `src/species_candidates.py` | Rank species by live-prediction history/signal |
+| `src/optimize_species_xgboost.py` | Chronological randomized XGBoost/threshold optimization |
 | `src/predict_species_live.py` | Live species probability prediction |
 | `src/score_species_predictions.py` | Score eligible species predictions |
 | `live_species.txt` | Scheduled species consumed by the hourly prediction cycle |
