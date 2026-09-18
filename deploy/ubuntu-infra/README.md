@@ -37,7 +37,7 @@ Responsibilities:
 - Grafana OSS host
 - Python ML experiments
 - live aggregate activity prediction/scoring
-- live species prediction/scoring for House Finch and Black Phoebe
+- live reference species prediction/scoring plus configured challenger forecasts
 
 Grafana deployment itself is maintained in the separate `homelab-grafana` repository.
 
@@ -309,20 +309,26 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> create aggregate prediction
+        -> create aggregate Random Forest + XGBoost predictions
         -> score species predictions
-        -> predict House Finch
-        -> predict Black Phoebe
+        -> predict configured reference species
+        -> predict configured species challengers
 ```
 
-Aggregate model label:
+Aggregate model labels:
 
-`random_forest_v2_completed`
+- `random_forest_v2_completed`
+- `xgboost_v2_completed`
 
-Species model labels:
+Species reference labels:
 
 - `random_forest_species_v1`
 - `xgboost_species_v1`
+
+Current challenger labels:
+
+- `xgboost_tuned_species_v1`
+- `xgboost_bootstrap_species_v1`
 
 The aggregate steps run first deliberately, so a later species-side failure does not prevent the main activity forecast from being created.
 
@@ -358,7 +364,7 @@ A manual run writes scores/predictions; it is not a read-only health check:
 Regression tests:
 
 ```bash
-.venv/bin/python -m unittest ml/tests/test_timing.py -v
+.venv/bin/python -m unittest discover -s ml/tests -v
 ```
 
 ---
@@ -426,7 +432,7 @@ Completed:
 - local Loki and Grafana integration
 - Alloy local + Cloud dual-write architecture in repo
 - aggregate hourly prediction/scoring
-- species hourly prediction/scoring for House Finch and Black Phoebe
+- species reference and challenger prediction/scoring in the hourly cycle
 - aggregate and species prediction dashboards
 - timing/leakage regression tests
 
@@ -436,7 +442,7 @@ Still intentionally open:
 - off-host PostgreSQL backups
 - periodic real restore testing
 - stronger ingestion-freshness monitoring
-- threshold tuning and additional species
+- forward-validation of species challengers and additional species when data supports them
 - removal of obsolete Pi-local PostgreSQL components when no longer needed
 
 ---
