@@ -181,14 +181,15 @@ Live model labels:
 - `random_forest_species_v1`
 - `xgboost_species_v1`
 
-Current scheduled species are read from:
+Current reference-model species are read from:
 
 `ml/live_species.txt`
 
-The initial live set remains:
+The current live baseline set is:
 
 - House Finch
 - Black Phoebe
+- American Crow
 
 This keeps the hourly runner generic: adding or removing a scheduled species no longer requires editing `hourly_prediction_cycle.sh`.
 
@@ -203,7 +204,20 @@ BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)"
 
 The report ranks species by positive hourly buckets and shows prevalence, total detections, and whether each species is already in the live set. Use `--min-positive-hours` and `--limit` to narrow the report.
 
-American Crow remains useful for experiments but should not be promoted solely because it has enough rows; its lower prevalence makes the default `0.5` threshold less useful.
+American Crow is now included in the live baseline set specifically so its existing Random Forest/XGBoost reference predictions can be compared against a bootstrap challenger on matched future hours. This is forward-validation, not a declaration that the baseline classifier is production-ready.
+
+Per-species challenger configuration lives in:
+
+`ml/species_challengers.json`
+
+Current challenger plan:
+
+- House Finch: no challenger; keep the current reference models
+- Black Phoebe: tuned single XGBoost challenger, model label `xgboost_tuned_species_v1`
+- American Crow: 15-member class-balanced bootstrap XGBoost probability ensemble, model label `xgboost_bootstrap_species_v1`
+- Anna's Hummingbird: configured as experimental-only and not issued live
+
+The challenger runner stores independent model rows in the existing `bird_species_predictions` table. Reference models remain unchanged, and the existing species scorer picks up challenger labels because they still end in `_species_v1`.
 
 ## Species experiments
 
@@ -328,9 +342,11 @@ Run the full suite after changing `src/timing.py`, aggregate prediction/scoring 
 | `src/species_candidates.py` | Rank species by live-prediction history/signal |
 | `src/optimize_species_xgboost.py` | Chronological randomized XGBoost/threshold optimization |
 | `src/bootstrap_species_ensemble.py` | Class-balanced bootstrap XGBoost probability ensemble experiment |
-| `src/predict_species_live.py` | Live species probability prediction |
+| `src/predict_species_live.py` | Live reference RF + XGBoost species prediction |
+| `src/predict_species_challengers.py` | Live per-species challenger prediction runner |
 | `src/score_species_predictions.py` | Score eligible species predictions |
-| `live_species.txt` | Scheduled species consumed by the hourly prediction cycle |
+| `live_species.txt` | Species receiving reference RF + XGBoost predictions |
+| `species_challengers.json` | Per-species challenger strategy, model label, threshold, and parameters |
 
 Earlier scripts such as `features.py`, `evaluate.py`, `train.py`, `compare_models.py`, `rolling_validation.py`, `feature_importance.py`, and `ablation.py` are retained as historical methodology. Several use the older row-based target convention and should not be presented as directly comparable with current T → T+2 results.
 
