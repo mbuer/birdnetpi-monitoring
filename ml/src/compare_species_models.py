@@ -55,7 +55,13 @@ def load_species_data(species):
     """
 
     try:
-        return pd.read_sql(query, conn, params=(species,))
+        with conn.cursor() as cur:
+            cur.execute(query, (species,))
+            rows = cur.fetchall()
+            columns = [d.name for d in cur.description]
+
+        return pd.DataFrame(rows, columns=columns)
+
     finally:
         conn.close()
 
