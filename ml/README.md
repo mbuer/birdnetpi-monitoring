@@ -181,12 +181,29 @@ Live model labels:
 - `random_forest_species_v1`
 - `xgboost_species_v1`
 
-Current scheduled species:
+Current scheduled species are read from:
+
+`ml/live_species.txt`
+
+The initial live set remains:
 
 - House Finch
 - Black Phoebe
 
-American Crow remains useful for experiments but is not in the live hourly cycle because its lower prevalence makes the default `0.5` threshold less useful.
+This keeps the hourly runner generic: adding or removing a scheduled species no longer requires editing `hourly_prediction_cycle.sh`.
+
+Before promoting another species, review the available signal with:
+
+```bash
+cd /opt/birdnetpi-monitoring
+
+BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)" \
+  .venv/bin/python ml/src/species_candidates.py
+```
+
+The report ranks species by positive hourly buckets and shows prevalence, total detections, and whether each species is already in the live set. Use `--min-positive-hours` and `--limit` to narrow the report.
+
+American Crow remains useful for experiments but should not be promoted solely because it has enough rows; its lower prevalence makes the default `0.5` threshold less useful.
 
 ## Species experiments
 
@@ -269,8 +286,10 @@ Run the full suite after changing `src/timing.py`, aggregate prediction/scoring 
 | `src/score_predictions.py` | Score eligible aggregate predictions |
 | `src/compare_v2_xgboost.py` | Leakage-safe aggregate RF vs XGBoost comparison |
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
+| `src/species_candidates.py` | Rank species by live-prediction history/signal |
 | `src/predict_species_live.py` | Live species probability prediction |
 | `src/score_species_predictions.py` | Score eligible species predictions |
+| `live_species.txt` | Scheduled species consumed by the hourly prediction cycle |
 
 Earlier scripts such as `features.py`, `evaluate.py`, `train.py`, `compare_models.py`, `rolling_validation.py`, `feature_importance.py`, and `ablation.py` are retained as historical methodology. Several use the older row-based target convention and should not be presented as directly comparable with current T → T+2 results.
 
