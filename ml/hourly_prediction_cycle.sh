@@ -64,3 +64,9 @@ while IFS= read -r species || [[ -n "$species" ]]; do
     echo "Creating species prediction: $species"
     "$PYTHON" ml/src/predict_species_live.py --species "$species"
 done < "$SPECIES_FILE"
+
+# Experimental challengers are stored under separate model labels so
+# reference models remain untouched and can be compared on matched hours.
+echo
+echo "Creating species challenger predictions..."
+"$PYTHON" ml/src/predict_species_challengers.py
