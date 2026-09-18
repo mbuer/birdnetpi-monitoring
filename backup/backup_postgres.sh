@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Legacy Pi-local PostgreSQL backup path retained for migration/recovery
+# reference. The current centralized backup is backup_infra_postgres.sh.
 set -euo pipefail
 
 BACKUP_DIR="/home/birduser/backups/postgresql"
