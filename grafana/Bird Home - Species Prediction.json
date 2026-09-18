@@ -316,8 +316,8 @@
         "kind": "Panel",
         "spec": {
           "id": 4,
-          "title": "XGBoost Decision",
-          "description": "",
+          "title": "Challenger — Next Forecast",
+          "description": "Latest challenger decision for the selected species; blank if no live challenger exists.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -337,7 +337,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    predicted_present AS \"Forecast\"\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND model = 'xgboost_species_v1'\nORDER BY prediction_created_at DESC\nLIMIT 1;",
+                        "rawSql": "SELECT\n    predicted_present AS \"Forecast\"\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND model NOT IN ('random_forest_species_v1','xgboost_species_v1')\nORDER BY prediction_created_at DESC\nLIMIT 1;",
                         "sql": {
                           "columns": [
                             {
@@ -396,10 +396,12 @@
                       "options": {
                         "0": {
                           "text": "Absent",
+                          "color": "green",
                           "index": 0
                         },
                         "1": {
                           "text": "Present",
+                          "color": "red",
                           "index": 1
                         }
                       }
@@ -450,7 +452,7 @@
                         "editorMode": "code",
                         "format": "time_series",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    predicted_hour AT TIME ZONE 'America/Los_Angeles' AS time,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        ELSE model\n    END AS metric,\n    probability * 100 AS value\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY time;"
+                        "rawSql": "SELECT\n    predicted_hour AT TIME ZONE 'America/Los_Angeles' AS time,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS metric,\n    probability * 100 AS value\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND (\n  '$model' = '__all'\n  OR model = '$model'\n)\nAND (\n  '$status' = 'all'\n  OR ('$status' = 'baseline' AND model IN ('random_forest_species_v1','xgboost_species_v1'))\n  OR ('$status' = 'challenger' AND model NOT IN ('random_forest_species_v1','xgboost_species_v1'))\n)\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY time;"
                       }
                     },
                     "refId": "A",
@@ -550,8 +552,8 @@
         "kind": "Panel",
         "spec": {
           "id": 6,
-          "title": "Live Model Accuracy",
-          "description": "",
+          "title": "Live Model Metrics",
+          "description": "Scored forward-validation metrics for the selected species/model/status.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -571,7 +573,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        ELSE model\n    END AS model,\n    100.0 * AVG(\n        CASE WHEN correct THEN 1.0 ELSE 0.0 END\n    ) AS accuracy\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND scored_at IS NOT NULL\nGROUP BY model\nORDER BY model;"
+                        "rawSql": "WITH scored AS (\n    SELECT\n        model,\n        predicted_present,\n        actual_present,\n        correct\n    FROM bird_species_predictions\n    WHERE species = '$species'\n      AND scored_at IS NOT NULL\n      AND (\n  '$model' = '__all'\n  OR model = '$model'\n)\nAND (\n  '$status' = 'all'\n  OR ('$status' = 'baseline' AND model IN ('random_forest_species_v1','xgboost_species_v1'))\n  OR ('$status' = 'challenger' AND model NOT IN ('random_forest_species_v1','xgboost_species_v1'))\n)\n),\ncounts AS (\n    SELECT\n        model,\n        COUNT(*) AS scored,\n        COUNT(*) FILTER (WHERE predicted_present = 1 AND actual_present = 1) AS tp,\n        COUNT(*) FILTER (WHERE predicted_present = 1 AND actual_present = 0) AS fp,\n        COUNT(*) FILTER (WHERE predicted_present = 0 AND actual_present = 1) AS fn,\n        COUNT(*) FILTER (WHERE correct IS TRUE) AS correct\n    FROM scored\n    GROUP BY model\n)\nSELECT\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS \"Model\",\n    scored AS \"Scored\",\n    ROUND(100.0 * correct / NULLIF(scored, 0), 1) AS \"Accuracy %\",\n    ROUND(100.0 * tp / NULLIF(tp + fp, 0), 1) AS \"Precision %\",\n    ROUND(100.0 * tp / NULLIF(tp + fn, 0), 1) AS \"Recall %\",\n    ROUND(100.0 * (2.0 * tp) / NULLIF((2.0 * tp) + fp + fn, 0), 1) AS \"F1 %\"\nFROM counts\nORDER BY \"Model\";"
                       }
                     },
                     "refId": "A",
@@ -585,51 +587,24 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "bargauge",
+            "group": "table",
             "version": "13.2.1",
             "spec": {
               "options": {
-                "displayMode": "gradient",
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "maxVizHeight": 300,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "auto",
-                "orientation": "horizontal",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": true
-                },
-                "showUnfilled": true,
-                "sizing": "auto",
-                "valueMode": "color"
+                "cellHeight": "sm",
+                "showHeader": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "percent",
-                  "decimals": 1,
-                  "min": 0,
-                  "max": 100,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 80,
-                        "color": "red"
-                      }
-                    ]
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
                   }
                 },
                 "overrides": []
@@ -642,8 +617,8 @@
         "kind": "Panel",
         "spec": {
           "id": 7,
-          "title": "Prediction History",
-          "description": "",
+          "title": "Prediction History — Head to Head",
+          "description": "One row per target hour. Challenger columns populate when a challenger exists for the selected species.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -663,7 +638,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Target Hour\",\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        ELSE model\n    END AS \"Model\",\n    ROUND((probability * 100)::numeric, 1) AS \"Probability %\",\n    CASE predicted_present\n        WHEN 1 THEN 'Present'\n        ELSE 'Absent'\n    END AS \"Prediction\",\n    CASE actual_present\n        WHEN 1 THEN 'Present'\n        WHEN 0 THEN 'Absent'\n        ELSE 'Pending'\n    END AS \"Actual\",\n    CASE\n        WHEN correct IS TRUE THEN 'Yes'\n        WHEN correct IS FALSE THEN 'No'\n        ELSE 'Pending'\n    END AS \"Correct\",\n    training_rows AS \"Training Rows\"\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY predicted_hour DESC, model;"
+                        "rawSql": "WITH hourly AS (\n    SELECT\n        predicted_hour,\n        MAX(probability) FILTER (WHERE model = 'random_forest_species_v1') AS rf_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_species_v1') AS xgb_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_tuned_species_v1') AS tuned_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_bootstrap_species_v1') AS bootstrap_probability,\n        MAX(predicted_present) FILTER (WHERE model = 'random_forest_species_v1') AS rf_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_species_v1') AS xgb_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_tuned_species_v1') AS tuned_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_bootstrap_species_v1') AS bootstrap_prediction,\n        MAX(actual_present) AS actual_present\n    FROM bird_species_predictions\n    WHERE species = '$species'\n    GROUP BY predicted_hour\n)\nSELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Target Hour\",\n    ROUND((rf_probability * 100)::numeric, 1) AS \"RF %\",\n    ROUND((xgb_probability * 100)::numeric, 1) AS \"XGB %\",\n    ROUND((COALESCE(tuned_probability, bootstrap_probability) * 100)::numeric, 1) AS \"Challenger %\",\n    CASE\n        WHEN tuned_probability IS NOT NULL THEN 'Tuned XGBoost'\n        WHEN bootstrap_probability IS NOT NULL THEN 'Bootstrap XGBoost'\n        ELSE NULL\n    END AS \"Challenger\",\n    CASE actual_present\n        WHEN 1 THEN 'Present'\n        WHEN 0 THEN 'Absent'\n        ELSE 'Pending'\n    END AS \"Actual\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN rf_prediction = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"RF Correct\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN xgb_prediction = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"XGB Correct\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN COALESCE(tuned_prediction, bootstrap_prediction) IS NULL THEN '—'\n        WHEN COALESCE(tuned_prediction, bootstrap_prediction) = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"Challenger Correct\"\nFROM hourly\nORDER BY predicted_hour DESC;"
                       }
                     },
                     "refId": "A",
@@ -784,7 +759,7 @@
             "spec": {
               "x": 0,
               "y": 5,
-              "width": 16,
+              "width": 14,
               "height": 9,
               "element": {
                 "kind": "ElementReference",
@@ -795,9 +770,9 @@
           {
             "kind": "GridLayoutItem",
             "spec": {
-              "x": 16,
+              "x": 14,
               "y": 5,
-              "width": 8,
+              "width": 10,
               "height": 9,
               "element": {
                 "kind": "ElementReference",
@@ -876,7 +851,73 @@
           "options": [],
           "multi": false,
           "includeAll": false,
-          "allowCustomValue": true
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "model",
+          "current": {
+            "text": "All models",
+            "value": "__all"
+          },
+          "label": "Model",
+          "hide": "dontHide",
+          "refresh": "onTimeRangeChanged",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "afy5j1yt18b9cb"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT '__all' AS value, 'All models' AS text\nUNION ALL\nSELECT DISTINCT\n    model AS value,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS text\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY text;"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "alphabeticalAsc",
+          "definition": "Dynamic model list for selected species",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "status",
+          "current": {
+            "text": "All",
+            "value": "all"
+          },
+          "label": "Status",
+          "hide": "dontHide",
+          "refresh": "never",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "afy5j1yt18b9cb"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT 'all' AS value, 'All' AS text\nUNION ALL SELECT 'baseline', 'Baseline'\nUNION ALL SELECT 'challenger', 'Challenger';"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "Baseline/challenger filter",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
         }
       }
     ]
