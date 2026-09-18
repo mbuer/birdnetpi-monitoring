@@ -1,0 +1,7 @@
+# One common species name per line.
+# Blank lines and lines beginning with # are ignored.
+#
+# Add a species here only after reviewing its historical signal with:
+#   .venv/bin/python ml/src/species_candidates.py
+House Finch
+Black Phoebe
