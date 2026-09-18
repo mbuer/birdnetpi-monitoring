@@ -4,7 +4,7 @@
 
 Test whether a class-balanced bootstrap XGBoost ensemble improves sparse-species presence classification compared with the current single XGBoost baseline.
 
-This experiment is diagnostic only. It does not change the live predictor or scheduled species.
+This experiment was diagnostic when run. Its result later justified running an American Crow bootstrap challenger alongside the unchanged reference models for forward-validation; see [2026-09-18-species-challengers.md](2026-09-18-species-challengers.md).
 
 ## Dataset
 
@@ -108,10 +108,4 @@ Treat the bootstrap ensemble as a challenger because:
 - development and holdout precision differed substantially
 - live forward-validation has not yet been collected for this ensemble
 
-Next comparison should repeat the same ensemble experiment for:
-
-- House Finch
-- Black Phoebe
-- Anna's Hummingbird
-
-The main question is whether balanced bootstrapping consistently helps sparse species while offering little or no benefit for already stronger species models.
+That follow-up comparison has now been completed for House Finch, Black Phoebe, and Anna's Hummingbird. The consolidated results and current challenger decisions are recorded in [2026-09-18-species-challengers.md](2026-09-18-species-challengers.md).
