@@ -355,6 +355,20 @@ Do not describe completed work as future work or planned work as deployed.
 
 ---
 
+# Commit Provenance
+
+When ChatGPT makes a repository change directly through the GitHub connector, prefix the commit message with:
+
+`assistant:`
+
+Example:
+
+`assistant: Add aggregate scoring regression tests`
+
+This convention is only for changes written directly by ChatGPT. User-created local commits keep normal commit messages. The prefix is informational and does not imply different review or trust requirements.
+
+---
+
 # Editing Style
 
 Favor small understandable components, explicit configuration, simple deployment commands, validation after changes, reversible migrations, and preserved historical experiment context.
