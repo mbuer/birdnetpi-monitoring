@@ -20,8 +20,8 @@ PostgreSQL                -> Species Prediction
 |---|---|---|
 | `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Burbank Local.json` | Active local Grafana OSS operational dashboard | `dashboard.grafana.app/v2` resource |
-| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts, outcomes, and error metrics | Classic dashboard JSON |
-| `Bird Home - Species Prediction.json` | Per-species forecast probabilities, decisions, and scored results | Classic dashboard JSON |
+| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts, outcomes, and error metrics | `dashboard.grafana.app/v2` resource |
+| `Bird Home - Species Prediction.json` | Per-species baseline/challenger probabilities, decisions, and scored results | `dashboard.grafana.app/v2` resource |
 
 The two Bird Home operational exports retain the same internal dashboard identity. Their filenames alone do not make them separate Grafana dashboards. Check the import preview before loading both into the same Grafana instance.
 
@@ -175,30 +175,38 @@ Required PostgreSQL objects:
 - `bird_species_hourly`
 - `bird_species_predictions`
 
-The dashboard uses a Grafana variable:
+The dashboard exposes variables for:
 
 ```text
 $species
+$model
+$status
 ```
 
-The variable is populated from species already present in `bird_species_predictions`.
+`$species` is populated from stored prediction rows. `$model` allows model-specific filtering, while `$status` separates baseline and challenger rows where applicable.
 
-Current live model labels are:
+Reference model labels are:
 
 ```text
 random_forest_species_v1
 xgboost_species_v1
 ```
 
+Current challenger labels include:
+
+```text
+xgboost_tuned_species_v1
+xgboost_bootstrap_species_v1
+```
+
 The dashboard currently includes:
 
-- latest XGBoost forecast probability
-- latest Random Forest forecast probability
+- latest baseline XGBoost and Random Forest probabilities
 - forecast target time
-- XGBoost present/absent decision
-- probability history for both models
-- live model accuracy for scored predictions
-- prediction history with actual outcome and correctness
+- latest challenger decision when a live challenger exists
+- probability history with model/status filtering
+- scored model metrics: accuracy, precision, recall, and F1
+- one-row-per-target-hour head-to-head history across baseline and challenger models
 
 The present/absent decision currently uses the stored prediction threshold, which is initially `0.5`.
 
@@ -206,9 +214,9 @@ This threshold is not assumed to be optimal for all species. Sparse species can 
 
 ---
 
-## Why Live Model Accuracy May Show No Data
+## Why Live Model Metrics May Show No Data
 
-A newly imported Species Prediction dashboard can legitimately show no data in the Live Model Accuracy panel.
+A newly imported Species Prediction dashboard can legitimately show no data in the Live Model Metrics panel. Challenger rows also remain absent from the metrics table until at least one challenger forecast has become scoreable.
 
 A prediction is not scoreable until:
 
