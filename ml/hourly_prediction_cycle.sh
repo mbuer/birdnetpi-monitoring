@@ -39,14 +39,28 @@ echo "Creating next activity prediction..."
 "$ROOT/ml/predict_next_hour.sh"
 
 # Species predictions use the same completed-hour T -> T+2 timing.
-# Start with the two species that have enough signal and history for
-# useful live evaluation. Sparse species remain retrospective for now.
+# The scheduled species set lives in ml/live_species.txt so it can be
+# expanded without editing this runner.
+SPECIES_FILE="$ROOT/ml/live_species.txt"
+
+if [[ ! -f "$SPECIES_FILE" ]]; then
+    echo "Live species configuration not found:"
+    echo "$SPECIES_FILE"
+    exit 1
+fi
+
 echo
 echo "Scoring completed species predictions..."
 "$PYTHON" ml/src/score_species_predictions.py
 
-for species in "House Finch" "Black Phoebe"; do
+while IFS= read -r species || [[ -n "$species" ]]; do
+    # Trim leading/trailing whitespace.
+    species="${species#"${species%%[![:space:]]*}"}"
+    species="${species%"${species##*[![:space:]]}"}"
+
+    [[ -z "$species" || "$species" == \#* ]] && continue
+
     echo
     echo "Creating species prediction: $species"
     "$PYTHON" ml/src/predict_species_live.py --species "$species"
-done
+done < "$SPECIES_FILE"
