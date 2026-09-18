@@ -1,1298 +1,2037 @@
 {
-  "annotations": {
-    "list": []
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "bird-home-prediction-lab",
+    "namespace": "default",
+    "uid": "f89c9ea3-8bfa-4b21-af13-813c54a48483",
+    "resourceVersion": "1789591873638984",
+    "generation": 2,
+    "creationTimestamp": "2026-09-16T20:50:56Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "1649167068049408"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "user:bfy29hcvl91c0a",
+      "grafana.app/saved-from-ui": "Grafana v13.2.1 (56cd3e9288)",
+      "grafana.app/updatedBy": "user:bfy29hcvl91c0a",
+      "grafana.app/updatedTimestamp": "2026-09-16T20:51:13Z"
+    }
   },
-  "editable": true,
-  "graphTooltip": 1,
-  "id": null,
-  "links": [],
-  "liveNow": true,
-  "panels": [
-    {
-      "id": 1,
-      "type": "text",
-      "title": "",
-      "transparent": true,
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 3
-      },
-      "options": {
-        "mode": "markdown",
-        "content": "## \ud83d\udc26 Bird Home \u2014 Prediction Lab\n**One-hour-ahead bird activity forecasting** \u00b7 live forward validation  \nRandom Forest and XGBoost issue independent forecasts for the same future hour and are scored against observed BirdNET activity."
-      }
-    },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "NEXT HOUR FORECAST",
-      "description": "Latest Random Forest and XGBoost forecasts for the same target hour",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 3,
-        "w": 5,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    MAX(predicted_activity) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"Random Forest\",\n    MAX(predicted_activity) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGBoost\"\nFROM bird_activity_predictions\nWHERE predicted_hour = (\n    SELECT MAX(predicted_hour)\n    FROM bird_activity_predictions\n    WHERE model IN ('random_forest_v2_completed', 'xgboost_v2_completed')\n);"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "noValue": "\u2014",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Random Forest"
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana",
+            "version": "v0",
+            "datasource": {
+              "name": "-- Grafana --"
             },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
+            "spec": {}
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "XGBoost"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "purple"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 13,
-          "valueSize": 36
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "builtIn": true
         }
       }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "CURRENT ACTIVITY",
-      "description": "Latest observed BirdNET activity index",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 5,
-        "y": 3,
-        "w": 5,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT activity_index AS \"Activity\" FROM bird_activity_hourly ORDER BY hour_local DESC LIMIT 1;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "noValue": "\u2014",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 13,
-          "valueSize": 36
-        }
-      }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "LIVE MODEL MAE",
-      "description": "Mean absolute error of scored forward predictions. Lower is better.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 10,
-        "y": 3,
-        "w": 5,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    AVG(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF MAE\",\n    AVG(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 2,
-          "noValue": "\u2014",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 4
-              },
-              {
-                "color": "orange",
-                "value": 6
-              },
-              {
-                "color": "red",
-                "value": 8
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 13,
-          "valueSize": 34
-        }
-      }
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "MODEL EDGE",
-      "description": "Percentage MAE improvement versus persistence. Positive is better.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 15,
-        "y": 3,
-        "w": 5,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    CASE\n        WHEN AVG(ABS(current_activity - actual_activity))\n             FILTER (WHERE model = 'random_forest_v2_completed') = 0\n        THEN NULL\n        ELSE 100.0 * (\n            AVG(ABS(current_activity - actual_activity))\n                FILTER (WHERE model = 'random_forest_v2_completed')\n            -\n            AVG(absolute_error)\n                FILTER (WHERE model = 'random_forest_v2_completed')\n        ) /\n        AVG(ABS(current_activity - actual_activity))\n            FILTER (WHERE model = 'random_forest_v2_completed')\n    END AS \"RF Edge\",\n    CASE\n        WHEN AVG(ABS(current_activity - actual_activity))\n             FILTER (WHERE model = 'xgboost_v2_completed') = 0\n        THEN NULL\n        ELSE 100.0 * (\n            AVG(ABS(current_activity - actual_activity))\n                FILTER (WHERE model = 'xgboost_v2_completed')\n            -\n            AVG(absolute_error)\n                FILTER (WHERE model = 'xgboost_v2_completed')\n        ) /\n        AVG(ABS(current_activity - actual_activity))\n            FILTER (WHERE model = 'xgboost_v2_completed')\n    END AS \"XGB Edge\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "unit": "percent",
-          "noValue": "\u2014",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "green",
-                "value": 10
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 13,
-          "valueSize": 34
-        }
-      }
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "SCORED HOURS",
-      "description": "Distinct forecast target hours with known outcomes",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 20,
-        "y": 3,
-        "w": 4,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT COUNT(DISTINCT predicted_hour) AS \"Scored\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 0,
-          "noValue": "0",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "purple"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 12,
-          "valueSize": 32
-        }
-      }
-    },
-    {
-      "id": 7,
-      "type": "timeseries",
-      "title": "Forecast vs Reality",
-      "description": "Random Forest and XGBoost forward forecasts compared with observed activity and persistence",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 7,
-        "w": 24,
-        "h": 11
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  predicted_activity AS \"Random Forest\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  predicted_activity AS \"XGBoost\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  actual_activity AS \"Actual Activity\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  current_activity AS \"Persistence\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "gradientMode": "opacity",
-            "spanNulls": false,
-            "showPoints": "always",
-            "pointSize": 5,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "axisLabel": "Activity Index",
-            "axisColorMode": "text",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "thresholdsStyle": {
-              "mode": "off"
+    ],
+    "cursorSync": "Crosshair",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "id": 1,
+          "title": "",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
             }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Random Forest"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "text",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "## 🐦 Bird Home — Prediction Lab\n**One-hour-ahead bird activity forecasting** · live forward validation  \nRandom Forest and XGBoost issue independent forecasts for the same future hour and are scored against observed BirdNET activity.",
+                "mode": "markdown"
               },
-              {
-                "id": "custom.lineWidth",
-                "value": 3
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
               }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "XGBoost"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "purple"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 3
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Actual Activity"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 3
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Persistence"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 2
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        }
-      }
-    },
-    {
-      "id": 8,
-      "type": "timeseries",
-      "title": "Prediction Error",
-      "description": "Absolute error for Random Forest, XGBoost, and persistence.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  absolute_error AS \"RF Error\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  absolute_error AS \"XGB Error\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  ABS(current_activity - actual_activity) AS \"Persistence Error\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "custom": {
-            "drawStyle": "bars",
-            "lineWidth": 1,
-            "fillOpacity": 55,
-            "showPoints": "never",
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "axisLabel": "Absolute Error",
-            "axisColorMode": "text",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "thresholdsStyle": {
-              "mode": "off"
             }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ML Error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
           },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Persistence Error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean"
-          ]
+          "transparent": true
         }
-      }
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "Daily MAE \u2014 RF vs XGBoost vs Persistence",
-      "description": "Daily average absolute error by model.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 18,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(absolute_error) AS \"RF MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(absolute_error) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 2,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 3,
-            "fillOpacity": 8,
-            "spanNulls": true,
-            "showPoints": "always",
-            "pointSize": 5,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "axisLabel": "MAE",
-            "axisColorMode": "text",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ML MAE"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Persistence MAE"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean"
-          ]
-        }
-      }
-    },
-    {
-      "id": 10,
-      "type": "stat",
-      "title": "MODEL WIN RATE",
-      "description": "Percentage of scored hours where each model beats persistence",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 26,
-        "w": 6,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    100.0 * AVG(\n        CASE WHEN absolute_error < ABS(current_activity - actual_activity)\n             THEN 1.0 ELSE 0.0 END\n    ) FILTER (WHERE model = 'random_forest_v2_completed') AS \"RF Win Rate\",\n    100.0 * AVG(\n        CASE WHEN absolute_error < ABS(current_activity - actual_activity)\n             THEN 1.0 ELSE 0.0 END\n    ) FILTER (WHERE model = 'xgboost_v2_completed') AS \"XGB Win Rate\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "decimals": 1,
-          "noValue": "\u2014",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 40
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "green",
-                "value": 60
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 12,
-          "valueSize": 30
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "stat",
-      "title": "MODEL MAE",
-      "description": "Average absolute error by live model",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 6,
-        "y": 26,
-        "w": 6,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    AVG(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF MAE\",\n    AVG(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 2,
-          "noValue": "\u2014",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 12,
-          "valueSize": 30
-        }
-      }
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "PERSISTENCE MAE",
-      "description": "Average error if next hour is assumed to equal the current hour",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 26,
-        "w": 6,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 2,
-          "noValue": "\u2014",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "orange"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 12,
-          "valueSize": 30
-        }
-      }
-    },
-    {
-      "id": 13,
-      "type": "stat",
-      "title": "BEST FORECAST ERROR",
-      "description": "Smallest absolute error recorded by each live model",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 18,
-        "y": 26,
-        "w": 6,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n    MIN(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF Best\",\n    MIN(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB Best\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1,
-          "noValue": "\u2014",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 3
-              },
-              {
-                "color": "orange",
-                "value": 6
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true,
-        "text": {
-          "titleSize": 12,
-          "valueSize": 30
-        }
-      }
-    },
-    {
-      "id": 14,
-      "type": "table",
-      "title": "Recent Predictions",
-      "description": "Random Forest and XGBoost forward predictions, outcomes, and comparison against persistence",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "afy5j1yt18b9cb"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 31,
-        "w": 24,
-        "h": 10
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "afy5j1yt18b9cb"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Forecast Hour\",\n  CASE\n    WHEN model = 'random_forest_v2_completed' THEN 'Random Forest'\n    WHEN model = 'xgboost_v2_completed' THEN 'XGBoost'\n    ELSE model\n  END AS \"Model\",\n  ROUND(predicted_activity::numeric, 1) AS \"Forecast\",\n  ROUND(current_activity::numeric, 1) AS \"Persistence\",\n  ROUND(actual_activity::numeric, 1) AS \"Actual\",\n  ROUND(absolute_error::numeric, 1) AS \"Model Error\",\n  CASE\n    WHEN actual_activity IS NULL THEN NULL\n    ELSE ROUND(ABS(current_activity - actual_activity)::numeric, 1)\n  END AS \"Persistence Error\",\n  CASE\n    WHEN actual_activity IS NULL THEN 'PENDING'\n    WHEN absolute_error < ABS(current_activity - actual_activity)\n      THEN 'MODEL WIN'\n    WHEN absolute_error > ABS(current_activity - actual_activity)\n      THEN 'PERSISTENCE WIN'\n    ELSE 'TIE'\n  END AS \"Result\"\nFROM bird_activity_predictions\nWHERE model IN ('random_forest_v2_completed', 'xgboost_v2_completed')\nORDER BY predicted_hour DESC, model\nLIMIT 50;"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Forecast"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Actual"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Persistence"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Result"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "PENDING": {
-                        "color": "blue",
-                        "index": 0,
-                        "text": "PENDING"
+      "panel-10": {
+        "kind": "Panel",
+        "spec": {
+          "id": 10,
+          "title": "MODEL WIN RATE",
+          "description": "Percentage of scored hours where each model beats persistence",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
                       },
-                      "PERSISTENCE WIN": {
-                        "color": "orange",
-                        "index": 2,
-                        "text": "PERSISTENCE"
-                      },
-                      "TIE": {
-                        "color": "yellow",
-                        "index": 3,
-                        "text": "TIE"
-                      },
-                      "MODEL WIN": {
-                        "color": "green",
-                        "index": 1,
-                        "text": "MODEL WIN"
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    100.0 * AVG(\n        CASE WHEN absolute_error < ABS(current_activity - actual_activity)\n             THEN 1.0 ELSE 0.0 END\n    ) FILTER (WHERE model = 'random_forest_v2_completed') AS \"RF Win Rate\",\n    100.0 * AVG(\n        CASE WHEN absolute_error < ABS(current_activity - actual_activity)\n             THEN 1.0 ELSE 0.0 END\n    ) FILTER (WHERE model = 'xgboost_v2_completed') AS \"XGB Win Rate\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
                       }
-                    }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 12,
+                  "valueSize": 30
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 40,
+                        "color": "orange"
+                      },
+                      {
+                        "value": 50,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 60,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-11": {
+        "kind": "Panel",
+        "spec": {
+          "id": 11,
+          "title": "MODEL MAE",
+          "description": "Average absolute error by live model",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    AVG(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF MAE\",\n    AVG(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 12,
+                  "valueSize": 30
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "blue"
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-12": {
+        "kind": "Panel",
+        "spec": {
+          "id": 12,
+          "title": "PERSISTENCE MAE",
+          "description": "Average error if next hour is assumed to equal the current hour",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 12,
+                  "valueSize": 30
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "orange"
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-13": {
+        "kind": "Panel",
+        "spec": {
+          "id": 13,
+          "title": "BEST FORECAST ERROR",
+          "description": "Smallest absolute error recorded by each live model",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    MIN(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF Best\",\n    MIN(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB Best\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 12,
+                  "valueSize": 30
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 3,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 6,
+                        "color": "orange"
+                      }
+                    ]
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-14": {
+        "kind": "Panel",
+        "spec": {
+          "id": 14,
+          "title": "Recent Predictions",
+          "description": "Head-to-head Random Forest, XGBoost, and persistence comparison for each forecast hour",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH hourly AS (\n    SELECT\n        predicted_hour,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'random_forest_v2_completed'\n        ) AS rf_forecast,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'xgboost_v2_completed'\n        ) AS xgb_forecast,\n        MAX(current_activity) AS persistence,\n        MAX(actual_activity) AS actual\n    FROM bird_activity_predictions\n    WHERE model IN (\n        'random_forest_v2_completed',\n        'xgboost_v2_completed'\n    )\n    GROUP BY predicted_hour\n)\nSELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Forecast Hour\",\n    ROUND(rf_forecast::numeric, 1) AS \"Random Forest\",\n    ROUND(xgb_forecast::numeric, 1) AS \"XGBoost\",\n    ROUND(persistence::numeric, 1) AS \"Persistence\",\n    ROUND(actual::numeric, 1) AS \"Actual\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(rf_forecast - actual)::numeric, 1)\n    END AS \"RF Error\",\n    CASE\n        WHEN actual IS NULL OR xgb_forecast IS NULL THEN NULL\n        ELSE ROUND(ABS(xgb_forecast - actual)::numeric, 1)\n    END AS \"XGB Error\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(persistence - actual)::numeric, 1)\n    END AS \"Persistence Error\",\n    CASE\n        WHEN actual IS NULL THEN 'PENDING'\n        WHEN xgb_forecast IS NULL THEN\n            CASE\n                WHEN ABS(rf_forecast - actual) < ABS(persistence - actual)\n                    THEN 'RF BEST'\n                WHEN ABS(rf_forecast - actual) > ABS(persistence - actual)\n                    THEN 'PERSISTENCE BEST'\n                ELSE 'TIE'\n            END\n        WHEN ABS(rf_forecast - actual) < ABS(xgb_forecast - actual)\n         AND ABS(rf_forecast - actual) < ABS(persistence - actual)\n            THEN 'RF BEST'\n        WHEN ABS(xgb_forecast - actual) < ABS(rf_forecast - actual)\n         AND ABS(xgb_forecast - actual) < ABS(persistence - actual)\n            THEN 'XGB BEST'\n        WHEN ABS(persistence - actual) < ABS(rf_forecast - actual)\n         AND ABS(persistence - actual) < ABS(xgb_forecast - actual)\n            THEN 'PERSISTENCE BEST'\n        ELSE 'TIE'\n    END AS \"Best\"\nFROM hourly\nORDER BY predicted_hour DESC\nLIMIT 50;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Forecast"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "blue",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Actual"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "green",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Persistence"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "orange",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Best"
+                    },
+                    "properties": [
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "PENDING": {
+                                "color": "blue",
+                                "index": 0,
+                                "text": "PENDING"
+                              },
+                              "PERSISTENCE BEST": {
+                                "color": "orange",
+                                "index": 3,
+                                "text": "PERSISTENCE BEST"
+                              },
+                              "RF BEST": {
+                                "color": "green",
+                                "index": 1,
+                                "text": "RF BEST"
+                              },
+                              "TIE": {
+                                "color": "yellow",
+                                "index": 4,
+                                "text": "TIE"
+                              },
+                              "XGB BEST": {
+                                "color": "purple",
+                                "index": 2,
+                                "text": "XGB BEST"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-background"
+                        }
+                      }
+                    ]
                   }
                 ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
               }
-            ]
+            }
           }
-        ]
+        }
       },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "countRows": false,
-          "fields": ""
+      "panel-15": {
+        "kind": "Panel",
+        "spec": {
+          "id": 15,
+          "title": "",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "text",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "### 🧪 Reading the Prediction Lab\n**Blue** = Random Forest · **Purple** = XGBoost · **Green** = observed activity · **Orange** = persistence  \nBoth ML models predict the same future hour independently. The useful model is the one that produces **lower forward error consistently over time**.",
+                "mode": "markdown"
+              },
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              }
+            }
+          },
+          "transparent": true
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "id": 2,
+          "title": "NEXT HOUR FORECAST",
+          "description": "Latest Random Forest and XGBoost forecasts for the same target hour",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    MAX(predicted_activity) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"Random Forest\",\n    MAX(predicted_activity) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGBoost\"\nFROM bird_activity_predictions\nWHERE predicted_hour = (\n    SELECT MAX(predicted_hour)\n    FROM bird_activity_predictions\n    WHERE model IN ('random_forest_v2_completed', 'xgboost_v2_completed')\n);"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 13,
+                  "valueSize": 36
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "blue"
+                  },
+                  "noValue": "—"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Random Forest"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "blue",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "XGBoost"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "purple",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "id": 3,
+          "title": "CURRENT ACTIVITY",
+          "description": "Latest observed BirdNET activity index",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT activity_index AS \"Activity\" FROM bird_activity_hourly ORDER BY hour_local DESC LIMIT 1;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 13,
+                  "valueSize": 36
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "green"
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "id": 4,
+          "title": "LIVE MODEL MAE",
+          "description": "Mean absolute error of scored forward predictions. Lower is better.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    AVG(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF MAE\",\n    AVG(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 13,
+                  "valueSize": 34
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 4,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 6,
+                        "color": "orange"
+                      },
+                      {
+                        "value": 8,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "id": 5,
+          "title": "MODEL EDGE",
+          "description": "Percentage MAE improvement versus persistence. Positive is better.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    CASE\n        WHEN AVG(ABS(current_activity - actual_activity))\n             FILTER (WHERE model = 'random_forest_v2_completed') = 0\n        THEN NULL\n        ELSE 100.0 * (\n            AVG(ABS(current_activity - actual_activity))\n                FILTER (WHERE model = 'random_forest_v2_completed')\n            -\n            AVG(absolute_error)\n                FILTER (WHERE model = 'random_forest_v2_completed')\n        ) /\n        AVG(ABS(current_activity - actual_activity))\n            FILTER (WHERE model = 'random_forest_v2_completed')\n    END AS \"RF Edge\",\n    CASE\n        WHEN AVG(ABS(current_activity - actual_activity))\n             FILTER (WHERE model = 'xgboost_v2_completed') = 0\n        THEN NULL\n        ELSE 100.0 * (\n            AVG(ABS(current_activity - actual_activity))\n                FILTER (WHERE model = 'xgboost_v2_completed')\n            -\n            AVG(absolute_error)\n                FILTER (WHERE model = 'xgboost_v2_completed')\n        ) /\n        AVG(ABS(current_activity - actual_activity))\n            FILTER (WHERE model = 'xgboost_v2_completed')\n    END AS \"XGB Edge\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 13,
+                  "valueSize": 34
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 0,
+                        "color": "orange"
+                      },
+                      {
+                        "value": 5,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 10,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "noValue": "—"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "id": 6,
+          "title": "SCORED HOURS",
+          "description": "Distinct forecast target hours with known outcomes",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT COUNT(DISTINCT predicted_hour) AS \"Scored\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 12,
+                  "valueSize": 32
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "purple"
+                  },
+                  "noValue": "0"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "id": 7,
+          "title": "Forecast vs Reality",
+          "description": "Random Forest and XGBoost forward forecasts compared with observed activity and persistence",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  predicted_activity AS \"Random Forest\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  predicted_activity AS \"XGBoost\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  actual_activity AS \"Actual Activity\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  current_activity AS \"Persistence\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Activity Index",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "always",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Random Forest"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "blue",
+                          "mode": "fixed"
+                        }
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 3
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "XGBoost"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "purple",
+                          "mode": "fixed"
+                        }
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 3
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Actual Activity"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "green",
+                          "mode": "fixed"
+                        }
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 3
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Persistence"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "orange",
+                          "mode": "fixed"
+                        }
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 2
+                      },
+                      {
+                        "id": "custom.fillOpacity",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-8": {
+        "kind": "Panel",
+        "spec": {
+          "id": 8,
+          "title": "Prediction Error",
+          "description": "Absolute error for Random Forest, XGBoost, and persistence.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  absolute_error AS \"RF Error\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  absolute_error AS \"XGB Error\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  ABS(current_activity - actual_activity) AS \"Persistence Error\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Absolute Error",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "bars",
+                    "fillOpacity": 55,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "ML Error"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "blue",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Persistence Error"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "orange",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-9": {
+        "kind": "Panel",
+        "spec": {
+          "id": 9,
+          "title": "Daily MAE — RF vs XGBoost vs Persistence",
+          "description": "Daily average absolute error by model.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(absolute_error) AS \"RF MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(absolute_error) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE model = 'xgboost_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  date_trunc('day', predicted_hour) AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  AVG(ABS(current_activity - actual_activity)) AS \"Persistence MAE\"\nFROM bird_activity_predictions\nWHERE model = 'random_forest_v2_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nGROUP BY 1\nORDER BY 1;"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "MAE",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 3,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "always",
+                    "showValues": false,
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "ML MAE"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "blue",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Persistence MAE"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "orange",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },
-    {
-      "id": 15,
-      "type": "text",
-      "title": "",
-      "transparent": true,
-      "gridPos": {
-        "x": 0,
-        "y": 41,
-        "w": 24,
-        "h": 3
-      },
-      "options": {
-        "mode": "markdown",
-        "content": "### \ud83e\uddea Reading the Prediction Lab\n**Blue** = Random Forest \u00b7 **Purple** = XGBoost \u00b7 **Green** = observed activity \u00b7 **Orange** = persistence  \nBoth ML models predict the same future hour independently. The useful model is the one that produces **lower forward error consistently over time**."
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 3,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 3,
+              "width": 5,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-2"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 5,
+              "y": 3,
+              "width": 5,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-3"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 10,
+              "y": 3,
+              "width": 5,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-4"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 15,
+              "y": 3,
+              "width": 5,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-5"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 20,
+              "y": 3,
+              "width": 4,
+              "height": 4,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-6"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 7,
+              "width": 24,
+              "height": 11,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-7"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 18,
+              "width": 12,
+              "height": 8,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-8"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 12,
+              "y": 18,
+              "width": 12,
+              "height": 8,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-9"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 26,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-10"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 26,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-11"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 12,
+              "y": 26,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-12"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 18,
+              "y": 26,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-13"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 31,
+              "width": 24,
+              "height": 10,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-14"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 41,
+              "width": 24,
+              "height": 3,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-15"
+              }
+            }
+          }
+        ]
       }
-    }
-  ],
-  "refresh": "5m",
-  "schemaVersion": 41,
-  "tags": [
-    "bird-home",
-    "birdnet",
-    "machine-learning",
-    "prediction",
-    "home-lab"
-  ],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-7d",
-    "to": "now+2h"
-  },
-  "timepicker": {
-    "refresh_intervals": [
-      "1m",
-      "5m",
-      "15m",
-      "30m",
-      "1h"
+    },
+    "links": [],
+    "liveNow": true,
+    "preload": false,
+    "tags": [
+      "bird-home",
+      "birdnet",
+      "machine-learning",
+      "prediction",
+      "home-lab"
     ],
-    "time_options": [
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "14d",
-      "30d"
-    ]
-  },
-  "timezone": "browser",
-  "title": "Bird Home \u2014 Prediction Lab",
-  "uid": "bird-home-prediction-lab",
-  "version": 3,
-  "weekStart": "monday"
+    "timeSettings": {
+      "timezone": "browser",
+      "from": "now-2d",
+      "to": "now",
+      "autoRefresh": "5m",
+      "autoRefreshIntervals": [
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h"
+      ],
+      "hideTimepicker": false,
+      "weekStart": "monday",
+      "fiscalYearStartMonth": 0
+    },
+    "title": "Bird Home — Prediction Lab",
+    "variables": []
+  }
 }
