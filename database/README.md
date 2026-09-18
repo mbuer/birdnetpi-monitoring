@@ -347,11 +347,14 @@ Important fields:
 | `absolute_error` | Absolute model error after scoring |
 | `scored_at` | Scoring time |
 
-Current live aggregate model:
+Current live aggregate model identifiers:
 
 ```text
 random_forest_v2_completed
+xgboost_v2_completed
 ```
+
+Random Forest remains the established reference while both models accumulate matched live scoring history.
 
 The unique key is:
 
@@ -393,14 +396,21 @@ The unique key is:
 (station_id, species, predicted_hour, model)
 ```
 
-Current species model identifiers are:
+Current species reference model identifiers are:
 
 ```text
 random_forest_species_v1
 xgboost_species_v1
 ```
 
-Species models store both probabilities and thresholded present/absent decisions. For sparse species, the probability can be more informative than the default `0.5` decision threshold.
+Current live challenger identifiers are:
+
+```text
+xgboost_tuned_species_v1
+xgboost_bootstrap_species_v1
+```
+
+The challenger rows are stored in the same table under separate model labels. Species models store both probabilities and thresholded present/absent decisions; the threshold is stored per row and should not be assumed to be universally optimal.
 
 See [ML methodology](../docs/ml.md) and the [species experiment record](../docs/experiments/2026-09-14-species-models.md).
 
