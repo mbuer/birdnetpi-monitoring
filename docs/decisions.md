@@ -196,3 +196,29 @@ Decision:
 
 This follows the same source-of-truth principle used by AI Nexus: Git records architecture and reproducible configuration shape, while the live environment supplies environment-specific values.
 
+## 2026-09-26 — Git plus local configuration is the rebuild contract
+
+The repository had enough individual components to explain the deployment, but a new session still had to reconstruct installation order and host integration manually.
+
+Decision:
+
+- provide explicit BirdNET-Pi and ubuntu-infra bootstrap workflows
+- provide matching verification workflows rather than treating service startup as proof of end-to-end health
+- use `Makefile` targets as stable human and agent entry points
+- derive checkout paths and service users during bootstrap where practical instead of requiring one developer-specific home path
+- keep live addresses, coordinates, and credentials outside Git
+- make database bootstrap apply the complete analytical object set rather than only the base schema
+- keep Grafana provisioning in the separate `homelab-grafana` repository
+- add a repository hygiene check to prevent private network addressing and retired Cloud configuration from silently returning
+
+The target recovery model is:
+
+```text
+Git
++ local runtime configuration / secrets
++ PostgreSQL backup when restoring historical state
+= reproducible BirdNET monitoring environment
+```
+
+BirdNET itself remains independently installed and is not absorbed into this repository.
+
