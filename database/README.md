@@ -206,13 +206,13 @@ BIRDNET_DB_USER
 BIRDNET_DB_PASSWORD
 ```
 
-The BirdNET Pi currently loads these through systemd from:
+The BirdNET Pi loads these through systemd from the shared runtime file:
 
 ```text
-/home/birduser/.config/birdnet-monitoring/db.env
+/etc/birdnet-monitoring/runtime.env
 ```
 
-Real credentials must remain outside Git.
+Start from `config/runtime.example.env`. Real credentials and environment-specific values must remain outside Git.
 
 ML jobs use the same database variable names. Current wrappers can obtain the local PostgreSQL password from the `birdnet-postgres` container when `BIRDNET_DB_PASSWORD` is not already supplied.
 
