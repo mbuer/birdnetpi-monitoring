@@ -10,7 +10,12 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 
-SQLITE_DB = Path.home() / "BirdNET-Pi" / "scripts" / "birds.db"
+SQLITE_DB = Path(
+    os.getenv(
+        "BIRDNET_SQLITE_DB",
+        str(Path.home() / "BirdNET-Pi" / "scripts" / "birds.db"),
+    )
+).expanduser()
 
 STATE_DIR = Path.home() / ".local" / "state" / "birdnet-db-sync"
 STATE_FILE = STATE_DIR / "last_rowid"
@@ -24,8 +29,11 @@ DB_CONNECT = {
     "application_name": "birdnet-db-sync",
 }
 
-STATION_ID = "birdnet"
-STATION_TIMEZONE = ZoneInfo("America/Los_Angeles")
+STATION_ID = os.getenv("BIRDNET_STATION_ID", "birdnet")
+STATION_TIMEZONE_NAME = os.getenv("BIRDNET_TIMEZONE")
+if not STATION_TIMEZONE_NAME:
+    raise RuntimeError("Required environment variable is not set: BIRDNET_TIMEZONE")
+STATION_TIMEZONE = ZoneInfo(STATION_TIMEZONE_NAME)
 
 
 SELECT_MAX_ROWID_SQL = """
