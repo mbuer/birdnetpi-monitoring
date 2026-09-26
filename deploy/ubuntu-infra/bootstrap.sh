@@ -32,10 +32,18 @@ if grep -Eq '^POSTGRES_PASSWORD=(change-me|CHANGE_ME)?$' "$POSTGRES_DIR/.env"; t
   exit 1
 fi
 
-command -v docker >/dev/null || { echo "Docker is required." >&2; exit 1; }
+command -v docker >/dev/null || {
+  echo "Docker is required before running this bootstrap." >&2
+  exit 1
+}
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Docker Compose v2 plugin is required before running this bootstrap." >&2
+  exit 1
+fi
 
 apt-get update
-apt-get install -y python3 python3-venv python3-pip curl ca-certificates
+apt-get install -y python3 python3-venv python3-pip curl ca-certificates make
 
 echo "Starting PostgreSQL and Loki..."
 docker compose --env-file "$POSTGRES_DIR/.env" -f "$POSTGRES_DIR/compose.yaml" up -d
