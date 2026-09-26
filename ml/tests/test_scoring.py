@@ -47,12 +47,13 @@ class FakeConnection:
 
 
 class AggregateScoringTests(unittest.TestCase):
-    def test_live_model_labels_include_rf_and_xgboost(self):
+    def test_live_model_labels_include_all_aggregate_models(self):
         self.assertEqual(
             score_predictions.MODEL_NAMES,
             (
                 "random_forest_v2_completed",
                 "xgboost_v2_completed",
+                "hist_gradient_boosting_v1_completed",
             ),
         )
 
@@ -74,7 +75,7 @@ class AggregateScoringTests(unittest.TestCase):
 
         sql = " ".join(conn.cursor_instance.sql.split())
 
-        self.assertIn("p.model IN (%s, %s)", sql)
+        self.assertIn("p.model IN (%s, %s, %s)", sql)
         self.assertIn("p.actual_activity IS NULL", sql)
         self.assertIn("p.predicted_hour = h.hour_local", sql)
         self.assertIn("p.prediction_created_at <", sql)
