@@ -74,7 +74,7 @@ Decision:
 
 Black-crowned Night-Heron was selected because it now has substantial positive-hour coverage across the observation period and adds a useful nocturnal case. Lesser Goldfinch was selected as a second, lower-prevalence species with enough distributed positive hours to begin collecting forward evidence without expanding the live set too aggressively.
 
-This decision is now implemented in `ml/live_species.txt`; runtime deployment/validation remains the next step.
+This decision is implemented in `ml/live_species.txt` and runtime-verified in the coordinated hourly cycle.
 
 ## 2026-09-26 — Persist hourly BirdNET health evidence in PostgreSQL
 
@@ -178,4 +178,21 @@ Decision:
 - remove Cloud credential placeholders and dual-write instructions from the active repository configuration
 - treat reintroduction of an external log destination as a deliberate architectural change
 - preserve historical Cloud dashboard exports only as references where useful; they are not part of the active log-delivery path
+
+## 2026-09-26 — Environment-specific values stay outside Git
+
+The repository is intended to remain safe to share and portable across future Home Lab network changes.
+
+Decision:
+
+- do not commit exact private IP addresses or live private subnets
+- do not commit exact station latitude/longitude
+- keep real PostgreSQL, Loki, station-location, and credential values in ignored local runtime configuration
+- provide safe committed examples in `config/runtime.example.env`
+- use symbolic host roles such as `BIRDNET_HOST` and `INFRA_HOST` in documentation
+- keep runtime code configurable through environment variables rather than embedding the current Home Lab topology
+- preserve stable data semantics such as station identity and timezone through explicit runtime configuration
+- treat reintroduction of live addressing into Git as a repository-hygiene regression
+
+This follows the same source-of-truth principle used by AI Nexus: Git records architecture and reproducible configuration shape, while the live environment supplies environment-specific values.
 
