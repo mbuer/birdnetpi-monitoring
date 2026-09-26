@@ -339,7 +339,7 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> create aggregate Random Forest + XGBoost predictions
+        -> create aggregate Random Forest + XGBoost + HistGradientBoosting predictions
         -> score species predictions
         -> predict configured reference species
         -> predict configured species challengers
@@ -468,7 +468,6 @@ Completed:
 
 Still intentionally open:
 
-- compare repo weather/Alloy files with the actual installed Pi files before deployment
 - off-host PostgreSQL backups
 - periodic real restore testing
 - stronger ingestion-freshness monitoring
