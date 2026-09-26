@@ -305,7 +305,7 @@ Important limitations:
 - weather hours without detections become zero-activity hours
 - stations are currently combined
 - no additional confidence filter is applied in the view
-- a zero-activity hour cannot by itself distinguish quiet conditions from ingestion or station failure
+- a zero-activity hour cannot by itself distinguish quiet conditions from ingestion or station failure; current ML code resolves this with `station_health_hourly` provenance-aware zero gating
 
 `hour_local` is stored as Los Angeles wall time without timezone. Repeated autumn DST hours therefore cannot always be represented uniquely.
 
@@ -612,6 +612,25 @@ The raw historical data is more valuable long term than any particular trained m
 
 ---
 
+# AI Nexus data boundary
+
+AI Nexus / Birdynator is a downstream analytical consumer, not a database owner.
+
+The BirdNET data contract remains upstream:
+
+- BirdNET SQLite is authoritative for completed detections
+- PostgreSQL is the durable structured analytical copy
+- station-health evidence is produced on \`ubuntu-infra\`
+- ML predictions and scores are produced on \`ubuntu-infra\`
+
+Birdynator may consume BirdNET evidence through a constrained read-only datasource boundary. It should not receive broad write access, duplicate the health collector, or turn internal database implementation details into a permanent cross-repository dependency.
+
+A broader ML/health evidence interface is deferred until its schema and provenance semantics are stable.
+
+See [Architecture](../docs/architecture.md).
+
+---
+
 # Security Rules
 
 Never commit:
@@ -638,7 +657,7 @@ Priorities include:
 - replicate backups off `ubuntu-infra`
 - periodically test real restores
 - eventually retire the old Pi PostgreSQL instance
-- decide how ML should consume the now-deployed healthy/incomplete/unknown station-health evidence, and validate that methodology before changing training/scoring behavior
+- continue validating the deployed provenance-aware health gating before considering more complex coverage weighting
 - move analytical timestamps toward UTC plus explicit station timezone metadata
 - add materialized views or indexes only when real query patterns justify them
 
