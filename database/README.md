@@ -620,8 +620,8 @@ The BirdNET data contract remains upstream:
 
 - BirdNET SQLite is authoritative for completed detections
 - PostgreSQL is the durable structured analytical copy
-- station-health evidence is produced on \`ubuntu-infra\`
-- ML predictions and scores are produced on \`ubuntu-infra\`
+- station-health evidence is produced on `ubuntu-infra`
+- ML predictions and scores are produced on `ubuntu-infra`
 
 Birdynator may consume BirdNET evidence through a constrained read-only datasource boundary. It should not receive broad write access, duplicate the health collector, or turn internal database implementation details into a permanent cross-repository dependency.
 
