@@ -80,7 +80,7 @@ This is a roadmap decision only until `ml/live_species.txt` is deliberately chan
 
 A data-completeness audit compared PostgreSQL detection history with the authoritative BirdNET SQLite database and found matching daytime zero-detection hours.
 
-For the local Loki-retained period from 2026-09-13 12:00 through 2026-09-26 11:00, BirdNET analysis telemetry showed:
+For 312 consecutive completed hours from 2026-09-13 11:00 through 2026-09-26 11:00 America/Los_Angeles (end exclusive), BirdNET analysis telemetry showed:
 
 - 312 of 312 expected hourly samples
 - minimum 239 analyzed 15-second segments per hour
