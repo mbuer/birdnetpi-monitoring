@@ -2,12 +2,9 @@
 
 Grafana Alloy runs on the BirdNET Pi and forwards operational logs to Loki.
 
-The current Home Lab configuration deliberately dual-writes to:
+The current Home Lab configuration forwards operational logs only to local Loki on `ubuntu-infra` (`192.168.1.137:3100`).
 
-- Grafana Cloud Loki
-- local Loki on `ubuntu-infra` (`192.168.1.137:3100`)
-
-This keeps the Cloud path available while the local observability stack is being proven stable.
+Grafana Cloud Loki was retired on 2026-09-26 after local Loki delivery was validated for both BirdNET journal data and weather logs.
 
 ## Runtime files
 
@@ -24,7 +21,7 @@ alloy/config.alloy
 alloy/default-alloy
 ```
 
-`alloy/config.alloy` is a deployable sample with credential placeholders. Do not commit real Grafana Cloud credentials.
+`alloy/config.alloy` is the deployable local-only reference configuration. No Cloud Loki credentials are required.
 
 ## Install or refresh the configuration
 
@@ -35,15 +32,6 @@ sudo mkdir -p /etc/alloy
 sudo cp alloy/config.alloy /etc/alloy/config.alloy
 sudo cp alloy/default-alloy /etc/default/alloy
 ```
-
-Edit `/etc/alloy/config.alloy` and replace:
-
-```text
-GRAFANA_CLOUD_USERNAME
-GRAFANA_CLOUD_PASSWORD
-```
-
-with the runtime Grafana Cloud credentials.
 
 The local Loki endpoint does not currently use authentication inside the Home Lab:
 
@@ -61,7 +49,7 @@ The committed configuration collects:
 - BirdNET analysis logs, including parsed species/confidence labels
 - `/var/log/weather/weather.log`
 
-Both processed BirdNET logs and weather logs are forwarded to Cloud and local Loki.
+Both processed BirdNET logs and weather logs are forwarded to local Loki.
 
 ## Validate before restart
 
@@ -87,7 +75,7 @@ systemctl status alloy --no-pager
 journalctl -u alloy -n 50 --no-pager
 ```
 
-Verify both destinations rather than assuming a healthy Alloy service proves end-to-end delivery.
+Verify local Loki delivery rather than assuming a healthy Alloy service proves end-to-end delivery.
 
 Useful local Grafana/Loki queries include:
 
@@ -99,8 +87,6 @@ Useful local Grafana/Loki queries include:
 {job="weather"}
 ```
 
-Grafana Cloud can be checked with the equivalent log queries against its Loki datasource.
+## Retired Cloud path
 
-## Migration rule
-
-Do not remove the Grafana Cloud output merely because local Loki is reachable. Retire the Cloud path only after the local Loki storage, Grafana dashboards, and operational history have been observed long enough to provide confidence in the replacement.
+The former Grafana Cloud Loki output is intentionally absent from the active configuration. Reintroducing an external log destination is an architectural change and should be reviewed explicitly rather than restored from an old backup or stale Pi working copy.
