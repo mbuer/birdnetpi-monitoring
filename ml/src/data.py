@@ -19,7 +19,17 @@ SELECT
     a.wind_mph,
     a.cloud_pct,
     a.precipitation_in,
-    h.health_state
+    CASE
+        WHEN a.hour_local >= (
+            SELECT MIN(
+                hour_utc AT TIME ZONE 'America/Los_Angeles'
+            )
+            FROM station_health_hourly
+            WHERE station_id = 'birdnet'
+        )
+        THEN COALESCE(h.health_state, 'unknown')
+        ELSE NULL
+    END AS health_state
 FROM bird_activity_hourly AS a
 LEFT JOIN station_health_hourly AS h
     ON h.station_id = 'birdnet'
