@@ -6,6 +6,32 @@ The architecture keeps the Raspberry Pi focused on sensing and collection while 
 
 ---
 
+## Canonical bootstrap
+
+For a fresh infrastructure VM, first install Docker and clone this repository.
+
+Create the PostgreSQL runtime secret file:
+
+```bash
+cd deploy/ubuntu-infra/postgres
+cp .env.example .env
+chmod 600 .env
+# edit .env and replace the example password
+```
+
+Then from the repository root:
+
+```bash
+make infra-bootstrap
+make infra-verify
+```
+
+The bootstrap starts PostgreSQL and Loki, applies the complete committed database object set, creates the ML Python environment, prepares the backup directory, and installs/enables the station-health, ML, and PostgreSQL-backup timers.
+
+Grafana provisioning remains in the separate `homelab-grafana` repository.
+
+---
+
 # Hosts
 
 ## BirdNET Pi
