@@ -145,3 +145,18 @@ Decision:
 
 This is intentionally conservative: it fixes the known false-zero failure mode without shrinking the historical training set to only the recent station-health window or adding model-weighting complexity before it is justified.
 
+## 2026-09-26 — Run ML after hourly station-health collection
+
+The provenance-aware gating rule depends on station-health evidence for the latest completed hour.
+
+Decision:
+
+- keep station-health collection at minute 20
+- move the hourly ML cycle from minute 10 to minute 30
+- preserve the existing T -> T+2 prediction horizon
+- preserve the internal ten-minute completed-hour grace
+- treat a missing station-health row as `unknown` for hours after health collection began
+- keep pre-health historical hours usable under the legacy methodology
+
+This ordering gives the health collector time to persist evidence before the latest completed hour is used for training, prediction inputs, or zero-valued scoring.
+
