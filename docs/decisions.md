@@ -53,3 +53,26 @@ Decision:
 
 The purpose is not to increase model count for its own sake. HistGradientBoosting provides a lightweight, meaningfully different comparison while preserving the same T -> T+2 timing and scoring contract.
 
+## 2026-09-26 — Expand live species reference set conservatively
+
+A refreshed species-candidate review used 747 hourly observations.
+
+The strongest additional candidates included:
+
+- Black-crowned Night-Heron: 82 positive hours, 10.98% prevalence
+- Cedar Waxwing: 47 positive hours, 6.29% prevalence
+- Lesser Goldfinch: 45 positive hours, 6.02% prevalence
+- Anna's Hummingbird: 43 positive hours, 5.76% prevalence
+
+Decision:
+
+- add Black-crowned Night-Heron and Lesser Goldfinch to the live species reference set
+- initially issue only the existing Random Forest and XGBoost reference forecasts for these species
+- do not add tuned or bootstrap challengers for the new species yet
+- preserve the same completed-hour T -> T+2 timing and scoring contract
+- use the newly accumulated forward-validation history, rather than retrospective tuning alone, to decide whether either species later deserves a challenger
+
+Black-crowned Night-Heron was selected because it now has substantial positive-hour coverage across the observation period and adds a useful nocturnal case. Lesser Goldfinch was selected as a second, lower-prevalence species with enough distributed positive hours to begin collecting forward evidence without expanding the live set too aggressively.
+
+This is a roadmap decision only until `ml/live_species.txt` is deliberately changed and deployed.
+
