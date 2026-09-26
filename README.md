@@ -288,7 +288,7 @@ The core data path is operational.
 | Aggregate activity ML | Live hourly Random Forest + XGBoost + HistGradientBoosting prediction/scoring |
 | Species ML experiments | Working |
 | Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
-| Station-health persistence | Repository implementation ready; runtime deployment/validation pending |
+| Station-health persistence | Deployed and verified; hourly Loki-derived coverage persisted in PostgreSQL |
 | ML timing/leakage/scoring regression tests | Automated unittest suite under `ml/tests/` |
 | Off-host database backup | Planned |
 
@@ -362,7 +362,7 @@ The highest-value next steps are:
 4. accumulate live reference Random Forest + XGBoost forward-validation history for Black-crowned Night-Heron and Lesser Goldfinch; do not add species-specific challengers yet
 5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
 6. evaluate species-specific thresholds and add daylight/sunrise features where justified
-7. deploy and validate `station_health_hourly` persistence so healthy quiet periods can be distinguished from incomplete or unavailable station evidence; keep ML behavior unchanged until validation is complete
+7. use the now-validated `station_health_hourly` evidence carefully in future ML methodology changes; do not treat incomplete or unknown hours as biological zeros
 8. create an off-host PostgreSQL backup copy and periodically test restores
 9. finish validating local Loki/Grafana before retiring the Cloud Loki path
 10. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
