@@ -40,6 +40,27 @@ For automated coding sessions and architectural guardrails, read [AGENTS.md](AGE
 
 ---
 
+## Rebuild from Git
+
+For a fresh station or replacement infrastructure host, use the checked-in bootstrap/verification workflows rather than reconstructing the deployment from chat history:
+
+```bash
+# Existing BirdNET-Pi installation
+make pi-bootstrap
+make pi-verify
+
+# ubuntu-infra
+make infra-bootstrap
+make infra-verify
+
+# repository hygiene
+make repo-check
+```
+
+See [BirdNET Pi deployment](deploy/birdnet-pi/README.md) and [ubuntu-infra deployment](deploy/ubuntu-infra/README.md).
+
+---
+
 # Architecture
 
 The design separates source data, structured history, and operational observability.
