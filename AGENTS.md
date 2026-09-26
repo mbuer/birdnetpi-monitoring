@@ -2,7 +2,7 @@
 
 Guidance for automated coding agents and future development sessions working in this repository.
 
-Use this file as an architectural and operational guardrail. For implementation details, follow the component READMEs and current code.
+Use this file as an architectural and operational guardrail. For implementation details, follow the component READMEs and current code. Before architectural, database, ML-methodology, or other cross-cutting changes, read `docs/decisions.md` first and treat newer recorded decisions as current context unless they are deliberately superseded.
 
 ---
 
@@ -350,6 +350,7 @@ Use the existing documentation roles:
 
 - root `README.md` — concise project overview and navigation
 - `AGENTS.md` — architectural and development guardrails
+- `docs/decisions.md` — architectural and development decisions
 - `docs/ml.md` — stable ML methodology
 - `docs/experiments/` — dated experiment findings
 - `ml/README.md` — ML operation and execution
