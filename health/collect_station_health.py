@@ -59,7 +59,7 @@ def query_analysis_segments(loki_url: str, hour_start: datetime) -> int | None:
     params = urlencode(
         {
             "query": LOKI_QUERY,
-            "time": query_time.timestamp(),
+            "time": query_time.isoformat().replace("+00:00", "Z"),
         }
     )
     url = f"{loki_url.rstrip('/')}/loki/api/v1/query?{params}"
