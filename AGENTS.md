@@ -121,6 +121,7 @@ Current live model labels:
 
 - `random_forest_v2_completed` — established reference
 - `xgboost_v2_completed` — live comparison model
+- `hist_gradient_boosting_v1_completed` — live experimental challenger
 
 Timing convention: **completed hour T → target hour T+2**
 
@@ -150,7 +151,7 @@ The existing hourly cycle currently performs:
 
 ```text
 score aggregate
-predict aggregate Random Forest + XGBoost
+predict aggregate Random Forest + XGBoost + HistGradientBoosting
 score species predictions
 predict configured reference species
 predict configured species challengers
