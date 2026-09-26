@@ -32,6 +32,14 @@ The project is intentionally evolving from a dashboard into a small environmenta
 
 ---
 
+## Start here
+
+For a compact human-oriented overview and recommended reading order, see [Executive summary](docs/executive-summary.md).
+
+For automated coding sessions and architectural guardrails, read [AGENTS.md](AGENTS.md) and [Decision log](docs/decisions.md) before cross-cutting changes.
+
+---
+
 # Architecture
 
 The design separates source data, structured history, and operational observability.
@@ -63,12 +71,7 @@ ubuntu-infra
 └── Python ML prediction / scoring
 ```
 
-The current Home Lab deployment uses:
-
-- BirdNET Pi: `192.168.1.136`
-- `ubuntu-infra`: `192.168.1.137`
-
-These addresses describe the current installation, not application defaults.
+The live Home Lab addresses are intentionally excluded from Git. Documentation uses symbolic host roles such as `BIRDNET_HOST` and `INFRA_HOST`; real values belong in ignored local runtime configuration.
 
 Grafana itself is deployed from a separate Home Lab repository, `homelab-grafana`. This repository owns the BirdNET-specific dashboards, datasource expectations, data models, collectors, and analysis code.
 
