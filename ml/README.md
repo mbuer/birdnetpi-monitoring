@@ -152,7 +152,7 @@ The challenger intentionally starts with scikit-learn defaults rather than tuned
 
 `src/timing.py` owns completed-hour timing, hourly preparation, and recent-gap handling.
 
-The timer runs at minute 10 each hour. This is an ingestion grace period, not proof that every detection has arrived.
+The timer runs at minute 10 each hour. This is an ingestion grace period, not proof that every detection has arrived. For hours with persisted station-health evidence, explicit `incomplete` or `unknown` zero-activity observations are now masked from live training; positive activity remains usable.
 
 Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule. Because uniqueness includes both `predicted_hour` and `model`, Random Forest, XGBoost, and HistGradientBoosting can safely store independent forecasts for the same target hour.
 
@@ -305,7 +305,7 @@ BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)"
   .venv/bin/python ml/src/score_species_predictions.py
 ```
 
-Scoring waits until the target hour has ended plus the ten-minute grace period.
+Scoring waits until the target hour has ended plus the ten-minute grace period. For zero/absence outcomes in the station-health era, scoring additionally waits for a `healthy` station-health row; positive outcomes remain scoreable even if coverage was degraded.
 
 ---
 
@@ -412,7 +412,7 @@ Priorities now are:
 - compare aggregate models only on matched scored target hours after the new challenger has accumulated its own live history
 - accumulate matched live challenger scoring for Black Phoebe and American Crow
 - evaluate species-specific thresholds without reusing diagnostic holdouts
-- add stronger ingestion/uptime completeness checks
+- validate the new provenance-aware station-health gating on live runs before considering stricter filtering or weighting
 - repeat model comparisons as the dataset grows
 - add sunrise/daylight and later weather features where justified
 
