@@ -27,25 +27,31 @@ The project currently provides:
 
 ```text
 BirdNET Pi
-├─ microphone -> BirdNET analysis -> native birds.db
-├─ detection sync ───────────────────────────────┐
-├─ weather + forecast collectors ────────────────┤
-└─ Grafana Alloy -> local Loki ───────────────┐  │
-                                               │  │
-ubuntu-infra                                   │  │
-├─ Loki <──────────────────────────────────────┘  │
-├─ PostgreSQL <───────────────────────────────────┘
-│  ├─ detections / weather / forecasts
-│  ├─ station-health evidence
-│  ├─ analytical views
-│  └─ stored ML predictions + scores
-├─ hourly station-health + ML jobs
-├─ Prometheus
-└─ Grafana OSS
+  |
+  +-- BirdNET analysis
+  |     `-- native birds.db
+  |
+  +-- detection sync ---------> PostgreSQL on ubuntu-infra
+  +-- weather collectors -----> PostgreSQL on ubuntu-infra
+  `-- Grafana Alloy ---------> Loki on ubuntu-infra
 
-             constrained read-only evidence
-BirdNET / ubuntu-infra ──────────────────────────> AI Nexus / Birdynator
-                                                   └─ separate analysis runs
+ubuntu-infra
+  |
+  +-- PostgreSQL
+  |     +-- detections / weather / forecasts
+  |     +-- station-health evidence
+  |     +-- analytical views
+  |     `-- stored ML predictions
+  |
+  +-- Loki
+  +-- Prometheus
+  +-- Grafana OSS
+  `-- station-health + ML jobs
+          |
+          `-- read-only evidence
+                 |
+                 v
+          AI Nexus / Birdynator
 ```
 
 The important ownership rule is that **BirdNET and ubuntu-infra remain authoritative for the BirdNET data pipeline**. AI Nexus consumes evidence; it does not own collection, health monitoring, or model training.
