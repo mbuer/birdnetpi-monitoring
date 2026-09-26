@@ -28,7 +28,27 @@ def score_species_predictions():
           ON s.station_id = p.station_id
          AND s.species = p.species
          AND s.hour_local = p.predicted_hour
+        LEFT JOIN station_health_hourly sh
+          ON sh.station_id = p.station_id
+         AND (
+             sh.hour_utc AT TIME ZONE 'America/Los_Angeles'
+         ) = p.predicted_hour
         WHERE p.actual_present IS NULL
+
+          -- A detected presence remains usable even when coverage is degraded.
+          -- A zero/absence is scoreable only when the station is known healthy,
+          -- or when the target predates station-health collection.
+          AND (
+              s.present = 1
+              OR sh.health_state = 'healthy'
+              OR p.predicted_hour < (
+                  SELECT MIN(
+                      hour_utc AT TIME ZONE 'America/Los_Angeles'
+                  )
+                  FROM station_health_hourly
+                  WHERE station_id = p.station_id
+              )
+          )
 
           -- Match the explicit species-model suffix without relying on
           -- SQL LIKE wildcards for underscores.
