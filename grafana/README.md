@@ -50,7 +50,7 @@ https://api.open-meteo.com/v1
 The current Home Lab local Loki endpoint is:
 
 ```text
-http://192.168.1.137:3100
+${BIRDNET_LOKI_URL}
 ```
 
 The live Pi configuration now writes operational logs only to local Loki. The local-only path was runtime-verified on 2026-09-26 for fresh BirdNET journal and weather log delivery.
