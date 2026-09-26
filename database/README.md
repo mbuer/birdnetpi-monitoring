@@ -379,9 +379,10 @@ Current live aggregate model identifiers:
 ```text
 random_forest_v2_completed
 xgboost_v2_completed
+hist_gradient_boosting_v1_completed
 ```
 
-Random Forest remains the established reference while both models accumulate matched live scoring history.
+Random Forest remains the established reference while XGBoost and HistGradientBoosting accumulate matched live scoring history.
 
 The unique key is:
 
