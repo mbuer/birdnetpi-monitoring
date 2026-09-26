@@ -48,9 +48,9 @@ BirdNET Raspberry Pi
 │                                      ▼
 └── Grafana Alloy                 PostgreSQL
      │                                 │
-     ├──> Grafana Cloud Loki           ├──> historical analysis
-     │                                 ├──> ML training
-     └──> local Loki                   └──> stored predictions
+     └──> local Loki                   ├──> historical analysis
+             │                         ├──> ML training
+             │                         └──> stored predictions
              │
              ▼
          Grafana OSS
@@ -284,7 +284,7 @@ The core data path is operational.
 | PostgreSQL backups | Deployed |
 | Local Loki | Deployed |
 | Grafana OSS integration | Deployed |
-| Alloy local + Cloud dual-write | Transitional |
+| Alloy → local Loki only | Deployed and verified |
 | Aggregate activity ML | Live hourly Random Forest + XGBoost + HistGradientBoosting prediction/scoring |
 | Species ML experiments | Working |
 | Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
@@ -292,7 +292,7 @@ The core data path is operational.
 | ML timing/leakage/scoring regression tests | Automated unittest suite under `ml/tests/` |
 | Off-host database backup | Planned |
 
-Grafana Cloud Loki remains temporarily available during the local observability transition. The working previous path should not be removed until the local replacement has been observed long enough to justify doing so.
+Grafana Cloud Loki output was retired on 2026-09-26 after the local-only Alloy path was validated for fresh BirdNET and weather log delivery.
 
 ---
 
@@ -364,8 +364,8 @@ The highest-value next steps are:
 6. evaluate species-specific thresholds and add daylight/sunrise features where justified
 7. use the now-validated `station_health_hourly` evidence carefully in future ML methodology changes; do not treat incomplete or unknown hours as biological zeros
 8. create an off-host PostgreSQL backup copy and periodically test restores
-9. finish validating local Loki/Grafana before retiring the Cloud Loki path
-10. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
+9. continue observing local Loki/Grafana health and retention after the Cloud Loki retirement
+10. keep the checked-in Pi weather/Alloy configuration aligned with the verified installed Pi files
 
 Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
 
