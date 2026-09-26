@@ -8,7 +8,7 @@ The architecture keeps the Raspberry Pi focused on sensing and collection while 
 
 ## Canonical bootstrap
 
-For a fresh infrastructure VM, first install Docker and clone this repository.
+For a fresh infrastructure VM, first install Docker with the Compose v2 plugin and clone this repository. The bootstrap installs `make` and the remaining OS-level helper packages used by the documented operator commands.
 
 Create the PostgreSQL runtime secret file:
 
@@ -29,6 +29,8 @@ make infra-verify
 The bootstrap starts PostgreSQL and Loki, applies the complete committed database object set, creates the ML Python environment, prepares the backup directory, and installs/enables the station-health, ML, and PostgreSQL-backup timers.
 
 Grafana provisioning remains in the separate `homelab-grafana` repository.
+
+The verification script checks its prerequisites first. If Docker, Docker Compose v2, `curl`, or `systemctl` is unavailable, it stops immediately with a prerequisite error rather than reporting misleading downstream service failures.
 
 ---
 
