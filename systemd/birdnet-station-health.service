@@ -8,4 +8,4 @@ Requires=docker.service
 Type=oneshot
 User=infra
 WorkingDirectory=/opt/birdnetpi-monitoring
-ExecStart=/opt/birdnetpi-monitoring/health/collect_station_health.sh --lookback-hours 6
+ExecStart=/bin/bash /opt/birdnetpi-monitoring/health/collect_station_health.sh --lookback-hours 6
