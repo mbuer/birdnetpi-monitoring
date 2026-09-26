@@ -8,7 +8,7 @@ Current timing convention:
 
 **completed hour T → target hour T+2**
 
-At 14:10, for example, the latest completed input hour is 13:00–14:00 and the forecast target is 15:00–16:00.
+At 14:30, for example, the latest completed input hour is 13:00–14:00 and the forecast target is 15:00–16:00. Station health has already run at :20 for that completed hour.
 
 ---
 
