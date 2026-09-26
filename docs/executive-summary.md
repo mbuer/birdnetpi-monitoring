@@ -8,23 +8,31 @@ The project preserves BirdNET detections, enriches them with weather and station
 
 ```text
 BirdNET Pi
-├─ BirdNET analysis + native SQLite
-├─ detection sync ───────────────┐
-├─ weather + forecast ───────────┤
-└─ Alloy -> local Loki ───────┐  │
-                              │  │
-ubuntu-infra                  │  │
-├─ Loki <─────────────────────┘  │
-├─ PostgreSQL <──────────────────┘
-├─ station-health persistence
-├─ hourly ML prediction/scoring
-├─ Prometheus
-└─ Grafana OSS
-        │
-        │ constrained read-only evidence
-        v
-AI Nexus / Birdynator
-└─ separate downstream analysis
+  |
+  +-- BirdNET analysis
+  |     `-- native birds.db
+  |
+  +-- detection sync ---------> PostgreSQL on ubuntu-infra
+  +-- weather collectors -----> PostgreSQL on ubuntu-infra
+  `-- Grafana Alloy ---------> Loki on ubuntu-infra
+
+ubuntu-infra
+  |
+  +-- PostgreSQL
+  |     +-- detections / weather / forecasts
+  |     +-- station-health evidence
+  |     +-- analytical views
+  |     `-- stored ML predictions
+  |
+  +-- Loki
+  +-- Prometheus
+  +-- Grafana OSS
+  `-- station-health + ML jobs
+          |
+          `-- read-only evidence
+                 |
+                 v
+          AI Nexus / Birdynator
 ```
 
 BirdNET remains authoritative for native detections. PostgreSQL is the durable analytical store. Loki is the operational log store. AI Nexus is a downstream consumer, not part of the collection path.
