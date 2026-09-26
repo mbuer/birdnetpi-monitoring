@@ -351,14 +351,15 @@ Do not commit PostgreSQL/Grafana credentials, `.env` or `db.env`, database dumps
 
 The highest-value next steps are:
 
-1. continue collecting live forward-validation history for both aggregate models
-2. compare Random Forest and XGBoost on the same scored live target hours before changing the aggregate champion
-3. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
-4. evaluate species-specific thresholds and add daylight/sunrise features where justified
-5. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
-6. create an off-host PostgreSQL backup copy and periodically test restores
-7. finish validating local Loki/Grafana before retiring the Cloud Loki path
-8. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
+1. continue collecting matched live forward-validation history for the current aggregate models
+2. add `HistGradientBoostingRegressor` as a third aggregate challenger under a distinct versioned model label so genuine forward-validation history starts accumulating immediately; do not replace the Random Forest reference model
+3. compare aggregate models only on matched scored target hours and characterize performance by day/night and activity level before changing the aggregate champion
+4. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
+5. evaluate species-specific thresholds and add daylight/sunrise features where justified
+6. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
+7. create an off-host PostgreSQL backup copy and periodically test restores
+8. finish validating local Loki/Grafana before retiring the Cloud Loki path
+9. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
 
 Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
 
