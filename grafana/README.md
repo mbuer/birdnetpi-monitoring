@@ -125,8 +125,8 @@ The dashboard compares:
 - HistGradientBoosting forecast visibility
 - observed activity
 - persistence baseline
-- per-model absolute prediction error
-- per-model MAE
+- per-model absolute prediction error, including HGB forward-error visibility once scored
+- established RF/XGB MAE plus HGB scored-forward sample count
 - model edge over persistence
 - model win rate
 - recent prediction records
@@ -153,9 +153,10 @@ Current panels intentionally use different scopes.
 | Live Model MAE / Model Edge | All scored rows, separated by model |
 | Scored Hours | Distinct scored target hours, not total model rows |
 | Forecast vs Reality / Prediction Error / Daily MAE | Selected Grafana time range, separated by model where applicable |
-| Model Win Rate / Model MAE / Persistence MAE / Best Forecast Error | All scored live rows with model-aware aggregation |
-| Recent Predictions | Most recent Random Forest, XGBoost, and HistGradientBoosting forecasts; legacy Best comparison remains RF/XGB/persistence |
-| ML / Station Health | Latest persisted station-health evidence plus aggregate forecast/scoring freshness |
+| Model Win Rate / Persistence MAE / Best Forecast Error | Established RF/XGB live-performance comparison |
+| HGB Scored Forecasts | Count of genuine scored HGB forward forecasts; observability only, not ranking |
+| Recent Predictions | Most recent Random Forest, XGBoost, and HistGradientBoosting forecasts, newest first; includes HGB error when scored while legacy Best remains RF/XGB/persistence |
+| ML / Station Health | Latest health evidence plus health alignment for the latest ML input hour, latest forecast target, and latest scored target |
 
 Because both live models create one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
 
