@@ -90,6 +90,18 @@ class SpeciesScoringTests(unittest.TestCase):
             "interval '1 hour 10 minutes'",
             query,
         )
+        self.assertIn(
+            "sh.health_state = 'healthy'",
+            query,
+        )
+        self.assertIn(
+            "s.present = 1",
+            query,
+        )
+        self.assertIn(
+            "SELECT MIN(",
+            query,
+        )
         self.assertTrue(conn.committed)
         self.assertTrue(conn.closed)
 
