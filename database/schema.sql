@@ -100,3 +100,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_weather_forecasts_unique
         forecast_created_at,
         forecast_for
     );
+
+
+-- Durable hourly evidence that the BirdNET analysis pipeline was operating.
+-- Missing Loki telemetry is represented as health_state='unknown', not as
+-- proof that the station was down.
+CREATE TABLE IF NOT EXISTS station_health_hourly (
+    station_id TEXT NOT NULL DEFAULT 'birdnet',
+    hour_utc TIMESTAMPTZ NOT NULL,
+    analysis_segments INTEGER,
+    expected_segments INTEGER NOT NULL,
+    coverage_pct DOUBLE PRECISION,
+    health_state TEXT NOT NULL,
+    evidence_source TEXT NOT NULL,
+    collected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    PRIMARY KEY (station_id, hour_utc),
+
+    CHECK (analysis_segments IS NULL OR analysis_segments >= 0),
+    CHECK (expected_segments > 0),
+    CHECK (coverage_pct IS NULL OR coverage_pct >= 0),
+    CHECK (health_state IN ('healthy', 'incomplete', 'unknown'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_station_health_hourly_hour
+    ON station_health_hourly (hour_utc);
