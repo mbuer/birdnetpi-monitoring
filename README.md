@@ -173,6 +173,7 @@ The live aggregate models are:
 ```text
 random_forest_v2_completed
 xgboost_v2_completed
+hist_gradient_boosting_v1_completed
 ```
 
 Both use the same completed historical input and timing convention:
@@ -183,7 +184,7 @@ completed hour T -> target hour T+2
 
 At 14:10, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00.
 
-Random Forest remains the established live reference model. XGBoost was previously kept only as a challenger because its retrospective improvement was very small, but it is now also issued live for the same target hour so the two models can accumulate true forward-validation evidence side by side. Each model is stored as a separate row in `bird_activity_predictions` under its own model label.
+Random Forest remains the established live reference model. XGBoost remains a live challenger, and HistGradientBoosting is now added as a third experimental challenger so all three can accumulate true matched forward-validation evidence. Each model is stored as a separate row in `bird_activity_predictions` under its own model label.
 
 ## Species presence
 
@@ -198,7 +199,7 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> predict aggregate activity with Random Forest + XGBoost
+        -> predict aggregate activity with Random Forest + XGBoost + HistGradientBoosting
         -> score species predictions
         -> predict configured reference species
         -> predict configured species challengers
@@ -284,7 +285,7 @@ The core data path is operational.
 | Local Loki | Deployed |
 | Grafana OSS integration | Deployed |
 | Alloy local + Cloud dual-write | Transitional |
-| Aggregate activity ML | Live hourly Random Forest + XGBoost prediction/scoring |
+| Aggregate activity ML | Live hourly Random Forest + XGBoost + HistGradientBoosting prediction/scoring |
 | Species ML experiments | Working |
 | Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
 | Station-health persistence | Repository implementation ready; runtime deployment/validation pending |
