@@ -44,6 +44,7 @@ The infrastructure VM owns centralized services and ML execution:
 - Python ML experiments
 - automated aggregate activity prediction/scoring
 - automated species prediction/scoring for the currently configured live species
+- hourly persistence of BirdNET analysis-coverage evidence from Loki
 
 Grafana deployment itself is maintained in the separate `homelab-grafana` repository.
 
@@ -66,6 +67,7 @@ Core tables:
 - `weather_forecasts`
 - `bird_activity_predictions`
 - `bird_species_predictions`
+- `station_health_hourly`
 
 Analytical views:
 
@@ -81,6 +83,8 @@ Operational logs and observability.
 Visualization across operational and analytical data.
 
 Do not treat Loki as the permanent structured historical database, and do not turn PostgreSQL into a replacement for operational logging.
+
+The exception is compact derived provenance that has long-term analytical value. `station_health_hourly` persists hourly analysis coverage from Loki so future ML can distinguish a healthy biological zero from incomplete or unavailable station evidence. Missing telemetry must remain `unknown`, not be converted into a false outage or false zero.
 
 ---
 
