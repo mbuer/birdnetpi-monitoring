@@ -1,396 +1,300 @@
 # BirdNET-Pi Monitoring
 
-A Home Lab platform for collecting, preserving, visualizing, and analyzing BirdNET data over the long term.
+A Home Lab platform for turning a BirdNET-Pi station into a trustworthy long-term dataset for observability, analysis, machine learning, and downstream AI-assisted interpretation.
 
-BirdNET remains responsible for listening to the microphone and identifying birds. This repository builds the surrounding data and observability system: structured PostgreSQL history, weather observations and forecasts, Loki logging, Grafana dashboards, backups, and experimental machine-learning forecasts.
+BirdNET remains responsible for the microphone, audio analysis, and native detections. This repository builds around it without making the station dependent on the rest of the lab.
 
-The long-term goal is simple:
+The guiding idea is:
 
-> Build a trustworthy historical dataset around the BirdNET station, then use it to understand and predict bird activity without compromising the reliability of the station itself.
+> Preserve the source data first. Add observability and analysis around it. Only add prediction or AI when the evidence is good enough to justify it.
 
----
+## What exists today
 
-## What the Project Does
+The project currently provides:
 
-The system currently supports four related jobs:
+- read-only synchronization of BirdNET detections into PostgreSQL
+- current weather observations and historical forecast snapshots from Open-Meteo
+- local operational logging through Grafana Alloy and Loki
+- Grafana dashboards for station activity, historical analysis, and ML predictions
+- hourly station-health evidence so quiet hours can be distinguished from missing data
+- live aggregate bird-activity forecasting
+- live per-species presence forecasting
+- validated PostgreSQL backups
+- reproducible Pi and infrastructure deployment/verification workflows
+- a constrained downstream data boundary for AI Nexus / Birdynator
 
-1. **Preserve BirdNET detections** outside the Pi's native database for long-term analysis.
-2. **Collect environmental context** from Open-Meteo, including observations and historical forecast snapshots.
-3. **Observe the station operationally** through Alloy, Loki, and Grafana.
-4. **Experiment with prediction**, both for aggregate bird activity and individual species presence.
+## Architecture at a glance
 
-This allows questions such as:
+\`\`\`text
+BirdNET Pi
+├─ microphone -> BirdNET analysis -> native birds.db
+├─ detection sync ───────────────────────────────┐
+├─ weather + forecast collectors ────────────────┤
+└─ Grafana Alloy -> local Loki ───────────────┐  │
+                                               │  │
+ubuntu-infra                                   │  │
+├─ Loki <──────────────────────────────────────┘  │
+├─ PostgreSQL <───────────────────────────────────┘
+│  ├─ detections / weather / forecasts
+│  ├─ station-health evidence
+│  ├─ analytical views
+│  └─ stored ML predictions + scores
+├─ hourly station-health + ML jobs
+├─ Prometheus
+└─ Grafana OSS
 
-- What birds are being detected now?
-- Is the station still operating normally?
-- How does bird activity change with time of day, sunrise, weather, or season?
-- How accurate were weather forecasts before an observation occurred?
-- Can recent activity predict the next complete hour?
-- How likely is a particular species to appear in a future hour?
+             constrained read-only evidence
+BirdNET / ubuntu-infra ──────────────────────────> AI Nexus / Birdynator
+                                                   └─ separate analysis runs
+\`\`\`
 
-The project is intentionally evolving from a dashboard into a small environmental data platform.
+The important ownership rule is that **BirdNET and ubuntu-infra remain authoritative for the BirdNET data pipeline**. AI Nexus consumes evidence; it does not own collection, health monitoring, or model training.
 
----
+The broader ML/health evidence interface to Birdynator is still deliberately narrow and partly deferred while the analytical contract matures.
 
-## Start here
+For the detailed architecture, failure behavior, security boundaries, and AI Nexus relationship, read [docs/architecture.md](docs/architecture.md).
 
-For a compact human-oriented overview and recommended reading order, see [Executive summary](docs/executive-summary.md).
+## Data model
 
-For automated coding sessions and architectural guardrails, read [AGENTS.md](AGENTS.md) and [Decision log](docs/decisions.md) before cross-cutting changes.
+The project deliberately separates three kinds of information.
 
----
+| Layer | Role |
+|---|---|
+| BirdNET SQLite | Authoritative completed detections at the edge |
+| PostgreSQL | Durable structured history, analytical views, predictions, station health |
+| Loki | Shorter-lived operational logs and service evidence |
 
-## Rebuild from Git
+PostgreSQL currently stores:
 
-For a fresh station or replacement infrastructure host, use the checked-in bootstrap/verification workflows rather than reconstructing the deployment from chat history:
+- \`detections\`
+- \`weather_observations\`
+- \`weather_forecasts\`
+- \`station_health_hourly\`
+- \`bird_activity_predictions\`
+- \`bird_species_predictions\`
 
-```bash
-# Existing BirdNET-Pi installation
+Derived views:
+
+- \`bird_activity_hourly\`
+- \`bird_species_hourly\`
+
+A deliberate bridge exists between observability and analysis: hourly BirdNET coverage is derived from Loki and persisted into PostgreSQL because it matters later when deciding whether a zero-detection hour is genuinely quiet or simply lacks reliable station evidence.
+
+## Machine learning
+
+ML is an experimental layer on top of preserved historical evidence, not the reason the data exists.
+
+### Aggregate activity
+
+Live aggregate models:
+
+- Random Forest — established reference
+- XGBoost — challenger
+- HistGradientBoosting — challenger accumulating forward evidence
+
+Timing contract:
+
+\`\`\`text
+station health at :20
+ML cycle at :30
+completed hour T -> target hour T+2
+\`\`\`
+
+The current live feature set uses time/daylight context and recent activity lags. Weather is available analytically but is not currently a live model feature.
+
+### Species presence
+
+Reference forecasts are currently issued for:
+
+- House Finch
+- Black Phoebe
+- American Crow
+- Black-crowned Night-Heron
+- Lesser Goldfinch
+
+Random Forest and XGBoost are the reference model families. Separate challengers currently exist for Black Phoebe and American Crow.
+
+Stored forecasts are treated as historical evidence: the project distinguishes real forward predictions from retrospective model reruns.
+
+See [docs/ml.md](docs/ml.md) for methodology and [ml/README.md](ml/README.md) for operations.
+
+## Health-aware zeros
+
+A quiet hour and a broken station must not look identical to a model.
+
+\`station_health_hourly\` stores analysis coverage and one of:
+
+- \`healthy\`
+- \`incomplete\`
+- \`unknown\`
+
+Current ML logic keeps positive observations usable, but in the health-evidence era it only treats a zero as a trustworthy biological zero when the station was healthy. Missing evidence stays unknown.
+
+That rule is one of the most important data-quality protections in the project.
+
+## Grafana and observability
+
+The active observability path is local-only:
+
+\`\`\`text
+BirdNET Pi -> Grafana Alloy -> Loki on ubuntu-infra -> Grafana OSS
+\`\`\`
+
+Grafana Cloud Loki was retired after the local path was runtime-verified.
+
+BirdNET-specific dashboards live in this repository. Shared Grafana deployment, datasource provisioning, and plugins belong to the separate \`homelab-grafana\` repository.
+
+Current dashboard exports include:
+
+- local Bird Home operational dashboard
+- historical Cloud dashboard export retained as reference
+- aggregate Prediction Lab
+- Species Prediction dashboard
+
+See [grafana/README.md](grafana/README.md).
+
+## AI Nexus / Birdynator
+
+AI Nexus is a separate secure agent platform in the Home Lab.
+
+Its Birdynator workflow is downstream of this repository:
+
+\`\`\`text
+authoritative BirdNET evidence
+        -> constrained read-only datasource boundary
+        -> Birdynator analysis
+        -> AI Nexus analysis history
+\`\`\`
+
+Birdynator does not collect station health and does not become a second owner of BirdNET data. The BirdNET stack remains responsible for provenance, structured history, and ML evidence.
+
+A richer ML-to-Birdynator interface is deferred until the evidence exposed across that boundary is stable enough to be useful without leaking internal implementation details.
+
+## Rebuild and verify
+
+A new session should not reconstruct this system from chat history.
+
+Canonical workflows:
+
+\`\`\`bash
+# repository hygiene
+make repo-check
+
+# existing BirdNET-Pi host
 make pi-bootstrap
 make pi-verify
 
 # ubuntu-infra
 make infra-bootstrap
 make infra-verify
+\`\`\`
 
-# repository hygiene
-make repo-check
-```
+The Pi and infra verification workflows were exercised successfully against the live hosts on 2026-09-26.
 
-See [BirdNET Pi deployment](deploy/birdnet-pi/README.md) and [ubuntu-infra deployment](deploy/ubuntu-infra/README.md).
+Rebuild contract:
 
----
+\`\`\`text
+Git
++ local runtime configuration / secrets
++ PostgreSQL backup when historical state is required
+= reproducible monitoring environment
+\`\`\`
 
-# Architecture
-
-The design separates source data, structured history, and operational observability.
-
-```text
-BirdNET Raspberry Pi
-│
-├── microphone / BirdNET analysis
-├── BirdNET birds.db
-│
-├── detection importer ────────────────┐
-├── weather observation collector ────┤
-├── weather forecast collector ───────┤
-│                                      ▼
-└── Grafana Alloy                 PostgreSQL
-     │                                 │
-     └──> local Loki                   ├──> historical analysis
-             │                         ├──> ML training
-             │                         └──> stored predictions
-             │
-             ▼
-         Grafana OSS
-
-ubuntu-infra
-├── PostgreSQL
-├── Loki
-├── Prometheus
-├── Grafana OSS
-└── Python ML prediction / scoring
-```
-
-The live Home Lab addresses are intentionally excluded from Git. Documentation uses symbolic host roles such as `BIRDNET_HOST` and `INFRA_HOST`; real values belong in ignored local runtime configuration.
-
-Grafana itself is deployed from a separate Home Lab repository, `homelab-grafana`. This repository owns the BirdNET-specific dashboards, datasource expectations, data models, collectors, and analysis code.
-
----
-
-# Data Responsibilities
-
-## BirdNET SQLite — authoritative detection source
-
-BirdNET owns:
-
-```text
-~/BirdNET-Pi/scripts/birds.db
-```
-
-The monitoring stack treats this database as source data.
-
-It is read and synchronized, not modified for monitoring purposes.
-
-This separation is deliberate: a failure in PostgreSQL, Loki, Grafana, or the infrastructure VM should not prevent BirdNET from continuing its primary job.
-
-## PostgreSQL — durable analytical history
-
-PostgreSQL stores structured data intended to survive beyond operational log retention.
-
-Primary data includes:
-
-- `detections`
-- `weather_observations`
-- `weather_forecasts`
-- `bird_activity_predictions`
-- `bird_species_predictions`
-- `station_health_hourly`
-
-Derived analytical views include:
-
-- `bird_activity_hourly`
-- `bird_species_hourly`
-
-PostgreSQL is the foundation for historical analysis and machine learning. It also stores compact hourly station-health evidence derived from Loki so future ML can distinguish healthy zero-detection hours from incomplete or unavailable station evidence.
-
-## Loki — operational observability
-
-Loki stores logs and operational events collected through Grafana Alloy.
-
-It answers a different question from PostgreSQL:
-
-```text
-PostgreSQL -> What happened historically?
-Loki       -> What is the system doing operationally?
-```
-
-The two stores are intentionally complementary.
-
----
-
-# Data Collection
-
-## Bird detections
-
-`collector/import_detections.py` synchronizes completed BirdNET detections from the Pi's SQLite database into PostgreSQL.
-
-The synchronization is incremental and tracks the last processed SQLite row ID. Database constraints protect against normal duplicate insertion during retries or source rescans.
-
-The Pi remains the authoritative source for completed BirdNET detections.
-
-## Weather observations
-
-`weather/weather.py` collects Open-Meteo observations and stores them in PostgreSQL.
-
-The history includes environmental fields such as temperature, humidity, pressure, precipitation, wind, cloud cover, day/night state, sunrise, and sunset.
-
-The collector explicitly requests imperial precipitation units before writing `precipitation_in`. Historical rows collected before that fix may require a provenance audit before precipitation is used quantitatively.
-
-Weather data also enters the operational logging path so collector behavior can be observed independently from the analytical database.
-
-## Weather forecasts
-
-`weather/forecast.py` stores snapshots of future Open-Meteo forecasts.
-
-Each forecast preserves both:
-
-- when the forecast snapshot was collected
-- which future hour the forecast described
-
-Keeping multiple historical snapshots for the same target hour makes later forecast-accuracy analysis possible and creates a future path for weather-aware bird prediction using information that was actually available at forecast time.
-
----
-
-# Machine Learning
-
-Machine learning is deliberately treated as an experimental layer on top of the historical data rather than as the purpose of the whole system.
-
-The project currently works with two prediction problems.
-
-## Aggregate bird activity
-
-The aggregate pipeline predicts the project's hourly activity index.
-
-The live aggregate models are:
-
-```text
-random_forest_v2_completed
-xgboost_v2_completed
-hist_gradient_boosting_v1_completed
-```
-
-Both use the same completed historical input and timing convention:
-
-```text
-completed hour T -> target hour T+2
-```
-
-At 14:30, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00. The :30 schedule allows station-health collection at :20 to persist provenance first.
-
-Random Forest remains the established live reference model. XGBoost remains a live challenger, and HistGradientBoosting is now added as a third experimental challenger so all three can accumulate true matched forward-validation evidence. Each model is stored as a separate row in `bird_activity_predictions` under its own model label.
-
-## Species presence
-
-The species pipeline predicts the probability that a particular species will be detected during a future hourly period.
-
-The live hourly cycle scores stored species predictions and creates reference Random Forest + XGBoost forecasts for House Finch, Black Phoebe, American Crow, Black-crowned Night-Heron, and Lesser Goldfinch. It also issues separate challenger forecasts for Black Phoebe (tuned XGBoost) and American Crow (class-balanced bootstrap XGBoost ensemble), so the alternatives can accumulate matched forward-validation history without replacing the reference models.
-
-The coordinated cycle is:
-
-```text
-birdnet-ml-prediction.timer
-    -> birdnet-ml-prediction.service
-    -> ml/hourly_prediction_cycle.sh
-        -> score aggregate predictions
-        -> predict aggregate activity with Random Forest + XGBoost + HistGradientBoosting
-        -> score species predictions
-        -> predict configured reference species
-        -> predict configured species challengers
-```
-
-Keeping the existing aggregate work first means a species-side failure does not prevent the primary activity forecasts from being created during that run.
-
-## Validation philosophy
-
-Time-series prediction must be evaluated chronologically.
-
-The current methodology emphasizes:
-
-- no random train/test shuffling for v2 experiments
-- walk-forward validation
-- training only on labels that would already have been observable
-- strong persistence/prevalence baselines
-- stored live forecasts for true forward validation
-- regression tests around completed-hour timing, gaps, lags, and DST ambiguity
+BirdNET-Pi itself is installed independently and is not managed by this repository.
 
 See:
 
-- [ML methodology](docs/ml.md)
-- [ML operations](ml/README.md)
-- [activity experiment](docs/experiments/2026-09-14-activity-models.md)
-- [species experiment](docs/experiments/2026-09-14-species-models.md)
-- [species challenger comparison](docs/experiments/2026-09-18-species-challengers.md)
-- [American Crow bootstrap experiment](docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md)
-- [live forward-validation checkpoint](docs/experiments/2026-09-26-live-forward-validation.md)
+- [BirdNET Pi deployment](deploy/birdnet-pi/README.md)
+- [ubuntu-infra deployment](deploy/ubuntu-infra/README.md)
+- [database backup and recovery](database/README.md)
 
-Historical experiment material under `ml/reports/` is retained as project history and should not be confused with the current v2 methodology.
+## Current state
 
----
-
-# Grafana
-
-Grafana provides both operational and analytical views.
-
-Current dashboard exports:
-
-| Dashboard | Purpose |
+| Area | State |
 |---|---|
-| `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference |
-| `Bird Home - Burbank Local.json` | Local Grafana OSS operational dashboard |
-| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts and scoring |
-| `Bird Home - Species Prediction.json` | Species probability and classification forecasts |
-
-The operational dashboard primarily uses Loki and Infinity/Open-Meteo.
-
-The prediction dashboards use PostgreSQL.
-
-See [grafana/README.md](grafana/README.md) for datasource, import, time-zone, and scoring details.
-
----
-
-# Backups and Recovery
-
-The centralized PostgreSQL instance is backed up daily using custom-format PostgreSQL archives.
-
-Current schedule: `03:15 America/Los_Angeles`  
-Current retention: `14 days`  
-Runtime backup location: `/var/backups/birdnet-postgres`
-
-The repository intentionally keeps backup logic in Git but not the dumps themselves.
-
-The main remaining backup improvement is an off-host copy that survives loss of `ubuntu-infra` itself.
-
-See [database/README.md](database/README.md) and the [ubuntu-infra deployment runbook](deploy/ubuntu-infra/README.md) for recovery details.
-
----
-
-# Current Project State
-
-The core data path is operational.
-
-| Area | Status |
-|---|---|
-| BirdNET detection synchronization | Deployed |
-| Weather observations | Deployed; repo now explicitly requests precipitation in inches |
-| Historical weather forecasts | Deployed; repo now explicitly requests precipitation in inches |
-| Central PostgreSQL | Deployed |
-| PostgreSQL backups | Deployed |
+| Detection sync | Deployed and verified |
+| Weather observations | Deployed and verified |
+| Weather forecast snapshots | Deployed and verified |
+| PostgreSQL | Deployed |
+| PostgreSQL logical backups | Deployed |
 | Local Loki | Deployed |
+| Alloy -> local Loki | Deployed and end-to-end verified |
 | Grafana OSS integration | Deployed |
-| Alloy → local Loki only | Deployed and verified |
-| Aggregate activity ML | Live hourly Random Forest + XGBoost + HistGradientBoosting prediction/scoring |
-| Species ML experiments | Working |
-| Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
-| Station-health persistence | Deployed and verified; hourly Loki-derived coverage persisted in PostgreSQL |
-| ML timing/leakage/scoring regression tests | Automated unittest suite under `ml/tests/` |
-| Off-host database backup | Planned |
+| Station-health persistence | Deployed and used by ML zero-gating |
+| Aggregate ML | Live RF + XGBoost + HGB forecasting/scoring |
+| Species ML | Live reference + selected challenger forecasting/scoring |
+| ML regression tests | Automated and passing during latest infra verification |
+| AI Nexus BirdNET consumption | Constrained downstream read-only consumer |
+| Rich ML/health -> Birdynator interface | Deferred |
+| Off-host PostgreSQL backup | Planned |
+| Real restore drill | Still recommended |
 
-Grafana Cloud Loki output was retired on 2026-09-26 after the local-only Alloy path was validated for fresh BirdNET and weather log delivery.
+## Known limitations
 
----
+The main technical debt is explicit rather than hidden:
 
-# Repository Structure
+- analytical SQL still uses station-local wall-clock semantics in places
+- prediction timestamps retain a DST-overlap ambiguity
+- the aggregate analytical view is weather-backed
+- PostgreSQL role/\`pg_hba.conf\` recreation is not yet fully automated
+- historical precipitation before the explicit inches fix has uncertain unit provenance
+- backups still need off-host replication
+- Loki network exposure inside the Home Lab can be hardened further
+
+See [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md) for context.
+
+## Repository map
 
 | Path | Purpose |
 |---|---|
-| `collector/` | Read-only BirdNET SQLite synchronization |
-| `weather/` | Weather observation and forecast collectors |
-| [`health/`](health/README.md) | Durable hourly BirdNET analysis-coverage evidence from Loki |
-| [`database/`](database/README.md) | Schema, analytical views, prediction tables, database operations |
-| `alloy/` | Grafana Alloy configuration/reference material |
-| [`deploy/ubuntu-infra/`](deploy/ubuntu-infra/README.md) | Central PostgreSQL/Loki deployment and rebuild guidance |
-| `backup/` | PostgreSQL backup scripts |
-| [`grafana/`](grafana/README.md) | BirdNET dashboard exports and datasource assumptions |
-| [`ml/`](ml/README.md) | ML scripts and operational prediction workflow |
-| [`docs/ml.md`](docs/ml.md) | Stable ML methodology |
-| `docs/experiments/` | Dated, reproducible experiment conclusions |
-| `systemd/` | Collector, backup, weather, forecast, and ML service/timer definitions |
-| [`AGENTS.md`](AGENTS.md) | Guardrails and current architecture for future coding/AI work |
+| \`collector/\` | BirdNET SQLite -> PostgreSQL synchronization |
+| \`weather/\` | Weather observation and forecast collectors |
+| \`health/\` | Hourly station-health provenance |
+| \`database/\` | Schema, analytical views, prediction storage, recovery |
+| \`alloy/\` | Local-only Alloy configuration |
+| \`grafana/\` | BirdNET-specific dashboard exports |
+| \`ml/\` | Prediction, scoring, experiments, tests |
+| \`backup/\` | PostgreSQL backup scripts |
+| \`systemd/\` | Runtime service/timer definitions |
+| \`deploy/birdnet-pi/\` | Pi bootstrap and acceptance checks |
+| \`deploy/ubuntu-infra/\` | Central infrastructure bootstrap and recovery |
+| \`docs/architecture.md\` | Detailed current architecture and boundaries |
+| \`docs/ml.md\` | Stable ML methodology |
+| \`docs/decisions.md\` | Durable architectural decisions |
+| \`docs/experiments/\` | Dated experiment evidence |
+| \`AGENTS.md\` | Guardrails for future coding/AI sessions |
 
-The repository structure is intentionally simple. Prefer updating the documentation and existing components over repeatedly reorganizing directories.
+## Suggested reading order
 
----
+For a human reading the project end-to-end:
 
-# Documentation Map
+1. this README
+2. [Architecture](docs/architecture.md)
+3. [Executive summary](docs/executive-summary.md)
+4. [Decision log](docs/decisions.md)
+5. [Database](database/README.md)
+6. [ML methodology](docs/ml.md)
+7. [ML operations](ml/README.md)
+8. [Grafana](grafana/README.md)
+9. the Pi and infra deployment runbooks
 
-| Document | Role |
-|---|---|
-| [`database/README.md`](database/README.md) | Database schema, synchronization, grants, backup, restore, species/activity data contracts |
-| [`grafana/README.md`](grafana/README.md) | Dashboard exports, PostgreSQL requirements, datasource and time handling |
-| [`ml/README.md`](ml/README.md) | How to run experiments and live prediction/scoring code |
-| [`docs/decisions.md`](docs/decisions.md) | Architectural and development decisions that should survive across work sessions |
-| [`docs/ml.md`](docs/ml.md) | Stable ML methodology and validation rules |
-| [`docs/experiments/`](docs/experiments/) | Dated model comparisons and conclusions |
-| [`deploy/ubuntu-infra/README.md`](deploy/ubuntu-infra/README.md) | Deployment, rebuild, recovery, and operational checks |
-| [`AGENTS.md`](AGENTS.md) | Project guardrails for future development sessions |
+For a new ChatGPT/coding session:
 
----
+1. \`AGENTS.md\`
+2. \`docs/executive-summary.md\`
+3. \`docs/architecture.md\`
+4. \`docs/decisions.md\`
+5. the relevant subsystem document
 
-# Design Principles
+## Design principles
 
-- **Keep BirdNET independent.** Monitoring must not become a prerequisite for bird detection.
-- **Protect source data.** Read from BirdNET's native SQLite database; do not modify it merely to simplify monitoring.
-- **Separate observability from analytical history.** Loki is for operational logs; PostgreSQL is for durable structured analysis.
-- **Prefer honest models over impressive models.** Timing semantics, baselines, leakage prevention, and stored live forecasts matter more than headline metrics.
-- **Keep history reproducible.** Preserve raw detections, timestamps, weather observations, forecast snapshots, predictions, and scored outcomes.
-- **Keep infrastructure understandable.** Prefer small components, explicit configuration, clear ownership, and recoverable migrations.
-
----
-
-# Security and Runtime State
-
-Git should contain enough information to understand and rebuild the system, but not live secrets or state.
-
-Do not commit PostgreSQL/Grafana credentials, `.env` or `db.env`, database dumps, private SSH keys, live logs, Docker volumes, or Alloy state.
-
----
-
-# Near-Term Direction
-
-The highest-value next steps are:
-
-1. continue collecting matched live forward-validation history for the current aggregate models
-2. continue accumulating genuine matched forward-validation history for `HistGradientBoostingRegressor`; do not promote it before enough scored evidence exists
-3. compare aggregate models only on matched scored target hours and characterize performance by day/night and activity level before changing the aggregate champion
-4. accumulate live reference Random Forest + XGBoost forward-validation history for Black-crowned Night-Heron and Lesser Goldfinch; do not add species-specific challengers yet
-5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
-6. evaluate species-specific thresholds and add daylight/sunrise features where justified
-7. use the now-validated `station_health_hourly` evidence carefully in future ML methodology changes; do not treat incomplete or unknown hours as biological zeros
-8. create an off-host PostgreSQL backup copy and periodically test restores
-9. continue observing local Loki/Grafana health and retention after the Cloud Loki retirement
-10. keep the checked-in Pi weather/Alloy configuration aligned with the verified installed Pi files
-
-Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
-
-The project should become more capable as the data justifies it, while staying understandable enough to rebuild from Git, secrets, and backups.
+- Keep BirdNET independent.
+- Protect source data.
+- Prefer recoverable asynchronous data flows.
+- Separate logs from analytical history.
+- Preserve predictions as forward evidence.
+- Treat missing provenance as unknown rather than inventing certainty.
+- Keep AI downstream and read-only where possible.
+- Keep Git safe to share: no live IPs, coordinates, credentials, or private topology.
+- Prefer small understandable components over hidden automation.
+- Make deployed state reproducible enough that a fresh session can rebuild it without relying on conversation memory.
