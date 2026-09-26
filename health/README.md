@@ -64,7 +64,7 @@ The systemd service runs a six-hour lookback each hour. Re-reading recent comple
 From the repository root:
 
 ```bash
-health/collect_station_health.sh --lookback-hours 6
+bash health/collect_station_health.sh --lookback-hours 6
 ```
 
 Inspect:
@@ -91,7 +91,7 @@ Backfill only periods for which Loki actually retains BirdNET analysis evidence.
 Example for the first locally verified retained period:
 
 ```bash
-health/collect_station_health.sh \
+bash health/collect_station_health.sh \
   --start 2026-09-13T12:00:00-07:00 \
   --end   2026-09-26T12:00:00-07:00
 ```
