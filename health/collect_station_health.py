@@ -24,7 +24,7 @@ DEFAULT_EXPECTED_SEGMENTS = 240
 DEFAULT_HEALTHY_MIN_PCT = 95.0
 LOKI_QUERY = (
     'sum(count_over_time({unit="birdnet_analysis.service"} '
-    '|= "Analyzing /home/birduser/BirdSongs/StreamData/" [1h]))'
+    '|= "Analyzing " |= "/StreamData/" [1h]))'
 )
 
 
