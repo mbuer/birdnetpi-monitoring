@@ -19,7 +19,7 @@ The most important boundary is simple:
 
 ## High-level architecture
 
-\`\`\`text
+```text
 BirdNET Pi
 ├─ microphone -> BirdNET analysis -> native birds.db
 ├─ detection sync ───────────────────────────────┐
@@ -40,9 +40,9 @@ ubuntu-infra                                   │  │
              constrained read-only evidence
 BirdNET / ubuntu-infra ──────────────────────────> AI Nexus / Birdynator
                                                    └─ separate analysis runs
-\`\`\`
+```
 
-Grafana deployment is maintained in the separate \`homelab-grafana\` repository. AI Nexus is maintained in the separate \`ai-nexus\` repository.
+Grafana deployment is maintained in the separate `homelab-grafana` repository. AI Nexus is maintained in the separate `ai-nexus` repository.
 
 This repository owns the BirdNET-side collection, structured data model, observability integration, station-health evidence, ML workflow, BirdNET-specific dashboards, and the contract that downstream consumers can rely on.
 
@@ -79,10 +79,10 @@ The infrastructure VM owns:
 
 The current hourly sequencing is:
 
-\`\`\`text
+```text
 :20  station-health collection
 :30  ML scoring + prediction
-\`\`\`
+```
 
 That ordering matters because the ML pipeline uses station-health provenance when deciding whether a zero-detection observation is trustworthy.
 
@@ -112,7 +112,7 @@ Birdynator can consume BirdNET data through a constrained read-only datasource b
 
 The current AI integration should therefore be understood as:
 
-\`\`\`text
+```text
 BirdNET / ubuntu-infra
         │
         │ authoritative evidence
@@ -123,9 +123,9 @@ constrained read-only boundary
 AI Nexus / Birdynator
         │
         └─ interpretation / analysis
-\`\`\`
+```
 
-A broader ML-to-Birdynator evidence interface is intentionally deferred until the ML outputs and provenance contract are stable enough to expose cleanly. Future downstream evidence may include health state such as \`healthy\`, \`incomplete\`, or \`unknown\` so an AI analysis does not mistake missing station evidence for biological absence.
+A broader ML-to-Birdynator evidence interface is intentionally deferred until the ML outputs and provenance contract are stable enough to expose cleanly. Future downstream evidence may include health state such as `healthy`, `incomplete`, or `unknown` so an AI analysis does not mistake missing station evidence for biological absence.
 
 That future interface should remain narrow and read-only rather than coupling Birdynator directly to internal training code or collector implementation details.
 
@@ -143,17 +143,17 @@ Role: durable structured analytical history.
 
 Core tables:
 
-- \`detections\`
-- \`weather_observations\`
-- \`weather_forecasts\`
-- \`station_health_hourly\`
-- \`bird_activity_predictions\`
-- \`bird_species_predictions\`
+- `detections`
+- `weather_observations`
+- `weather_forecasts`
+- `station_health_hourly`
+- `bird_activity_predictions`
+- `bird_species_predictions`
 
 Derived views:
 
-- \`bird_activity_hourly\`
-- \`bird_species_hourly\`
+- `bird_activity_hourly`
+- `bird_species_hourly`
 
 PostgreSQL answers questions such as:
 
@@ -174,7 +174,7 @@ Loki answers questions such as:
 
 Loki retention is intentionally shorter than the analytical history in PostgreSQL.
 
-Compact health provenance is the deliberate bridge between those roles: recent operational evidence is summarized into \`station_health_hourly\` because that information has long-term analytical value.
+Compact health provenance is the deliberate bridge between those roles: recent operational evidence is summarized into `station_health_hourly` because that information has long-term analytical value.
 
 ### Prediction tables
 
@@ -190,15 +190,15 @@ There are two prediction tracks.
 
 Live models:
 
-- \`random_forest_v2_completed\` — established reference
-- \`xgboost_v2_completed\` — challenger
-- \`hist_gradient_boosting_v1_completed\` — challenger accumulating forward evidence
+- `random_forest_v2_completed` — established reference
+- `xgboost_v2_completed` — challenger
+- `hist_gradient_boosting_v1_completed` — challenger accumulating forward evidence
 
 Timing:
 
-\`\`\`text
+```text
 completed hour T -> target hour T+2
-\`\`\`
+```
 
 Current feature families include:
 
@@ -233,13 +233,13 @@ The station-health collector derives hourly analysis coverage from BirdNET journ
 - analysis segment count
 - expected segment count
 - coverage percentage
-- \`healthy\`, \`incomplete\`, or \`unknown\`
+- `healthy`, `incomplete`, or `unknown`
 
 Current ML behavior is provenance-aware:
 
 - positive activity/presence remains usable even when health is incomplete or unknown
-- a zero in the explicit health era is only treated as a biological zero when health is \`healthy\`
-- missing health evidence is \`unknown\`, not a fabricated outage and not a biological zero
+- a zero in the explicit health era is only treated as a biological zero when health is `healthy`
+- missing health evidence is `unknown`, not a fabricated outage and not a biological zero
 - older pre-health historical data remains usable under the legacy methodology
 
 This is intentionally narrower than weighting every row by coverage. It fixes the known false-zero problem without adding model complexity that has not yet earned its keep.
@@ -254,14 +254,14 @@ Do not commit:
 - exact station coordinates
 - credentials, tokens, or private keys
 - database dumps
-- runtime \`.env\` files
+- runtime `.env` files
 - public WAN/DDNS details
 
 Git contains the configuration shape and recovery logic. The live environment supplies secrets and topology.
 
 The primary trust boundaries are:
 
-\`\`\`text
+```text
 BirdNET source
     -> read-only monitoring access
 
@@ -274,7 +274,7 @@ Grafana
 
 AI Nexus
     -> constrained read-only BirdNET evidence
-\`\`\`
+```
 
 AI Nexus must not become an alternate write path into BirdNET source data.
 
@@ -291,7 +291,7 @@ If Loki is down:
 
 - BirdNET should continue detecting
 - PostgreSQL history can continue independently where collectors still have DB access
-- station-health evidence may become \`unknown\`
+- station-health evidence may become `unknown`
 
 If Grafana is down:
 
@@ -311,19 +311,19 @@ That separation is a core design property, not an accident.
 
 The monitoring stack is intended to be recoverable from:
 
-\`\`\`text
+```text
 Git
 + local runtime configuration / secrets
 + PostgreSQL backup when historical state is required
-\`\`\`
+```
 
 Canonical acceptance tests:
 
-\`\`\`bash
+```bash
 make repo-check
 make pi-verify
 make infra-verify
-\`\`\`
+```
 
 The Pi and infra verification workflows were runtime-validated against the live hosts on 2026-09-26.
 
@@ -338,9 +338,9 @@ See:
 Current known debt includes:
 
 - analytical SQL still encodes Los Angeles wall-clock semantics
-- some prediction timestamps are \`timestamp without time zone\`, creating DST ambiguity
+- some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
-- PostgreSQL roles and \`pg_hba.conf\` policy are not yet fully reproduced by committed automation
+- PostgreSQL roles and `pg_hba.conf` policy are not yet fully reproduced by committed automation
 - PostgreSQL backups are not yet replicated off-host
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
@@ -369,7 +369,7 @@ constrained read-only boundary
         v
 AI Nexus / Birdynator
         |
-        \`-- interpretation / analysis
+        `-- interpretation / analysis
 ```Architecture
 
 This document describes how the BirdNET monitoring project fits together today, where its trust boundaries are, and how it connects to the wider Home Lab.
@@ -391,7 +391,7 @@ The most important boundary is simple:
 
 ## High-level architecture
 
-\`\`\`text
+```text
 BirdNET Pi
 ├─ microphone -> BirdNET analysis -> native birds.db
 ├─ detection sync ───────────────────────────────┐
@@ -412,9 +412,9 @@ ubuntu-infra                                   │  │
              constrained read-only evidence
 BirdNET / ubuntu-infra ──────────────────────────> AI Nexus / Birdynator
                                                    └─ separate analysis runs
-\`\`\`
+```
 
-Grafana deployment is maintained in the separate \`homelab-grafana\` repository. AI Nexus is maintained in the separate \`ai-nexus\` repository.
+Grafana deployment is maintained in the separate `homelab-grafana` repository. AI Nexus is maintained in the separate `ai-nexus` repository.
 
 This repository owns the BirdNET-side collection, structured data model, observability integration, station-health evidence, ML workflow, BirdNET-specific dashboards, and the contract that downstream consumers can rely on.
 
@@ -451,10 +451,10 @@ The infrastructure VM owns:
 
 The current hourly sequencing is:
 
-\`\`\`text
+```text
 :20  station-health collection
 :30  ML scoring + prediction
-\`\`\`
+```
 
 That ordering matters because the ML pipeline uses station-health provenance when deciding whether a zero-detection observation is trustworthy.
 
@@ -484,7 +484,7 @@ Birdynator can consume BirdNET data through a constrained read-only datasource b
 
 The current AI integration should therefore be understood as:
 
-\`\`\`text
+```text
 BirdNET / ubuntu-infra
         │
         │ authoritative evidence
@@ -495,9 +495,9 @@ constrained read-only boundary
 AI Nexus / Birdynator
         │
         └─ interpretation / analysis
-\`\`\`
+```
 
-A broader ML-to-Birdynator evidence interface is intentionally deferred until the ML outputs and provenance contract are stable enough to expose cleanly. Future downstream evidence may include health state such as \`healthy\`, \`incomplete\`, or \`unknown\` so an AI analysis does not mistake missing station evidence for biological absence.
+A broader ML-to-Birdynator evidence interface is intentionally deferred until the ML outputs and provenance contract are stable enough to expose cleanly. Future downstream evidence may include health state such as `healthy`, `incomplete`, or `unknown` so an AI analysis does not mistake missing station evidence for biological absence.
 
 That future interface should remain narrow and read-only rather than coupling Birdynator directly to internal training code or collector implementation details.
 
@@ -515,17 +515,17 @@ Role: durable structured analytical history.
 
 Core tables:
 
-- \`detections\`
-- \`weather_observations\`
-- \`weather_forecasts\`
-- \`station_health_hourly\`
-- \`bird_activity_predictions\`
-- \`bird_species_predictions\`
+- `detections`
+- `weather_observations`
+- `weather_forecasts`
+- `station_health_hourly`
+- `bird_activity_predictions`
+- `bird_species_predictions`
 
 Derived views:
 
-- \`bird_activity_hourly\`
-- \`bird_species_hourly\`
+- `bird_activity_hourly`
+- `bird_species_hourly`
 
 PostgreSQL answers questions such as:
 
@@ -546,7 +546,7 @@ Loki answers questions such as:
 
 Loki retention is intentionally shorter than the analytical history in PostgreSQL.
 
-Compact health provenance is the deliberate bridge between those roles: recent operational evidence is summarized into \`station_health_hourly\` because that information has long-term analytical value.
+Compact health provenance is the deliberate bridge between those roles: recent operational evidence is summarized into `station_health_hourly` because that information has long-term analytical value.
 
 ### Prediction tables
 
@@ -562,15 +562,15 @@ There are two prediction tracks.
 
 Live models:
 
-- \`random_forest_v2_completed\` — established reference
-- \`xgboost_v2_completed\` — challenger
-- \`hist_gradient_boosting_v1_completed\` — challenger accumulating forward evidence
+- `random_forest_v2_completed` — established reference
+- `xgboost_v2_completed` — challenger
+- `hist_gradient_boosting_v1_completed` — challenger accumulating forward evidence
 
 Timing:
 
-\`\`\`text
+```text
 completed hour T -> target hour T+2
-\`\`\`
+```
 
 Current feature families include:
 
@@ -605,13 +605,13 @@ The station-health collector derives hourly analysis coverage from BirdNET journ
 - analysis segment count
 - expected segment count
 - coverage percentage
-- \`healthy\`, \`incomplete\`, or \`unknown\`
+- `healthy`, `incomplete`, or `unknown`
 
 Current ML behavior is provenance-aware:
 
 - positive activity/presence remains usable even when health is incomplete or unknown
-- a zero in the explicit health era is only treated as a biological zero when health is \`healthy\`
-- missing health evidence is \`unknown\`, not a fabricated outage and not a biological zero
+- a zero in the explicit health era is only treated as a biological zero when health is `healthy`
+- missing health evidence is `unknown`, not a fabricated outage and not a biological zero
 - older pre-health historical data remains usable under the legacy methodology
 
 This is intentionally narrower than weighting every row by coverage. It fixes the known false-zero problem without adding model complexity that has not yet earned its keep.
@@ -626,14 +626,14 @@ Do not commit:
 - exact station coordinates
 - credentials, tokens, or private keys
 - database dumps
-- runtime \`.env\` files
+- runtime `.env` files
 - public WAN/DDNS details
 
 Git contains the configuration shape and recovery logic. The live environment supplies secrets and topology.
 
 The primary trust boundaries are:
 
-\`\`\`text
+```text
 BirdNET source
     -> read-only monitoring access
 
@@ -646,7 +646,7 @@ Grafana
 
 AI Nexus
     -> constrained read-only BirdNET evidence
-\`\`\`
+```
 
 AI Nexus must not become an alternate write path into BirdNET source data.
 
@@ -663,7 +663,7 @@ If Loki is down:
 
 - BirdNET should continue detecting
 - PostgreSQL history can continue independently where collectors still have DB access
-- station-health evidence may become \`unknown\`
+- station-health evidence may become `unknown`
 
 If Grafana is down:
 
@@ -683,19 +683,19 @@ That separation is a core design property, not an accident.
 
 The monitoring stack is intended to be recoverable from:
 
-\`\`\`text
+```text
 Git
 + local runtime configuration / secrets
 + PostgreSQL backup when historical state is required
-\`\`\`
+```
 
 Canonical acceptance tests:
 
-\`\`\`bash
+```bash
 make repo-check
 make pi-verify
 make infra-verify
-\`\`\`
+```
 
 The Pi and infra verification workflows were runtime-validated against the live hosts on 2026-09-26.
 
@@ -710,9 +710,9 @@ See:
 Current known debt includes:
 
 - analytical SQL still encodes Los Angeles wall-clock semantics
-- some prediction timestamps are \`timestamp without time zone\`, creating DST ambiguity
+- some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
-- PostgreSQL roles and \`pg_hba.conf\` policy are not yet fully reproduced by committed automation
+- PostgreSQL roles and `pg_hba.conf` policy are not yet fully reproduced by committed automation
 - PostgreSQL backups are not yet replicated off-host
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
