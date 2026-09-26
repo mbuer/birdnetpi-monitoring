@@ -72,7 +72,7 @@ ubuntu-infra
 
 PostgreSQL is the structured historical datastore. Loki is the operational log datastore.
 
-Grafana Alloy is intended to dual-write operational logs to Grafana Cloud Loki and local Loki while the local stack is being validated.
+Grafana Alloy writes operational logs only to local Loki. The former Grafana Cloud output was retired after the local path was runtime-verified.
 
 ---
 
@@ -232,7 +232,7 @@ Retention: `30 days`
 
 The local path has been verified for BirdNET journal ingestion, parsed detection logs, weather JSONL ingestion, persistence across container restart, and Grafana OSS queries.
 
-The repository `alloy/config.alloy` now reflects the intended local + Cloud dual-write architecture. Before deploying it to the Pi, compare it with the currently installed `/etc/alloy/config.alloy` and preserve any working runtime-only credentials or differences.
+The repository `alloy/config.alloy` is the local-only reference configuration. It obtains the Loki base URL from `BIRDNET_LOKI_URL`; keep the real endpoint in local runtime configuration and validate before replacing an installed config.
 
 Historical Grafana Cloud Loki data is not being migrated into local Loki.
 
@@ -302,7 +302,7 @@ Model timing convention:
 completed hour T -> target hour T+2
 ```
 
-The timer runs at minute 10 to provide a ten-minute ingestion grace period.
+The station-health timer runs at minute 20 and the ML timer runs at minute 30. This ordering gives provenance collection time to complete before the newest completed hour is used by the ML cycle.
 
 Execution path:
 
@@ -432,7 +432,7 @@ Completed:
 - remote detection/weather/forecast ingestion
 - PostgreSQL backups
 - local Loki and Grafana integration
-- Alloy local + Cloud dual-write architecture in repo
+- Alloy local-only architecture deployed and runtime-verified
 - aggregate hourly prediction/scoring
 - species reference and challenger prediction/scoring in the hourly cycle
 - aggregate and species prediction dashboards
