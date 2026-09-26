@@ -1,43 +1,47 @@
 # Executive Summary
 
-## What this project is
+BirdNET-Pi Monitoring is the Home Lab data, observability, and machine-learning platform around an independent BirdNET-Pi station.
 
-BirdNET-Pi Monitoring is the Home Lab data, observability, and machine-learning platform around a BirdNET-Pi station.
+The project preserves BirdNET detections, enriches them with weather and station-health provenance, stores durable history in PostgreSQL, observes runtime behavior through local Loki/Grafana, issues live aggregate/species forecasts, and exposes BirdNET evidence downstream to AI Nexus without giving the agent platform ownership of collection.
 
-BirdNET itself remains independent and authoritative for audio capture and native detections. This repository preserves and enriches that data without making BirdNET depend on the monitoring stack.
+## Current architecture
 
-The design separates:
-
-- BirdNET source data on the Pi
-- durable analytical history in PostgreSQL
-- operational observability in local Loki/Grafana
-- experimental aggregate and species prediction
-- durable station-health provenance used to avoid false biological zeroes
-
-Environment-specific addresses, credentials, and station coordinates intentionally live outside Git.
-
-## Current deployed architecture
-
-```text
+\`\`\`text
 BirdNET Pi
-├── BirdNET analysis + native SQLite
-├── detection sync
-├── weather observations
-├── weather forecasts
-└── Grafana Alloy
-        |
+├─ BirdNET analysis + native SQLite
+├─ detection sync ───────────────┐
+├─ weather + forecast ───────────┤
+└─ Alloy -> local Loki ───────┐  │
+                              │  │
+ubuntu-infra                  │  │
+├─ Loki <─────────────────────┘  │
+├─ PostgreSQL <──────────────────┘
+├─ station-health persistence
+├─ hourly ML prediction/scoring
+├─ Prometheus
+└─ Grafana OSS
+        │
+        │ constrained read-only evidence
         v
-     local Loki
+AI Nexus / Birdynator
+└─ separate downstream analysis
+\`\`\`
 
-ubuntu-infra
-├── PostgreSQL
-├── Loki
-├── Grafana OSS
-├── station-health persistence
-└── hourly ML prediction/scoring
-```
+BirdNET remains authoritative for native detections. PostgreSQL is the durable analytical store. Loki is the operational log store. AI Nexus is a downstream consumer, not part of the collection path.
 
-Grafana Cloud Loki has been retired. Local Loki is the active operational log destination.
+See [Architecture](architecture.md) for the detailed boundaries and failure model.
+
+## Data-quality contract
+
+The system explicitly distinguishes a healthy quiet hour from missing evidence.
+
+\`station_health_hourly\` stores Loki-derived BirdNET analysis coverage as:
+
+- \`healthy\`
+- \`incomplete\`
+- \`unknown\`
+
+Current ML uses this provenance when handling zero observations. Positive detections remain useful, while explicit zeroes in the health era are only treated as biological zeroes when station health is healthy.
 
 ## Current ML state
 
@@ -45,9 +49,9 @@ Aggregate live models:
 
 - Random Forest — established reference
 - XGBoost — challenger
-- HistGradientBoosting — experimental challenger accumulating genuine forward evidence
+- HistGradientBoosting — challenger accumulating forward evidence
 
-Live species reference forecasts:
+Reference species:
 
 - House Finch
 - Black Phoebe
@@ -55,87 +59,90 @@ Live species reference forecasts:
 - Black-crowned Night-Heron
 - Lesser Goldfinch
 
-Species challengers currently exist for Black Phoebe and American Crow.
+Selected species challengers currently exist for Black Phoebe and American Crow.
 
-The timing contract is:
+Timing:
 
-```text
+\`\`\`text
 station health at :20
-ML cycle at :30
-completed hour T -> forecast target T+2
-```
+ML at :30
+completed hour T -> target T+2
+\`\`\`
 
-Health-aware gating preserves older pre-health history while preventing explicit unreliable zero observations from being treated as biological zeroes.
+Stored forecasts are preserved as genuine forward evidence rather than overwritten by retrospective reruns.
 
-## Configuration and security boundary
+## AI Nexus boundary
 
-Git must not contain:
+Birdynator consumes BirdNET evidence through a constrained read-only boundary.
 
-- live private IP addresses or subnets
-- exact station coordinates
-- credentials or tokens
-- environment-specific runtime secrets
+It does not:
 
-Safe examples belong in:
+- collect detections or weather
+- collect station health
+- own the PostgreSQL/Loki data path
+- write into BirdNET source data
 
-```text
-config/runtime.example.env
-```
+AI Nexus stores its own analysis runs separately.
 
-Real values belong in an ignored local runtime file.
+A richer ML/health evidence interface is intentionally deferred until the analytical contract is stable enough to expose cleanly.
 
-The repository should remain understandable and rebuildable without publishing the live Home Lab topology.
+## Reproducibility
 
-## Reproducible rebuild path
+Environment-specific addresses, coordinates, and credentials stay outside Git.
 
-A new session should not reconstruct the deployment from conversation history.
+Canonical workflows:
 
-Canonical operator workflows:
-
-```bash
+\`\`\`bash
+make repo-check
 make pi-bootstrap
 make pi-verify
-
 make infra-bootstrap
 make infra-verify
+\`\`\`
 
-make repo-check
-```
+The Pi and infra verification suites both passed against the live hosts on 2026-09-26.
 
-The Pi workflow assumes BirdNET-Pi itself is already installed. It deploys detection sync, weather, forecast, Alloy configuration, and their systemd integration from Git plus the local ignored runtime configuration.
+Recovery model:
 
-The ubuntu-infra workflow starts PostgreSQL and Loki, applies the complete database object set, creates the Python ML environment, and installs the health, ML, and PostgreSQL-backup timers.
+\`\`\`text
+Git
++ local configuration / secrets
++ PostgreSQL backup when historical state is required
+\`\`\`
 
-Grafana provisioning remains owned by the separate `homelab-grafana` repository.
+Grafana infrastructure remains in \`homelab-grafana\`. AI Nexus remains in \`ai-nexus\`.
 
-Known portability boundary: the current analytical SQL still encodes the project's station timezone semantics. Changing the station timezone is a deliberate data-model migration, not merely a deployment-variable change.
+## Highest-value remaining work
 
-## Recovery
-
-PostgreSQL receives validated custom-format logical backups. Proxmox snapshots/backups are complementary rollback and recovery mechanisms, not substitutes for database backup.
-
-The highest-value remaining recovery improvement is an off-host copy of the PostgreSQL backups.
+- replicate PostgreSQL backups off-host
+- perform a real restore drill
+- make PostgreSQL roles/access policy more reproducible
+- continue matched forward-validation for aggregate and species challengers
+- reduce remaining local-wall-clock/DST debt
+- harden Loki network exposure
+- define the future Birdynator ML/health evidence interface only after the upstream evidence is stable
 
 ## Recommended human reading order
 
-1. [README](../README.md) — project overview and current status
-2. [Executive summary](executive-summary.md) — this document
-3. [Decision log](decisions.md) — durable architectural choices and why they were made
-4. [ubuntu-infra deployment and recovery](../deploy/ubuntu-infra/README.md) — rebuild and operations
-5. [Database](../database/README.md) — data contracts, schema, backup, and restore
-6. [Grafana](../grafana/README.md) — operational and ML dashboards
-7. [ML methodology](ml.md) — stable modeling and validation rules
-8. [ML operations](../ml/README.md) — live prediction/scoring workflow
-9. [Experiments](experiments/) — dated model findings and historical evidence
-10. [Alloy setup](alloy-setup.md) and [Weather setup](weather-setup.md) — Pi-side collectors and observability
+1. [README](../README.md)
+2. [Architecture](architecture.md)
+3. [Decision log](decisions.md)
+4. [Database](../database/README.md)
+5. [ML methodology](ml.md)
+6. [ML operations](../ml/README.md)
+7. [Grafana](../grafana/README.md)
+8. [BirdNET Pi deployment](../deploy/birdnet-pi/README.md)
+9. [ubuntu-infra deployment](../deploy/ubuntu-infra/README.md)
+10. dated material in [experiments](experiments/) when you want model history
 
 ## For a new ChatGPT session
 
-A new session should read, in this order:
+Read:
 
-1. `AGENTS.md`
-2. `docs/executive-summary.md`
-3. `docs/decisions.md`
-4. the subsystem document relevant to the requested work
+1. \`AGENTS.md\`
+2. this executive summary
+3. \`docs/architecture.md\`
+4. \`docs/decisions.md\`
+5. the relevant subsystem document
 
-Do not reconstruct architecture from old chat history when the repository already records the current decision.
+Prefer the repository's current architecture over remembered chat history when the two disagree.
