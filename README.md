@@ -101,13 +101,14 @@ Primary data includes:
 - `weather_forecasts`
 - `bird_activity_predictions`
 - `bird_species_predictions`
+- `station_health_hourly`
 
 Derived analytical views include:
 
 - `bird_activity_hourly`
 - `bird_species_hourly`
 
-PostgreSQL is the foundation for historical analysis and machine learning.
+PostgreSQL is the foundation for historical analysis and machine learning. It also stores compact hourly station-health evidence derived from Loki so future ML can distinguish healthy zero-detection hours from incomplete or unavailable station evidence.
 
 ## Loki — operational observability
 
@@ -286,6 +287,7 @@ The core data path is operational.
 | Aggregate activity ML | Live hourly Random Forest + XGBoost prediction/scoring |
 | Species ML experiments | Working |
 | Species live prediction/scoring | Reference + challenger forecasts integrated into the hourly ML cycle |
+| Station-health persistence | Repository implementation ready; runtime deployment/validation pending |
 | ML timing/leakage/scoring regression tests | Automated unittest suite under `ml/tests/` |
 | Off-host database backup | Planned |
 
@@ -299,6 +301,7 @@ Grafana Cloud Loki remains temporarily available during the local observability 
 |---|---|
 | `collector/` | Read-only BirdNET SQLite synchronization |
 | `weather/` | Weather observation and forecast collectors |
+| [`health/`](health/README.md) | Durable hourly BirdNET analysis-coverage evidence from Loki |
 | [`database/`](database/README.md) | Schema, analytical views, prediction tables, database operations |
 | `alloy/` | Grafana Alloy configuration/reference material |
 | [`deploy/ubuntu-infra/`](deploy/ubuntu-infra/README.md) | Central PostgreSQL/Loki deployment and rebuild guidance |
@@ -358,7 +361,7 @@ The highest-value next steps are:
 4. add Black-crowned Night-Heron and Lesser Goldfinch to the live species reference set using only the standard Random Forest + XGBoost models so genuine forward-validation history starts accumulating; do not add species-specific challengers yet
 5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
 6. evaluate species-specific thresholds and add daylight/sunrise features where justified
-7. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
+7. deploy and validate `station_health_hourly` persistence so healthy quiet periods can be distinguished from incomplete or unavailable station evidence; keep ML behavior unchanged until validation is complete
 8. create an off-host PostgreSQL backup copy and periodically test restores
 9. finish validating local Loki/Grafana before retiring the Cloud Loki path
 10. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
