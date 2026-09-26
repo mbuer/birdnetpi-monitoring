@@ -100,3 +100,26 @@ Decision:
 
 The purpose is to prevent future BirdNET/Pi outages from silently becoming biological zero-activity training examples while preserving BirdNET's independence from the monitoring stack.
 
+## 2026-09-26 — Station-health persistence deployed and verified
+
+The hourly station-health pipeline is now deployed on `ubuntu-infra`.
+
+Verified runtime state:
+
+- the PostgreSQL `station_health_hourly` table is active
+- the initial retained Loki period was backfilled with 312 consecutive healthy hourly records
+- observed analysis coverage in that backfill was 239–240 of 240 expected 15-second segments per hour
+- the systemd service completed successfully when run manually
+- the systemd timer fired automatically at 2026-09-26 19:20 UTC
+- that scheduled run rechecked the latest six completed hours and upserted fresh `collected_at` timestamps
+- the timer advanced correctly to the next hourly trigger
+- the BirdNET Pi itself was not modified
+
+Decision:
+
+- treat the station-health collector as deployed and operational
+- preserve the six-hour lookback/upsert behavior so delayed telemetry can self-heal
+- continue to interpret missing Loki evidence as `unknown`, not as proof of an outage
+- do not retroactively assign health states to older periods without retained evidence
+- any future ML use of `station_health_hourly` is a separate methodology change and must be evaluated explicitly
+
