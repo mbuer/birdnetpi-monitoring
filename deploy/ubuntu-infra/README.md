@@ -524,7 +524,7 @@ The data-quality audit established continuous local Loki evidence from 2026-09-1
 Backfill that evidence only after the table exists:
 
 ```bash
-health/collect_station_health.sh \
+bash health/collect_station_health.sh \
   --start 2026-09-13T12:00:00-07:00 \
   --end   2026-09-26T12:00:00-07:00
 ```
