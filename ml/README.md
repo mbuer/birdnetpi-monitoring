@@ -21,7 +21,7 @@ birdnet-ml-prediction.timer
     -> birdnet-ml-prediction.service
     -> ml/hourly_prediction_cycle.sh
         -> score aggregate predictions
-        -> create aggregate Random Forest + XGBoost predictions
+        -> create aggregate Random Forest + XGBoost + HistGradientBoosting predictions
         -> score species predictions
         -> predict configured reference species
         -> predict configured species challengers
@@ -106,8 +106,9 @@ Model labels:
 
 - `random_forest_v2_completed`
 - `xgboost_v2_completed`
+- `hist_gradient_boosting_v1_completed`
 
-Both models use the same feature frame, timing, target hour, and training rows so their live results are directly comparable.
+All three models use the same feature frame, timing, target hour, and training rows so their live results are directly comparable.
 
 Features:
 
@@ -141,11 +142,19 @@ tree_method = hist
 random_state = 42
 ```
 
+HistGradientBoosting configuration:
+
+```text
+HistGradientBoostingRegressor(random_state=42)
+```
+
+The challenger intentionally starts with scikit-learn defaults rather than tuned hyperparameters. The goal is to accumulate genuine forward evidence before tuning or promotion.
+
 `src/timing.py` owns completed-hour timing, hourly preparation, and recent-gap handling.
 
 The timer runs at minute 10 each hour. This is an ingestion grace period, not proof that every detection has arrived.
 
-Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule. Because uniqueness includes both `predicted_hour` and `model`, Random Forest and XGBoost can safely store independent forecasts for the same target hour.
+Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule. Because uniqueness includes both `predicted_hour` and `model`, Random Forest, XGBoost, and HistGradientBoosting can safely store independent forecasts for the same target hour.
 
 ## Aggregate experiments
 
@@ -343,7 +352,7 @@ Run the full suite after changing timing, live feature construction, or either s
 | Script | Purpose |
 |---|---|
 | `src/timing.py` | Completed-hour timing, hourly preparation, and v2 guards |
-| `src/predict_next_hour.py` | Live aggregate Random Forest + XGBoost prediction |
+| `src/predict_next_hour.py` | Live aggregate Random Forest + XGBoost + HistGradientBoosting prediction |
 | `src/score_predictions.py` | Score eligible aggregate predictions |
 | `src/compare_v2_xgboost.py` | Leakage-safe aggregate RF vs XGBoost comparison |
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
@@ -397,8 +406,8 @@ The raw dataset and stored live forecasts are more valuable long-term than any c
 
 Priorities now are:
 
-- accumulate matched live Random Forest and XGBoost forward-validation history
-- compare the two aggregate models only after enough shared scored target hours exist
+- accumulate matched live Random Forest, XGBoost, and HistGradientBoosting forward-validation history
+- compare aggregate models only on matched scored target hours after the new challenger has accumulated its own live history
 - accumulate matched live challenger scoring for Black Phoebe and American Crow
 - evaluate species-specific thresholds without reusing diagnostic holdouts
 - add stronger ingestion/uptime completeness checks
