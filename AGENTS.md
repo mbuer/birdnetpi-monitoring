@@ -9,9 +9,10 @@ Use this file as an architectural and operational guardrail. For implementation 
 Before making meaningful changes in a fresh session:
 
 1. read `docs/executive-summary.md`
-2. read `docs/decisions.md`
-3. read the relevant subsystem README or methodology document
-4. inspect current code/runtime evidence before assuming a documented deployment state
+2. read `docs/architecture.md`
+3. read `docs/decisions.md`
+4. read the relevant subsystem README or methodology document
+5. inspect current code/runtime evidence before assuming a documented deployment state
 
 For architectural, database, ML-methodology, security, networking, or other cross-cutting changes, treat newer entries in `docs/decisions.md` as current context unless they are deliberately superseded.
 
@@ -58,6 +59,22 @@ The infrastructure VM owns centralized services and ML execution:
 - hourly persistence of BirdNET analysis-coverage evidence from Loki
 
 Grafana deployment itself is maintained in the separate `homelab-grafana` repository.
+
+## AI Nexus / Birdynator
+
+AI Nexus is a separate secure agent platform maintained in the \`ai-nexus\` repository.
+
+For BirdNET work, treat AI Nexus as a downstream consumer:
+
+- BirdNET/ubuntu-infra remain authoritative for detections, weather, station health, and ML evidence
+- Birdynator may consume BirdNET evidence through a constrained read-only datasource boundary
+- Birdynator does not collect station health and must not duplicate the upstream collector
+- Birdynator does not write into BirdNET source data
+- Birdynator analysis history belongs to AI Nexus, not this repository
+- a richer ML/health evidence interface is deferred until upstream analytical outputs are stable
+
+Do not move BirdNET collection or ML ownership into AI Nexus merely to simplify an agent workflow. Cross-repository interfaces should remain narrow and explicit.
+
 
 ---
 
@@ -224,7 +241,7 @@ The repository weather collectors explicitly request:
 
 The database columns `precipitation_in` assume inch values. Historical rows collected before the explicit `precipitation_unit=inch` fix may have different unit provenance and should not be silently converted without verification.
 
-The live Pi files must be compared with the checked-in versions before repository weather changes are deployed there.
+The checked-in Pi deployment path was runtime-verified against the live host on 2026-09-26. For future changes, use the canonical bootstrap/verification workflow and validate the resulting runtime rather than maintaining undocumented one-off copies.
 
 ---
 
@@ -251,7 +268,7 @@ Local Loki is deployed on `ubuntu-infra`.
 
 The active Pi Alloy architecture writes operational logs only to local Loki on `ubuntu-infra`. Grafana Cloud Loki was retired after the local path was runtime-verified.
 
-Do not overwrite a known-working installed Alloy configuration merely because the repository changed. Reconcile and validate first.
+Use the canonical Pi bootstrap/verification workflow for Alloy changes. Validate configuration before restart and verify end-to-end Loki delivery afterward; a running Alloy service alone is not sufficient evidence.
 
 ---
 
@@ -387,6 +404,7 @@ The repository already has a sensible structure. Do not reorganize directories m
 Use the existing documentation roles:
 
 - root `README.md` — concise project overview and navigation
+- `docs/architecture.md` — detailed current architecture, ownership, trust boundaries, and AI Nexus relationship
 - `AGENTS.md` — architectural and development guardrails
 - `docs/decisions.md` — architectural and development decisions
 - `docs/ml.md` — stable ML methodology
