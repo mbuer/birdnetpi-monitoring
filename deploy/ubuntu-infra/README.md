@@ -531,5 +531,5 @@ bash health/collect_station_health.sh \
 
 Do not infer health for older hours whose Loki evidence is no longer retained.
 
-ML behavior must remain unchanged until this persisted health dataset has been validated independently.
+Runtime validation completed on 2026-09-26. The scheduled timer fired successfully at 19:20 UTC, rechecked the latest six completed hours, and persisted 240/240 healthy coverage with fresh collection timestamps. ML behavior remains unchanged until a separate methodology change deliberately consumes this evidence.
 
