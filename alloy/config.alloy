@@ -129,6 +129,6 @@ loki.process "weather" {
 
 loki.write "local" {
     endpoint {
-        url = "http://192.168.1.137:3100/loki/api/v1/push"
+        url = sys.env("BIRDNET_LOKI_URL") + "/loki/api/v1/push"
     }
 }
