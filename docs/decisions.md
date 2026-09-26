@@ -74,7 +74,7 @@ Decision:
 
 Black-crowned Night-Heron was selected because it now has substantial positive-hour coverage across the observation period and adds a useful nocturnal case. Lesser Goldfinch was selected as a second, lower-prevalence species with enough distributed positive hours to begin collecting forward evidence without expanding the live set too aggressively.
 
-This is a roadmap decision only until `ml/live_species.txt` is deliberately changed and deployed.
+This decision is now implemented in `ml/live_species.txt`; runtime deployment/validation remains the next step.
 
 ## 2026-09-26 — Persist hourly BirdNET health evidence in PostgreSQL
 
