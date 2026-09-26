@@ -2,7 +2,7 @@
 Description=Run BirdNET ML prediction cycle hourly
 
 [Timer]
-OnCalendar=*-*-* *:10:00
+OnCalendar=*-*-* *:30:00
 Persistent=true
 Unit=birdnet-ml-prediction.service
 
