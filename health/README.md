@@ -92,8 +92,8 @@ Example for the first locally verified retained period:
 
 ```bash
 bash health/collect_station_health.sh \
-  --start 2026-09-13T12:00:00-07:00 \
-  --end   2026-09-26T12:00:00-07:00
+  --start 2026-09-13T11:00:00-07:00 \
+  --end   2026-09-26T11:00:00-07:00
 ```
 
 The end timestamp is exclusive.
