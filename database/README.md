@@ -9,6 +9,7 @@ It stores:
 - historical weather forecast snapshots
 - aggregate activity predictions
 - species-presence predictions
+- hourly BirdNET station-health evidence
 
 PostgreSQL complements Loki:
 
@@ -129,6 +130,27 @@ Stores actual weather conditions collected from Open-Meteo.
 
 Important fields include temperature, humidity, pressure, precipitation, cloud cover, wind, weather code, day/night state, sunrise, and sunset.
 
+### `station_health_hourly`
+
+Stores durable hourly evidence that the BirdNET analysis pipeline was operating.
+
+The collector derives this evidence from Loki on `ubuntu-infra`, using recurring BirdNET analysis events as the source signal. With 15-second recording segments, a fully covered hour normally contains about 240 analyzed segments.
+
+Important fields:
+
+- `station_id`
+- `hour_utc`
+- `analysis_segments`
+- `expected_segments`
+- `coverage_pct`
+- `health_state` (`healthy`, `incomplete`, or `unknown`)
+- `evidence_source`
+- `collected_at`
+
+Missing Loki evidence is stored as `unknown`; it is not interpreted as proof that BirdNET was down.
+
+This table is intended to preserve data-quality provenance for future ML use so a healthy zero-detection hour can be distinguished from an hour with incomplete or unavailable station evidence.
+
 ### `weather_forecasts`
 
 Stores historical snapshots of future Open-Meteo forecasts.
@@ -220,6 +242,10 @@ For an existing deployment, first create and inspect a backup. Then run from the
 ```bash
 docker exec -i birdnet-postgres \
   psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/schema.sql
+
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
   < database/views/bird_activity_hourly.sql
 
 docker exec -i birdnet-postgres \
@@ -245,7 +271,8 @@ GRANT SELECT ON
   public.bird_activity_hourly,
   public.bird_species_hourly,
   public.bird_activity_predictions,
-  public.bird_species_predictions
+  public.bird_species_predictions,
+  public.station_health_hourly
 TO grafana_reader;
 "
 ```
@@ -617,7 +644,7 @@ Priorities include:
 - replicate backups off `ubuntu-infra`
 - periodically test real restores
 - eventually retire the old Pi PostgreSQL instance
-- improve station-health / ingestion-completeness evidence
+- deploy and validate durable station-health evidence, then decide how ML should consume healthy/incomplete/unknown hours
 - move analytical timestamps toward UTC plus explicit station timezone metadata
 - add materialized views or indexes only when real query patterns justify them
 
