@@ -37,7 +37,7 @@ The local operational dashboard uses:
 - Infinity for Open-Meteo weather data
 - Grafana OSS for visualization
 
-The Cloud export remains as a reference during the local observability migration.
+The Cloud export remains only as historical/reference material. The local observability migration is complete.
 
 The Local export references `Loki` and `Infinity`. The Cloud export uses the original Grafana Cloud datasource references.
 
@@ -114,6 +114,7 @@ The live aggregate model labels are:
 ```text
 random_forest_v2_completed
 xgboost_v2_completed
+hist_gradient_boosting_v1_completed
 ```
 
 All three models predict the same target hour from the same completed-hour feature frame. HistGradientBoosting is currently surfaced for forecast issuance and freshness visibility while it accumulates genuine forward-validation history; the existing RF/XGBoost/persistence performance comparisons remain unchanged for now.
@@ -281,6 +282,14 @@ After importing any dashboard, verify:
 - pending versus scored predictions
 
 A successful import validates configuration, not model correctness.
+
+---
+
+## AI Nexus boundary
+
+Grafana dashboards are human-facing views over the same upstream evidence that may later be consumed by AI Nexus / Birdynator. AI Nexus does not scrape Grafana as its source of truth and does not own dashboard-derived station health. The authoritative analytical evidence remains in the BirdNET/ubuntu-infra data layer.
+
+See [Architecture](../docs/architecture.md).
 
 ---
 
