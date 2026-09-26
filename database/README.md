@@ -645,7 +645,7 @@ Priorities include:
 - replicate backups off `ubuntu-infra`
 - periodically test real restores
 - eventually retire the old Pi PostgreSQL instance
-- deploy and validate durable station-health evidence, then decide how ML should consume healthy/incomplete/unknown hours
+- decide how ML should consume the now-deployed healthy/incomplete/unknown station-health evidence, and validate that methodology before changing training/scoring behavior
 - move analytical timestamps toward UTC plus explicit station timezone metadata
 - add materialized views or indexes only when real query patterns justify them
 
