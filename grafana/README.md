@@ -20,7 +20,7 @@ PostgreSQL                -> Species Prediction
 |---|---|---|
 | `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Burbank Local.json` | Active local Grafana OSS operational dashboard | `dashboard.grafana.app/v2` resource |
-| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost forecasts, outcomes, and error metrics | `dashboard.grafana.app/v2` resource |
+| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost + HistGradientBoosting forecast observability, outcomes, health, and established error metrics | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Species Prediction.json` | Per-species baseline/challenger probabilities, decisions, and scored results | `dashboard.grafana.app/v2` resource |
 
 The two Bird Home operational exports retain the same internal dashboard identity. Their filenames alone do not make them separate Grafana dashboards. Check the import preview before loading both into the same Grafana instance.
@@ -116,12 +116,13 @@ random_forest_v2_completed
 xgboost_v2_completed
 ```
 
-Both models predict the same target hour from the same completed-hour feature frame. They are stored as separate rows so live forward-validation can compare them directly.
+All three models predict the same target hour from the same completed-hour feature frame. HistGradientBoosting is currently surfaced for forecast issuance and freshness visibility while it accumulates genuine forward-validation history; the existing RF/XGBoost/persistence performance comparisons remain unchanged for now.
 
 The dashboard compares:
 
 - Random Forest forecast
 - XGBoost forecast
+- HistGradientBoosting forecast visibility
 - observed activity
 - persistence baseline
 - per-model absolute prediction error
@@ -129,6 +130,7 @@ The dashboard compares:
 - model edge over persistence
 - model win rate
 - recent prediction records
+- latest station-health state, analysis coverage, and aggregate forecast/scoring freshness
 
 The aggregate pipeline uses the completed-hour T → T+2 timing convention documented in [ML methodology](../docs/ml.md).
 
@@ -146,19 +148,20 @@ Current panels intentionally use different scopes.
 
 | Panel/group | Query scope |
 |---|---|
-| Next Hour Forecast | Latest shared target hour for Random Forest and XGBoost |
+| Next Hour Forecast | Latest aggregate target hour with Random Forest, XGBoost, and HistGradientBoosting visibility |
 | Current Activity | Latest observed aggregate activity |
 | Live Model MAE / Model Edge | All scored rows, separated by model |
 | Scored Hours | Distinct scored target hours, not total model rows |
 | Forecast vs Reality / Prediction Error / Daily MAE | Selected Grafana time range, separated by model where applicable |
 | Model Win Rate / Model MAE / Persistence MAE / Best Forecast Error | All scored live rows with model-aware aggregation |
-| Recent Predictions | Most recent Random Forest and XGBoost records |
+| Recent Predictions | Most recent Random Forest, XGBoost, and HistGradientBoosting forecasts; legacy Best comparison remains RF/XGB/persistence |
+| ML / Station Health | Latest persisted station-health evidence plus aggregate forecast/scoring freshness |
 
 Because both live models create one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
 
 “Daily MAE” is grouped by local calendar day. It is not a rolling moving average.
 
-Zero observed activity is valid, but the current data pipeline cannot always distinguish a genuinely quiet hour from an ingestion or station outage.
+Zero observed activity is valid. Where `station_health_hourly` contains coverage evidence, the dashboard can now distinguish a healthy quiet period from incomplete or unavailable station evidence; older hours without retained health provenance remain uncertain.
 
 ---
 
@@ -183,7 +186,7 @@ $model
 $status
 ```
 
-`$species` is populated from stored prediction rows. `$model` allows model-specific filtering, while `$status` separates baseline and challenger rows where applicable.
+`$species` is populated from stored prediction rows and explicitly includes Black-crowned Night-Heron and Lesser Goldfinch so they are selectable before their first stored forecasts arrive. `$model` allows model-specific filtering, while `$status` separates baseline and challenger rows where applicable.
 
 Reference model labels are:
 
@@ -303,7 +306,7 @@ Important limitations across the analytical dashboards include:
 - scoring uses an ingestion grace period rather than a formal completeness signal
 - late detections can change historical reality after a prediction has already been scored
 - aggregate activity depends on weather-backed hourly coverage
-- the XGBoost aggregate live history starts later than the Random Forest history, so early aggregate metrics are not directly matched across both models
+- aggregate model histories start at different times; HistGradientBoosting is intentionally not included in rankings or conclusions until it has accumulated enough matched forward evidence
 - species prediction thresholds are still experimental
 
 These dashboards should therefore be treated as experimental analytical tools rather than authoritative ecological forecasting systems.
