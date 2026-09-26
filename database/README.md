@@ -76,12 +76,12 @@ The database layer is split between the base schema, derived views, and predicti
 
 ```text
 database/
-├── schema.sql
-├── predictions.sql
-├── species_predictions.sql
-└── views/
-    ├── bird_activity_hourly.sql
-    └── bird_species_hourly.sql
+|-- schema.sql
+|-- predictions.sql
+|-- species_predictions.sql
+`-- views/
+    |-- bird_activity_hourly.sql
+    `-- bird_species_hourly.sql
 ```
 
 ## Base tables
