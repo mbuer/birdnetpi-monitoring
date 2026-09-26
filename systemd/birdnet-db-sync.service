@@ -8,7 +8,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=birduser
-EnvironmentFile=/home/birduser/.config/birdnet-monitoring/db.env
+EnvironmentFile=/etc/birdnet-monitoring/runtime.env
 WorkingDirectory=/home/birduser/birdnetPi-monitoring
 ExecStart=/usr/bin/python3 /home/birduser/birdnetPi-monitoring/collector/import_detections.py
 TimeoutStartSec=30
