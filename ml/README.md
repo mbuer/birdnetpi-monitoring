@@ -332,7 +332,7 @@ The timing suite verifies:
 
 The aggregate scoring suite verifies:
 
-- both live aggregate model labels are included in scoring
+- all live aggregate model labels (Random Forest, XGBoost, and HistGradientBoosting) are included in scoring
 - scoring remains limited to unscored prediction rows
 - scoring still matches predictions to their target hour
 - the issue-time and target-completion guards remain present
@@ -393,14 +393,26 @@ Current prediction results remain experimental.
 
 Important limitations include:
 
-- the ten-minute grace period does not prove ingestion completeness
-- a quiet station and a failed station can both appear as zero detections
+- the ten-minute grace period does not prove ingestion completeness by itself; station-health evidence provides an additional provenance guard for zero outcomes
+- station-health provenance reduces the known false-zero failure mode, but hours before the health-evidence era and late/missing telemetry still limit certainty
 - the aggregate activity view depends on weather-backed hourly coverage
 - local wall-clock timestamps have DST ambiguity
 - late detections can arrive after a forecast has been scored
 - the historical dataset is still short and does not support strong seasonal conclusions
 
 The raw dataset and stored live forecasts are more valuable long-term than any current model artifact.
+
+---
+
+# AI Nexus boundary
+
+AI Nexus / Birdynator is downstream of this ML system.
+
+The ML code in this repository remains responsible for feature construction, training, issuing predictions, scoring, and provenance-aware health gating. Birdynator should consume stable analytical evidence through a constrained read-only interface rather than importing ML internals or becoming part of the scheduled prediction cycle.
+
+A richer ML/health evidence contract for Birdynator is intentionally deferred until the upstream outputs are stable enough to expose cleanly.
+
+See [Architecture](../docs/architecture.md).
 
 ---
 
