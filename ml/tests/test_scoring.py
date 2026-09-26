@@ -57,7 +57,7 @@ class AggregateScoringTests(unittest.TestCase):
             ),
         )
 
-    def test_scorer_targets_both_live_models_and_only_unscored_rows(self):
+    def test_scorer_targets_all_live_models_and_only_unscored_rows(self):
         conn = FakeConnection()
 
         with patch.object(
