@@ -11,7 +11,9 @@ fi
 
 if [[ -z "${BIRDNET_DB_PASSWORD:-}" ]]; then
     BIRDNET_DB_PASSWORD=$(
-        docker inspect birdnet-postgres             --format '{{range .Config.Env}}{{println .}}{{end}}'         | sed -n 's/^POSTGRES_PASSWORD=//p'
+        docker inspect birdnet-postgres \
+            --format '{{range .Config.Env}}{{println .}}{{end}}' \
+        | sed -n 's/^POSTGRES_PASSWORD=//p'
     )
     export BIRDNET_DB_PASSWORD
 fi
