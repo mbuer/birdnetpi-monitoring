@@ -77,11 +77,11 @@ Grafana deployment itself is maintained in the separate `homelab-grafana` reposi
 BirdNET Pi
   |
   +-- BirdNET analysis
-  |     \`-- native birds.db
+  |     `-- native birds.db
   |
   +-- detection sync ---------> PostgreSQL on ubuntu-infra
   +-- weather collectors -----> PostgreSQL on ubuntu-infra
-  \`-- Grafana Alloy ---------> Loki on ubuntu-infra
+  `-- Grafana Alloy ---------> Loki on ubuntu-infra
 
 ubuntu-infra
   |
@@ -89,14 +89,14 @@ ubuntu-infra
   |     +-- detections / weather / forecasts
   |     +-- station-health evidence
   |     +-- analytical views
-  |     \`-- stored ML predictions
+  |     `-- stored ML predictions
   |
   +-- Loki
   +-- Prometheus
   +-- Grafana OSS
-  \`-- station-health + ML jobs
+  `-- station-health + ML jobs
           |
-          \`-- read-only evidence
+          `-- read-only evidence
                  |
                  v
           AI Nexus / Birdynator
