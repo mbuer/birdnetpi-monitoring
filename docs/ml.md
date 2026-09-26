@@ -469,6 +469,22 @@ Model complexity should increase only when the accumulated data justifies it.
 
 # Data Quality Limitations
 
+## Station-health provenance gating
+
+Live ML now uses a provenance-aware zero rule once station-health evidence exists.
+
+For hours with an explicit `station_health_hourly` row:
+
+- positive activity/presence remains usable even if health is `incomplete` or `unknown`
+- zero activity/presence is accepted only when health is `healthy`
+- zero activity/presence with `incomplete` or `unknown` health is masked from training and cannot be used as a biological absence label
+- zero-valued forecast outcomes are not scored until healthy station evidence exists
+
+Hours before station-health collection began remain usable under the legacy methodology because no historical health provenance exists for them.
+
+This is deliberately narrower than strict health filtering. It preserves older training history while preventing newly observed telemetry failures from silently becoming biological zeroes.
+
+
 Prediction quality depends on the integrity of the underlying observations.
 
 Current limitations include:
