@@ -2,7 +2,18 @@
 
 Guidance for automated coding agents and future development sessions working in this repository.
 
-Use this file as an architectural and operational guardrail. For implementation details, follow the component READMEs and current code. Before architectural, database, ML-methodology, or other cross-cutting changes, read `docs/decisions.md` first and treat newer recorded decisions as current context unless they are deliberately superseded.
+Use this file as an architectural and operational guardrail. For implementation details, follow the component READMEs and current code.
+
+## New session / new chat startup
+
+Before making meaningful changes in a fresh session:
+
+1. read `docs/executive-summary.md`
+2. read `docs/decisions.md`
+3. read the relevant subsystem README or methodology document
+4. inspect current code/runtime evidence before assuming a documented deployment state
+
+For architectural, database, ML-methodology, security, networking, or other cross-cutting changes, treat newer entries in `docs/decisions.md` as current context unless they are deliberately superseded.
 
 ---
 
@@ -238,13 +249,35 @@ Grafana deployment itself belongs in `homelab-grafana`.
 
 Local Loki is deployed on `ubuntu-infra`.
 
-The intended Pi Alloy architecture dual-writes operational logs to local Loki and Grafana Cloud Loki during validation. The repository sample now reflects that architecture, but the installed Pi configuration still needs to be compared before replacement.
+The active Pi Alloy architecture writes operational logs only to local Loki on `ubuntu-infra`. Grafana Cloud Loki was retired after the local path was runtime-verified.
 
-Do not overwrite a known-working installed Alloy configuration merely because the repository changed. Reconcile first.
-
-Historical Grafana Cloud Loki data does not need to be migrated unless a concrete need appears.
+Do not overwrite a known-working installed Alloy configuration merely because the repository changed. Reconcile and validate first.
 
 ---
+
+# Public repository hygiene
+
+This repository should remain safe to share publicly.
+
+Do not commit:
+
+- exact private IP addresses or private subnets from the live environment
+- exact station latitude/longitude
+- public WAN addresses or dynamic-DNS names
+- environment-specific hostnames that reveal live topology where symbolic names suffice
+- credentials, tokens, private keys, or passwords
+- screenshots containing sensitive infrastructure details
+
+Use symbolic names such as:
+
+```text
+BIRDNET_HOST
+INFRA_HOST
+LOKI_URL
+POSTGRES_HOST
+```
+
+Safe examples belong in `config/runtime.example.env`. Real environment values belong in ignored local configuration.
 
 # Secrets
 
