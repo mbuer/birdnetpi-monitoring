@@ -527,6 +527,10 @@ American Crow bootstrap detail:
 
 `docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md`
 
+Live forward-validation checkpoint:
+
+`docs/experiments/2026-09-26-live-forward-validation.md`
+
 ---
 
 # Guiding Principle
