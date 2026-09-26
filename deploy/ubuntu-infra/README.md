@@ -153,22 +153,29 @@ See [database/README.md](../../database/README.md) for application order, grants
 
 # BirdNET Client Configuration
 
-The Pi uses:
+The Pi-side services use the shared runtime file:
 
 ```text
-/home/birduser/.config/birdnet-monitoring/db.env
+/etc/birdnet-monitoring/runtime.env
 ```
 
-Variables:
+Start from `config/runtime.example.env` and set real values only on the host.
+
+Relevant variables include:
 
 ```text
 BIRDNET_DB_HOST
 BIRDNET_DB_NAME
 BIRDNET_DB_USER
 BIRDNET_DB_PASSWORD
+BIRDNET_STATION_ID
+BIRDNET_TIMEZONE
+BIRDNET_LATITUDE
+BIRDNET_LONGITUDE
+BIRDNET_LOKI_URL
 ```
 
-The installed systemd services load this file. It contains runtime secrets and must never be committed.
+The runtime file contains environment-specific values and credentials and must never be committed.
 
 ---
 
