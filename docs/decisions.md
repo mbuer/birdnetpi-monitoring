@@ -76,3 +76,27 @@ Black-crowned Night-Heron was selected because it now has substantial positive-h
 
 This is a roadmap decision only until `ml/live_species.txt` is deliberately changed and deployed.
 
+## 2026-09-26 — Persist hourly BirdNET health evidence in PostgreSQL
+
+A data-completeness audit compared PostgreSQL detection history with the authoritative BirdNET SQLite database and found matching daytime zero-detection hours.
+
+For the local Loki-retained period from 2026-09-13 12:00 through 2026-09-26 11:00, BirdNET analysis telemetry showed:
+
+- 312 of 312 expected hourly samples
+- minimum 239 analyzed 15-second segments per hour
+- maximum 240 analyzed segments per hour
+- healthy zero-detection hours can therefore be distinguished from missing station evidence during that retained period
+
+Decision:
+
+- persist hourly BirdNET analysis-coverage evidence in PostgreSQL on `ubuntu-infra`
+- keep the BirdNET Pi itself unchanged
+- store raw evidence (`analysis_segments`, `expected_segments`, and `coverage_pct`) as well as a derived health state
+- use `healthy`, `incomplete`, and `unknown` states
+- treat missing Loki evidence as `unknown`, not as proof that BirdNET was down
+- collect recent completed hours repeatedly so delayed telemetry can self-heal through upsert
+- backfill only periods for which Loki actually retains evidence; do not manufacture historical health for older hours
+- keep ML behavior unchanged until the persisted health dataset has been deployed and validated
+
+The purpose is to prevent future BirdNET/Pi outages from silently becoming biological zero-activity training examples while preserving BirdNET's independence from the monitoring stack.
+
