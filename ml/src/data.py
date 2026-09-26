@@ -6,21 +6,25 @@ import psycopg
 
 QUERY = """
 SELECT
-    hour_local,
-    raw_detections,
-    species_count,
-    capped_detections,
-    activity_index,
-    is_day,
-    hour_of_day,
-    hours_from_sunrise,
-    temperature_f,
-    humidity_pct,
-    wind_mph,
-    cloud_pct,
-    precipitation_in
-FROM bird_activity_hourly
-ORDER BY hour_local;
+    a.hour_local,
+    a.raw_detections,
+    a.species_count,
+    a.capped_detections,
+    a.activity_index,
+    a.is_day,
+    a.hour_of_day,
+    a.hours_from_sunrise,
+    a.temperature_f,
+    a.humidity_pct,
+    a.wind_mph,
+    a.cloud_pct,
+    a.precipitation_in,
+    h.health_state
+FROM bird_activity_hourly AS a
+LEFT JOIN station_health_hourly AS h
+    ON h.station_id = 'birdnet'
+   AND (h.hour_utc AT TIME ZONE 'America/Los_Angeles') = a.hour_local
+ORDER BY a.hour_local;
 """
 
 
