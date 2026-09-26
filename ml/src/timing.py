@@ -3,6 +3,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from health_gate import mask_unreliable_zero
+
 
 LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 GRACE_MINUTES = 10
@@ -40,7 +42,11 @@ def latest_completed_hour(now: datetime | None = None) -> pd.Timestamp:
 
 
 def prepare_hourly_frame(raw: pd.DataFrame) -> pd.DataFrame:
-    data = raw.copy()
+    data = mask_unreliable_zero(
+        raw,
+        value_column="activity_index",
+        columns_to_mask=["activity_index"],
+    )
 
     data["hour_local"] = pd.to_datetime(data["hour_local"])
 
