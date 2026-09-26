@@ -75,32 +75,30 @@ Grafana deployment itself is maintained in the separate `homelab-grafana` reposi
 
 ```text
 BirdNET Pi
-|
-|-- birds.db
-|    `-- import_detections.py ------> PostgreSQL
-|-- weather.py --------------------> PostgreSQL
-|-- forecast.py ------------------> PostgreSQL
-|
-`-- Grafana Alloy
-    |--> Grafana Cloud Loki
-    `--> Local Loki ---------------> Grafana OSS
+├─ birds.db -> detection sync ───────────────┐
+├─ weather + forecast collectors ────────────┤
+└─ Grafana Alloy -> local Loki ───────────┐  │
+                                           │  │
+ubuntu-infra                               │  │
+├─ Loki <──────────────────────────────────┘  │
+├─ PostgreSQL <───────────────────────────────┘
+│  ├─ detections / weather / forecasts
+│  ├─ station-health evidence
+│  ├─ analytical views
+│  └─ prediction history
+├─ Prometheus
+├─ Grafana OSS
+└─ hourly station-health + ML prediction/scoring
 
-ubuntu-infra
-|-- PostgreSQL
-|    |-- detections
-|    |-- weather observations
-|    |-- weather forecasts
-|    |-- activity predictions
-|    `-- species predictions
-|-- Loki
-|-- Prometheus
-|-- Grafana OSS
-`-- BirdNET ML hourly cycle
+BirdNET / ubuntu-infra
+└─ constrained read-only evidence -> AI Nexus / Birdynator
 ```
 
-PostgreSQL is the structured historical datastore. Loki is the operational log datastore.
+PostgreSQL is the structured historical datastore. Loki is the operational log datastore. AI Nexus is a downstream analytical consumer and is not part of the collection path.
 
-Grafana Alloy writes operational logs only to local Loki. The former Grafana Cloud output was retired after the local path was runtime-verified.
+Grafana Alloy writes operational logs only to local Loki. The former Grafana Cloud output is retired.
+
+See [the architecture document](../../docs/architecture.md) for ownership, trust boundaries, failure behavior, and the AI Nexus relationship.
 
 ---
 
