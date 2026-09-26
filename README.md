@@ -185,7 +185,7 @@ Both use the same completed historical input and timing convention:
 completed hour T -> target hour T+2
 ```
 
-At 14:10, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00.
+At 14:30, for example, the most recent completed input hour is 13:00–14:00 and the next full target hour is 15:00–16:00. The :30 schedule allows station-health collection at :20 to persist provenance first.
 
 Random Forest remains the established live reference model. XGBoost remains a live challenger, and HistGradientBoosting is now added as a third experimental challenger so all three can accumulate true matched forward-validation evidence. Each model is stored as a separate row in `bird_activity_predictions` under its own model label.
 
@@ -360,7 +360,7 @@ Do not commit PostgreSQL/Grafana credentials, `.env` or `db.env`, database dumps
 The highest-value next steps are:
 
 1. continue collecting matched live forward-validation history for the current aggregate models
-2. add `HistGradientBoostingRegressor` as a third aggregate challenger under a distinct versioned model label so genuine forward-validation history starts accumulating immediately; do not replace the Random Forest reference model
+2. continue accumulating genuine matched forward-validation history for `HistGradientBoostingRegressor`; do not promote it before enough scored evidence exists
 3. compare aggregate models only on matched scored target hours and characterize performance by day/night and activity level before changing the aggregate champion
 4. accumulate live reference Random Forest + XGBoost forward-validation history for Black-crowned Night-Heron and Lesser Goldfinch; do not add species-specific challengers yet
 5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
