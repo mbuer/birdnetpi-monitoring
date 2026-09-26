@@ -190,7 +190,7 @@ Random Forest remains the established live reference model. XGBoost remains a li
 
 The species pipeline predicts the probability that a particular species will be detected during a future hourly period.
 
-The live hourly cycle scores stored species predictions and creates reference Random Forest + XGBoost forecasts for House Finch, Black Phoebe, and American Crow. It also issues separate challenger forecasts for Black Phoebe (tuned XGBoost) and American Crow (class-balanced bootstrap XGBoost ensemble), so the alternatives can accumulate matched forward-validation history without replacing the reference models.
+The live hourly cycle scores stored species predictions and creates reference Random Forest + XGBoost forecasts for House Finch, Black Phoebe, American Crow, Black-crowned Night-Heron, and Lesser Goldfinch. It also issues separate challenger forecasts for Black Phoebe (tuned XGBoost) and American Crow (class-balanced bootstrap XGBoost ensemble), so the alternatives can accumulate matched forward-validation history without replacing the reference models.
 
 The coordinated cycle is:
 
@@ -359,7 +359,7 @@ The highest-value next steps are:
 1. continue collecting matched live forward-validation history for the current aggregate models
 2. add `HistGradientBoostingRegressor` as a third aggregate challenger under a distinct versioned model label so genuine forward-validation history starts accumulating immediately; do not replace the Random Forest reference model
 3. compare aggregate models only on matched scored target hours and characterize performance by day/night and activity level before changing the aggregate champion
-4. add Black-crowned Night-Heron and Lesser Goldfinch to the live species reference set using only the standard Random Forest + XGBoost models so genuine forward-validation history starts accumulating; do not add species-specific challengers yet
+4. accumulate live reference Random Forest + XGBoost forward-validation history for Black-crowned Night-Heron and Lesser Goldfinch; do not add species-specific challengers yet
 5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
 6. evaluate species-specific thresholds and add daylight/sunrise features where justified
 7. deploy and validate `station_health_hourly` persistence so healthy quiet periods can be distinguished from incomplete or unavailable station evidence; keep ML behavior unchanged until validation is complete
