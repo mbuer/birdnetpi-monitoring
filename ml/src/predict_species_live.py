@@ -79,7 +79,13 @@ def load_species_data(conn, species):
         COALESCE(s.detection_count, 0) AS detection_count,
         COALESCE(o.total_detections, 0) AS total_detections,
         COALESCE(o.species_count, 0) AS species_count,
-        h.health_state
+        CASE
+            WHEN t.hour_local >= (
+                SELECT MIN(hour_local) FROM health
+            )
+            THEN COALESCE(h.health_state, 'unknown')
+            ELSE NULL
+        END AS health_state
     FROM timeline t
     LEFT JOIN species_rows s
         ON s.hour_local = t.hour_local
