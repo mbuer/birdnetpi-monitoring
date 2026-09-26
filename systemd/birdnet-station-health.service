@@ -1,0 +1,11 @@
+[Unit]
+Description=Persist BirdNET hourly station health evidence
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=infra
+WorkingDirectory=/opt/birdnetpi-monitoring
+ExecStart=/opt/birdnetpi-monitoring/health/collect_station_health.sh --lookback-hours 6
