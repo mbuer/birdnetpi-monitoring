@@ -160,3 +160,22 @@ Decision:
 
 This ordering gives the health collector time to persist evidence before the latest completed hour is used for training, prediction inputs, or zero-valued scoring.
 
+## 2026-09-26 — Retire Grafana Cloud Loki dual-write
+
+Local Loki and Grafana OSS have been validated as the active operational observability path.
+
+Runtime verification on the BirdNET Pi confirmed:
+
+- Alloy restarted successfully with a local-only configuration
+- the new Alloy process contained no Grafana Cloud writer
+- fresh BirdNET journal data was queryable from local Loki
+- fresh weather log data was queryable from local Loki
+
+Decision:
+
+- retire the Grafana Cloud Loki output from the active Alloy configuration
+- keep local Loki on `ubuntu-infra` as the sole operational log destination
+- remove Cloud credential placeholders and dual-write instructions from the active repository configuration
+- treat reintroduction of an external log destination as a deliberate architectural change
+- preserve historical Cloud dashboard exports only as references where useful; they are not part of the active log-delivery path
+
