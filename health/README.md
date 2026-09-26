@@ -104,4 +104,16 @@ Do not fabricate earlier health rows. Historical hours without retained evidence
 
 The current ML models do not consume `station_health_hourly` yet.
 
-First deploy and validate the health dataset. Any later filtering, weighting, or exclusion of incomplete/unknown hours is a separate ML-methodology change and must be evaluated explicitly.
+The health dataset is deployed and runtime-validated. Any later filtering, weighting, or exclusion of incomplete/unknown hours remains a separate ML-methodology change and must be evaluated explicitly.
+
+
+## Deployment status
+
+Verified on 2026-09-26:
+
+- 312 consecutive historical hours backfilled from retained Loki evidence
+- all 312 classified healthy
+- observed coverage range: 239–240 analyzed segments out of 240 expected per hour
+- manual systemd service execution succeeded
+- automatic timer execution succeeded at 19:20 UTC
+- six-hour lookback/upsert behavior confirmed in PostgreSQL
