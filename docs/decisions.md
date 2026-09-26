@@ -222,3 +222,37 @@ Git
 
 BirdNET itself remains independently installed and is not absorbed into this repository.
 
+## 2026-09-26 — Rebuild verification passed on both live hosts
+
+The new repository rebuild contract was exercised against the actual BirdNET Pi and `ubuntu-infra` runtime.
+
+Verified on the BirdNET Pi:
+
+- repository hygiene check passed
+- BirdNET SQLite was readable
+- PostgreSQL was reachable
+- Loki was ready
+- weather and Alloy services were active
+- detection-sync and forecast timers were active and enabled
+- installed Alloy configuration matched Git
+- recent BirdNET and weather records were queryable from local Loki
+
+Verified on `ubuntu-infra`:
+
+- PostgreSQL and Loki containers were running and ready
+- all core PostgreSQL tables and analytical views were present
+- station-health, ML-prediction, and PostgreSQL-backup timers were active and enabled
+- the ML virtual environment existed
+- ML regression tests passed
+
+The validation also exposed two bootstrap-quality issues:
+
+- a fresh infra host may not have `make`, even though the documented operator entry points use it
+- verification should fail immediately when core prerequisites are unavailable instead of cascading into misleading service failures
+
+Decision:
+
+- install `make` as part of the infra bootstrap
+- explicitly require Docker, Docker Compose v2, `curl`, and `systemctl` before infra verification continues
+- treat the BirdNET Pi and infra verification scripts as the canonical post-deployment acceptance tests
+
