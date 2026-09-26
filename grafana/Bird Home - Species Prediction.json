@@ -874,13 +874,13 @@
               "name": "afy5j1yt18b9cb"
             },
             "spec": {
-              "__legacyStringValue": "SELECT '__all' AS value, 'All models' AS text\nUNION ALL\nSELECT DISTINCT\n    model AS value,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS text\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY text;"
+              "__legacyStringValue": "SELECT '__all' AS __value, 'All models' AS __text\nUNION ALL\nSELECT DISTINCT\n    model AS __value,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS __text\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY __text;"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "Dynamic model list for selected species",
+          "definition": "Dynamic model list for selected species using Grafana __value/__text aliases",
           "options": [],
           "multi": false,
           "includeAll": false,
@@ -907,13 +907,13 @@
               "name": "afy5j1yt18b9cb"
             },
             "spec": {
-              "__legacyStringValue": "SELECT 'all' AS value, 'All' AS text\nUNION ALL SELECT 'baseline', 'Baseline'\nUNION ALL SELECT 'challenger', 'Challenger';"
+              "__legacyStringValue": "SELECT 'all' AS __value, 'All' AS __text\nUNION ALL SELECT 'baseline' AS __value, 'Baseline' AS __text\nUNION ALL SELECT 'challenger' AS __value, 'Challenger' AS __text;"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "disabled",
-          "definition": "Baseline/challenger filter",
+          "definition": "Baseline/challenger filter using Grafana __value/__text aliases",
           "options": [],
           "multi": false,
           "includeAll": false,
