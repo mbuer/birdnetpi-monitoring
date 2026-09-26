@@ -34,10 +34,31 @@ def score_predictions():
                     ),
                     scored_at = NOW()
                 FROM bird_activity_hourly AS h
+                LEFT JOIN station_health_hourly AS sh
+                  ON sh.station_id = 'birdnet'
+                 AND (
+                     sh.hour_utc AT TIME ZONE 'America/Los_Angeles'
+                 ) = h.hour_local
                 WHERE
                     p.model IN (%s, %s, %s)
                     AND p.actual_activity IS NULL
                     AND p.predicted_hour = h.hour_local
+
+                    -- Positive activity remains usable even when coverage is
+                    -- degraded. A zero is scoreable only when health evidence
+                    -- says the station was healthy, or when the target predates
+                    -- the station-health dataset entirely.
+                    AND (
+                        h.activity_index > 0
+                        OR sh.health_state = 'healthy'
+                        OR p.predicted_hour < (
+                            SELECT MIN(
+                                hour_utc AT TIME ZONE 'America/Los_Angeles'
+                            )
+                            FROM station_health_hourly
+                            WHERE station_id = 'birdnet'
+                        )
+                    )
 
                     -- Prediction must have existed before
                     -- the target hour started.
