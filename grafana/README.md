@@ -53,7 +53,7 @@ The current Home Lab local Loki endpoint is:
 http://192.168.1.137:3100
 ```
 
-The reported live Pi configuration currently dual-writes operational logs to Grafana Cloud Loki and local Loki. The committed Alloy sample may not fully represent that live configuration, so do not replace the installed Alloy configuration blindly.
+The live Pi configuration now writes operational logs only to local Loki. The local-only path was runtime-verified on 2026-09-26 for fresh BirdNET journal and weather log delivery.
 
 Useful Loki Explore checks include:
 
