@@ -144,6 +144,7 @@ Current comparison models include:
 - persistence
 - Random Forest
 - XGBoost
+- HistGradientBoosting
 
 The current live aggregate model labels are:
 
@@ -175,7 +176,9 @@ random_state = 42
 
 The current retrospective dataset showed only a very small aggregate XGBoost advantage, which was not large enough to justify replacing Random Forest as the established reference model.
 
-Instead, both models are now issued live for the same target hour using the same feature frame and training rows. This creates a clean forward-validation comparison while preserving Random Forest as the existing reference.
+HistGradientBoosting is now added as a third live challenger under `hist_gradient_boosting_v1_completed`. It starts with scikit-learn defaults plus `random_state=42`; it is intentionally not tuned before accumulating its own live forward-validation history.
+
+All three models are issued for the same target hour using the same feature frame and training rows. This creates a clean matched forward-validation comparison while preserving Random Forest as the established reference.
 
 See:
 
@@ -387,7 +390,7 @@ Penalizes large prediction errors more strongly.
 
 Models should be compared on exactly the same forecast rows.
 
-For live Random Forest versus XGBoost comparison, this means comparing only target hours where both models have scored predictions. Counting database rows directly would double-count shared forecast hours once both models are active.
+For live aggregate comparison, compare only target hours where all models being evaluated have scored predictions. Counting database rows directly would double-count shared forecast hours once both models are active.
 
 ---
 
@@ -458,7 +461,7 @@ There is no persisted model registry or automated champion/challenger deployment
 
 This is intentional while the dataset remains relatively small.
 
-Random Forest remains the established aggregate reference while XGBoost accumulates live challenger history. Any future model-selection decision should be based on enough matched scored target hours rather than a small early sample.
+Random Forest remains the established aggregate reference while XGBoost and HistGradientBoosting accumulate live challenger history. Any future model-selection decision should be based on enough matched scored target hours rather than a small early sample.
 
 Model complexity should increase only when the accumulated data justifies it.
 
