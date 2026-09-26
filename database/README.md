@@ -27,8 +27,7 @@ BirdNET's native SQLite database remains the authoritative source for completed 
 Primary PostgreSQL host:
 
 ```text
-ubuntu-infra
-192.168.1.137
+INFRA_HOST
 ```
 
 Container:
@@ -67,13 +66,7 @@ Deployment configuration:
 deploy/ubuntu-infra/postgres/
 ```
 
-The BirdNET Pi currently connects from:
-
-```text
-192.168.1.136
-```
-
-These addresses describe the current Home Lab deployment and are not intended as universal defaults.
+The BirdNET Pi connects from `BIRDNET_HOST`. Exact live addressing is environment-specific and intentionally excluded from Git.
 
 ---
 
