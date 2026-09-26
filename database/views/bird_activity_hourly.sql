@@ -67,5 +67,3 @@ SELECT
 FROM weather_hourly w
 LEFT JOIN bird_hourly b USING (hour_local);
 
-GRANT SELECT ON public.bird_activity_hourly TO grafana_reader;
-
