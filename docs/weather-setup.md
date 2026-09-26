@@ -26,6 +26,20 @@ Weather JSONL is written to:
 
 The forecast service runs from the checked-out repository path configured in its systemd unit.
 
+## Runtime configuration
+
+Create the local configuration before installing or updating the Pi-side services:
+
+```bash
+sudo install -d -m 0755 /etc/birdnet-monitoring
+sudo install -m 0600 config/runtime.example.env /etc/birdnet-monitoring/runtime.env
+sudoedit /etc/birdnet-monitoring/runtime.env
+```
+
+Replace all example values with the real local environment. In particular, do not run the weather collectors with the example latitude/longitude.
+
+The same runtime file is shared by detection sync, current-weather collection, and forecast collection.
+
 ## Python dependencies
 
 The committed systemd units use `/usr/bin/python3`, so the production Pi needs the required modules available to the system Python environment.
@@ -55,13 +69,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now weather.service
 ```
 
-The service loads PostgreSQL credentials from:
+The Pi-side collectors load environment-specific configuration from:
 
 ```text
-/home/birduser/.config/birdnet-monitoring/db.env
+/etc/birdnet-monitoring/runtime.env
 ```
 
-Never commit that file or its password.
+Start from `config/runtime.example.env`, then set the real station coordinates, timezone, PostgreSQL host, and credentials locally. The runtime file must never be committed.
 
 ## Forecast installation
 
@@ -97,7 +111,7 @@ The weather pipeline distinguishes between the Open-Meteo observation/forecast t
 - PostgreSQL stores the Open-Meteo `time` as `weather_observations.observed_at`.
 - JSONL retains both values.
 
-The collectors request `America/Los_Angeles`, Fahrenheit, mph, and precipitation in **inches** explicitly.
+The collectors request the timezone configured through `BIRDNET_TIMEZONE`, Fahrenheit, mph, and precipitation in **inches** explicitly. Station latitude/longitude and timezone are runtime configuration rather than repository constants.
 
 ### Historical precipitation warning
 
