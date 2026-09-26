@@ -183,8 +183,8 @@
         "kind": "Panel",
         "spec": {
           "id": 11,
-          "title": "MODEL MAE",
-          "description": "Average absolute error by live model",
+          "title": "HGB SCORED FORECASTS",
+          "description": "Number of genuine forward HistGradientBoosting forecasts that have been scored. Visibility only; not a ranking.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -204,7 +204,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    AVG(absolute_error) FILTER (\n        WHERE model = 'random_forest_v2_completed'\n    ) AS \"RF MAE\",\n    AVG(absolute_error) FILTER (\n        WHERE model = 'xgboost_v2_completed'\n    ) AS \"XGB MAE\"\nFROM bird_activity_predictions\nWHERE actual_activity IS NOT NULL\n  AND model IN ('random_forest_v2_completed', 'xgboost_v2_completed');"
+                        "rawSql": "SELECT COUNT(*) AS \"HGB Scored\"\nFROM bird_activity_predictions\nWHERE model = 'hist_gradient_boosting_v1_completed'\n  AND actual_activity IS NOT NULL;"
                       }
                     },
                     "refId": "A",
@@ -244,7 +244,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "decimals": 2,
+                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -262,7 +262,7 @@
                     "mode": "fixed",
                     "fixedColor": "blue"
                   },
-                  "noValue": "—"
+                  "noValue": "0"
                 },
                 "overrides": []
               }
@@ -477,7 +477,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "WITH hourly AS (\n    SELECT\n        predicted_hour,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'random_forest_v2_completed'\n        ) AS rf_forecast,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'xgboost_v2_completed'\n        ) AS xgb_forecast,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'hist_gradient_boosting_v1_completed'\n        ) AS hgb_forecast,\n        MAX(current_activity) AS persistence,\n        MAX(actual_activity) AS actual\n    FROM bird_activity_predictions\n    WHERE model IN (\n        'random_forest_v2_completed',\n        'xgboost_v2_completed',\n        'hist_gradient_boosting_v1_completed'\n    )\n    GROUP BY predicted_hour\n)\nSELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Forecast Hour\",\n    ROUND(rf_forecast::numeric, 1) AS \"Random Forest\",\n    ROUND(xgb_forecast::numeric, 1) AS \"XGBoost\",\n    ROUND(hgb_forecast::numeric, 1) AS \"HistGradientBoosting\",\n    ROUND(persistence::numeric, 1) AS \"Persistence\",\n    ROUND(actual::numeric, 1) AS \"Actual\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(rf_forecast - actual)::numeric, 1)\n    END AS \"RF Error\",\n    CASE\n        WHEN actual IS NULL OR xgb_forecast IS NULL THEN NULL\n        ELSE ROUND(ABS(xgb_forecast - actual)::numeric, 1)\n    END AS \"XGB Error\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(persistence - actual)::numeric, 1)\n    END AS \"Persistence Error\",\n    CASE\n        WHEN actual IS NULL THEN 'PENDING'\n        WHEN xgb_forecast IS NULL THEN\n            CASE\n                WHEN ABS(rf_forecast - actual) < ABS(persistence - actual)\n                    THEN 'RF BEST'\n                WHEN ABS(rf_forecast - actual) > ABS(persistence - actual)\n                    THEN 'PERSISTENCE BEST'\n                ELSE 'TIE'\n            END\n        WHEN ABS(rf_forecast - actual) < ABS(xgb_forecast - actual)\n         AND ABS(rf_forecast - actual) < ABS(persistence - actual)\n            THEN 'RF BEST'\n        WHEN ABS(xgb_forecast - actual) < ABS(rf_forecast - actual)\n         AND ABS(xgb_forecast - actual) < ABS(persistence - actual)\n            THEN 'XGB BEST'\n        WHEN ABS(persistence - actual) < ABS(rf_forecast - actual)\n         AND ABS(persistence - actual) < ABS(xgb_forecast - actual)\n            THEN 'PERSISTENCE BEST'\n        ELSE 'TIE'\n    END AS \"Best (legacy)\"\nFROM hourly\nORDER BY predicted_hour DESC\nLIMIT 50;"
+                        "rawSql": "WITH hourly AS (\n    SELECT\n        predicted_hour,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'random_forest_v2_completed'\n        ) AS rf_forecast,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'xgboost_v2_completed'\n        ) AS xgb_forecast,\n        MAX(predicted_activity) FILTER (\n            WHERE model = 'hist_gradient_boosting_v1_completed'\n        ) AS hgb_forecast,\n        MAX(current_activity) AS persistence,\n        MAX(actual_activity) AS actual\n    FROM bird_activity_predictions\n    WHERE model IN (\n        'random_forest_v2_completed',\n        'xgboost_v2_completed',\n        'hist_gradient_boosting_v1_completed'\n    )\n    GROUP BY predicted_hour\n)\nSELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Forecast Hour\",\n    ROUND(rf_forecast::numeric, 1) AS \"Random Forest\",\n    ROUND(xgb_forecast::numeric, 1) AS \"XGBoost\",\n    ROUND(hgb_forecast::numeric, 1) AS \"HistGradientBoosting\",\n    ROUND(persistence::numeric, 1) AS \"Persistence\",\n    ROUND(actual::numeric, 1) AS \"Actual\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(rf_forecast - actual)::numeric, 1)\n    END AS \"RF Error\",\n    CASE\n        WHEN actual IS NULL OR xgb_forecast IS NULL THEN NULL\n        ELSE ROUND(ABS(xgb_forecast - actual)::numeric, 1)\n    END AS \"XGB Error\",\n    CASE\n        WHEN actual IS NULL OR hgb_forecast IS NULL THEN NULL\n        ELSE ROUND(ABS(hgb_forecast - actual)::numeric, 1)\n    END AS \"HGB Error\",\n    CASE\n        WHEN actual IS NULL THEN NULL\n        ELSE ROUND(ABS(persistence - actual)::numeric, 1)\n    END AS \"Persistence Error\",\n    CASE\n        WHEN actual IS NULL THEN 'PENDING'\n        WHEN xgb_forecast IS NULL THEN\n            CASE\n                WHEN ABS(rf_forecast - actual) < ABS(persistence - actual)\n                    THEN 'RF BEST'\n                WHEN ABS(rf_forecast - actual) > ABS(persistence - actual)\n                    THEN 'PERSISTENCE BEST'\n                ELSE 'TIE'\n            END\n        WHEN ABS(rf_forecast - actual) < ABS(xgb_forecast - actual)\n         AND ABS(rf_forecast - actual) < ABS(persistence - actual)\n            THEN 'RF BEST'\n        WHEN ABS(xgb_forecast - actual) < ABS(rf_forecast - actual)\n         AND ABS(xgb_forecast - actual) < ABS(persistence - actual)\n            THEN 'XGB BEST'\n        WHEN ABS(persistence - actual) < ABS(rf_forecast - actual)\n         AND ABS(persistence - actual) < ABS(xgb_forecast - actual)\n            THEN 'PERSISTENCE BEST'\n        ELSE 'TIE'\n    END AS \"Best (legacy)\"\nFROM hourly\nORDER BY predicted_hour DESC\nLIMIT 50;"
                       }
                     },
                     "refId": "A",
@@ -496,7 +496,13 @@
             "spec": {
               "options": {
                 "cellHeight": "sm",
-                "showHeader": true
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "displayName": "Forecast Hour",
+                    "desc": true
+                  }
+                ]
               },
               "fieldConfig": {
                 "defaults": {
@@ -573,7 +579,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Best"
+                      "options": "Best (legacy)"
                     },
                     "properties": [
                       {
@@ -651,7 +657,7 @@
                   "showLineNumbers": false,
                   "showMiniMap": false
                 },
-                "content": "### 🧪 Reading the Prediction Lab\n**Random Forest**, **XGBoost**, and **HistGradientBoosting** are issued independently for the same target hour. HGB is currently included for issuance/freshness visibility only; do not use its early history for rankings or conclusions.",
+                "content": "### 🧪 Reading the Prediction Lab\nRandom Forest and XGBoost retain the established performance comparison. HistGradientBoosting is visible in forecasts, errors, and scored-sample count while it accumulates genuine forward history; no HGB ranking or champion decision is shown yet.",
                 "mode": "markdown"
               },
               "fieldConfig": {
@@ -774,6 +780,21 @@
                         "id": "color",
                         "value": {
                           "fixedColor": "purple",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "HistGradientBoosting"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "yellow",
                           "mode": "fixed"
                         }
                       }
@@ -1516,6 +1537,27 @@
                     "refId": "C",
                     "hidden": false
                   }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  predicted_hour AT TIME ZONE 'America/Los_Angeles' AS \"time\",\n  absolute_error AS \"HGB Error\"\nFROM bird_activity_predictions\nWHERE model = 'hist_gradient_boosting_v1_completed'\n  AND actual_activity IS NOT NULL\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY predicted_hour;"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
                 }
               ],
               "transformations": [],
@@ -1828,7 +1870,7 @@
         "spec": {
           "id": 16,
           "title": "ML / STATION HEALTH",
-          "description": "Latest station-health evidence plus aggregate forecast/scoring freshness.",
+          "description": "Latest station-health evidence and whether the latest aggregate ML input hour has matching healthy provenance.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1848,7 +1890,7 @@
                         "editorMode": "code",
                         "format": "table",
                         "rawQuery": true,
-                        "rawSql": "SELECT\n    to_char(h.hour_utc AT TIME ZONE 'America/Los_Angeles', 'YYYY-MM-DD HH24:MI') AS \"Latest Health Hour\",\n    h.health_state AS \"Station Health\",\n    h.analysis_segments || '/' || h.expected_segments AS \"Segments\",\n    ROUND(h.coverage_pct::numeric, 1) AS \"Coverage %\",\n    to_char(\n        (SELECT MAX(prediction_created_at) FROM bird_activity_predictions)\n        AT TIME ZONE 'America/Los_Angeles',\n        'YYYY-MM-DD HH24:MI:SS'\n    ) AS \"Latest Aggregate Forecast Created\",\n    to_char(\n        (SELECT MAX(scored_at) FROM bird_activity_predictions WHERE scored_at IS NOT NULL)\n        AT TIME ZONE 'America/Los_Angeles',\n        'YYYY-MM-DD HH24:MI:SS'\n    ) AS \"Latest Aggregate Score\"\nFROM station_health_hourly h\nORDER BY h.hour_utc DESC\nLIMIT 1;"
+                        "rawSql": "WITH latest_prediction AS (\n    SELECT\n        MAX(predicted_hour) AS forecast_target\n    FROM bird_activity_predictions\n    WHERE model IN (\n        'random_forest_v2_completed',\n        'xgboost_v2_completed',\n        'hist_gradient_boosting_v1_completed'\n    )\n),\nlatest_scored AS (\n    SELECT MAX(predicted_hour) AS scored_target\n    FROM bird_activity_predictions\n    WHERE actual_activity IS NOT NULL\n),\nlatest_health AS (\n    SELECT *\n    FROM station_health_hourly\n    WHERE station_id = 'birdnet'\n    ORDER BY hour_utc DESC\n    LIMIT 1\n),\ninput_health AS (\n    SELECT h.*\n    FROM station_health_hourly h\n    CROSS JOIN latest_prediction p\n    WHERE h.station_id = 'birdnet'\n      AND (h.hour_utc AT TIME ZONE 'America/Los_Angeles')\n          = p.forecast_target - INTERVAL '2 hours'\n    LIMIT 1\n)\nSELECT\n    to_char(\n        lh.hour_utc AT TIME ZONE 'America/Los_Angeles',\n        'YYYY-MM-DD HH24:MI'\n    ) AS \"Latest Health Hour\",\n    lh.health_state AS \"Latest Station Health\",\n    ROUND(lh.coverage_pct::numeric, 1) AS \"Coverage %\",\n    to_char(\n        p.forecast_target - INTERVAL '2 hours',\n        'YYYY-MM-DD HH24:MI'\n    ) AS \"Latest ML Input Hour\",\n    COALESCE(ih.health_state, 'missing') AS \"Input Health\",\n    to_char(p.forecast_target, 'YYYY-MM-DD HH24:MI') AS \"Latest Forecast Target\",\n    to_char(s.scored_target, 'YYYY-MM-DD HH24:MI') AS \"Latest Scored Target\"\nFROM latest_prediction p\nCROSS JOIN latest_scored s\nCROSS JOIN latest_health lh\nLEFT JOIN input_health ih ON TRUE;"
                       }
                     },
                     "refId": "A",
