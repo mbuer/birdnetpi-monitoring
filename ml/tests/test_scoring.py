@@ -80,6 +80,9 @@ class AggregateScoringTests(unittest.TestCase):
         self.assertIn("p.predicted_hour = h.hour_local", sql)
         self.assertIn("p.prediction_created_at <", sql)
         self.assertIn("INTERVAL '1 hour 10 minutes'", sql)
+        self.assertIn("sh.health_state = 'healthy'", sql)
+        self.assertIn("h.activity_index > 0", sql)
+        self.assertIn("SELECT MIN(", sql)
 
         self.assertTrue(conn.committed)
         self.assertTrue(conn.closed)
