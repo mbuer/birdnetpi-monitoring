@@ -25,13 +25,13 @@ alloy/default-alloy
 
 ## Install or refresh the configuration
 
-Install Grafana Alloy using the official Grafana package instructions, then from the repository root:
+Install Grafana Alloy using the supported package for the Pi OS. Then use the canonical Pi deployment workflow:
 
 ```bash
-sudo mkdir -p /etc/alloy
-sudo cp alloy/config.alloy /etc/alloy/config.alloy
-sudo cp alloy/default-alloy /etc/default/alloy
+make pi-bootstrap
 ```
+
+The bootstrap installs the committed Alloy configuration and systemd environment override while keeping the real Loki endpoint outside Git.
 
 The local Loki endpoint does not currently use authentication inside the Home Lab:
 
@@ -53,20 +53,7 @@ Both processed BirdNET logs and weather logs are forwarded to local Loki.
 
 ## Validate before restart
 
-When changing the installed configuration, validate it before replacing a known-good setup if the installed Alloy version supports configuration validation.
-
-At minimum, preserve the existing runtime file before a substantial edit:
-
-```bash
-sudo cp /etc/alloy/config.alloy /etc/alloy/config.alloy.bak
-```
-
-Then restart:
-
-```bash
-sudo systemctl enable alloy
-sudo systemctl restart alloy
-```
+The bootstrap validates the committed Alloy configuration before enabling/restarting the service. For manual troubleshooting, use `alloy validate` with the runtime environment loaded before replacing a known-good configuration.
 
 ## Verify
 
@@ -75,7 +62,7 @@ systemctl status alloy --no-pager
 journalctl -u alloy -n 50 --no-pager
 ```
 
-Verify local Loki delivery rather than assuming a healthy Alloy service proves end-to-end delivery.
+Run `make pi-verify` as the primary acceptance check. It verifies the service, Git/live config match, Loki readiness, and recent BirdNET/weather delivery. A healthy Alloy process by itself is not enough.
 
 Useful local Grafana/Loki queries include:
 
