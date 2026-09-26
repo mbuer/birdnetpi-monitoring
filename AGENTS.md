@@ -417,6 +417,22 @@ This convention is only for changes written directly by ChatGPT. User-created lo
 
 ---
 
+# Reproducible deployment
+
+Treat these as the canonical deployment/verification entry points:
+
+```bash
+make pi-bootstrap
+make pi-verify
+make infra-bootstrap
+make infra-verify
+make repo-check
+```
+
+Do not replace these workflows with undocumented one-off installation steps. When deployment behavior changes, update the bootstrap, verification, relevant documentation, and decision log together.
+
+Run `make repo-check` after changes that touch configuration, networking, deployment docs, or examples.
+
 # Editing Style
 
 Favor small understandable components, explicit configuration, simple deployment commands, validation after changes, reversible migrations, and preserved historical experiment context.
