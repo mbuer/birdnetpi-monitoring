@@ -152,7 +152,7 @@ The challenger intentionally starts with scikit-learn defaults rather than tuned
 
 `src/timing.py` owns completed-hour timing, hourly preparation, and recent-gap handling.
 
-The timer runs at minute 10 each hour. This is an ingestion grace period, not proof that every detection has arrived. For hours with persisted station-health evidence, explicit `incomplete` or `unknown` zero-activity observations are now masked from live training; positive activity remains usable.
+The ML timer runs at minute 30 each hour so the station-health collector, which runs at minute 20, can persist provenance for the latest completed hour first. The internal ten-minute completion grace still protects timing semantics but is no longer the runtime scheduling boundary. For hours in the station-health era, explicit `incomplete` / `unknown` zero-activity observations are masked from live training, and a missing health row is treated as `unknown`; positive activity remains usable.
 
 Duplicate target-hour/model attempts preserve the first stored forecast through the prediction table uniqueness rule. Because uniqueness includes both `predicted_hour` and `model`, Random Forest, XGBoost, and HistGradientBoosting can safely store independent forecasts for the same target hour.
 
