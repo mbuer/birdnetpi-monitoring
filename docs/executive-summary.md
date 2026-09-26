@@ -86,6 +86,30 @@ Real values belong in an ignored local runtime file.
 
 The repository should remain understandable and rebuildable without publishing the live Home Lab topology.
 
+## Reproducible rebuild path
+
+A new session should not reconstruct the deployment from conversation history.
+
+Canonical operator workflows:
+
+```bash
+make pi-bootstrap
+make pi-verify
+
+make infra-bootstrap
+make infra-verify
+
+make repo-check
+```
+
+The Pi workflow assumes BirdNET-Pi itself is already installed. It deploys detection sync, weather, forecast, Alloy configuration, and their systemd integration from Git plus the local ignored runtime configuration.
+
+The ubuntu-infra workflow starts PostgreSQL and Loki, applies the complete database object set, creates the Python ML environment, and installs the health, ML, and PostgreSQL-backup timers.
+
+Grafana provisioning remains owned by the separate `homelab-grafana` repository.
+
+Known portability boundary: the current analytical SQL still encodes the project's station timezone semantics. Changing the station timezone is a deliberate data-model migration, not merely a deployment-variable change.
+
 ## Recovery
 
 PostgreSQL receives validated custom-format logical backups. Proxmox snapshots/backups are complementary rollback and recovery mechanisms, not substitutes for database backup.
