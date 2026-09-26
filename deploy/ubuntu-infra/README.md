@@ -462,3 +462,74 @@ database backup
 ```
 
 For major migrations: deploy, verify, observe, retain rollback options, then retire the old component only after confidence is high.
+
+---
+
+# Station Health Evidence
+
+`ubuntu-infra` also persists compact hourly BirdNET analysis-coverage evidence from local Loki into PostgreSQL.
+
+Repository components:
+
+```text
+health/collect_station_health.py
+health/collect_station_health.sh
+systemd/birdnet-station-health.service
+systemd/birdnet-station-health.timer
+```
+
+The BirdNET Pi itself is not modified.
+
+## Apply the schema
+
+After pulling the repository and taking a fresh database backup:
+
+```bash
+cd /opt/birdnetpi-monitoring
+
+docker exec -i birdnet-postgres \
+  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet \
+  < database/schema.sql
+```
+
+Verify:
+
+```bash
+docker exec birdnet-postgres psql -U birdnet -d birdnet -c "\\d station_health_hourly"
+```
+
+## Install the systemd units
+
+```bash
+sudo cp systemd/birdnet-station-health.service /etc/systemd/system/
+sudo cp systemd/birdnet-station-health.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now birdnet-station-health.timer
+```
+
+The timer runs hourly at minute 20 and rechecks the latest six completed hours. This repeated lookback allows delayed Loki telemetry to repair earlier `unknown` or incomplete rows through upsert.
+
+Inspect:
+
+```bash
+systemctl status birdnet-station-health.timer --no-pager
+systemctl list-timers birdnet-station-health.timer --no-pager
+journalctl -u birdnet-station-health.service -n 50 --no-pager
+```
+
+## Initial verified backfill
+
+The data-quality audit established continuous local Loki evidence from 2026-09-13 12:00 through 2026-09-26 11:00 America/Los_Angeles, with 312/312 hourly samples and 239–240 analyzed 15-second segments per hour.
+
+Backfill that evidence only after the table exists:
+
+```bash
+health/collect_station_health.sh \
+  --start 2026-09-13T12:00:00-07:00 \
+  --end   2026-09-26T12:00:00-07:00
+```
+
+Do not infer health for older hours whose Loki evidence is no longer retained.
+
+ML behavior must remain unchanged until this persisted health dataset has been validated independently.
+
