@@ -199,6 +199,8 @@ The current live baseline set is:
 - House Finch
 - Black Phoebe
 - American Crow
+- Black-crowned Night-Heron
+- Lesser Goldfinch
 
 This keeps the hourly runner generic: adding or removing a scheduled species no longer requires editing `hourly_prediction_cycle.sh`.
 
@@ -213,7 +215,7 @@ BIRDNET_DB_PASSWORD="$(docker exec birdnet-postgres printenv POSTGRES_PASSWORD)"
 
 The report ranks species by positive hourly buckets and shows prevalence, total detections, and whether each species is already in the live set. Use `--min-positive-hours` and `--limit` to narrow the report.
 
-American Crow is now included in the live baseline set specifically so its existing Random Forest/XGBoost reference predictions can be compared against a bootstrap challenger on matched future hours. This is forward-validation, not a declaration that the baseline classifier is production-ready.
+American Crow is included in the live baseline set specifically so its existing Random Forest/XGBoost reference predictions can be compared against a bootstrap challenger on matched future hours. Black-crowned Night-Heron and Lesser Goldfinch are now also in the live baseline set using only the standard Random Forest/XGBoost reference path; neither has a species-specific challenger. This is forward-validation, not a declaration that the baseline classifier is production-ready.
 
 Per-species challenger configuration lives in:
 
