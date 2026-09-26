@@ -14,3 +14,6 @@ CUSTOM_ARGS=""
 
 # Restart on system upgrade. Defaults to true.
 RESTART_ON_UPGRADE=true
+
+# Local Loki base URL. Replace INFRA_HOST in the installed runtime file.
+BIRDNET_LOKI_URL="http://INFRA_HOST:3100"
