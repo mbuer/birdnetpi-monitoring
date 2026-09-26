@@ -473,8 +473,8 @@ Prediction quality depends on the integrity of the underlying observations.
 
 Current limitations include:
 
-- the ingestion grace period does not prove completeness
-- quiet hours cannot always be distinguished from station outages
+- the ingestion grace period alone does not prove completeness; `station_health_hourly` now provides independent hourly analysis-coverage evidence for covered periods
+- quiet hours can be distinguished from incomplete or unavailable station evidence where `station_health_hourly` coverage exists; older hours without retained health provenance remain uncertain
 - aggregate activity currently depends on weather-backed hourly coverage
 - local wall-clock timestamps have DST ambiguity
 - late-arriving detections can change historical reality after a forecast has already been scored
