@@ -354,12 +354,13 @@ The highest-value next steps are:
 1. continue collecting matched live forward-validation history for the current aggregate models
 2. add `HistGradientBoostingRegressor` as a third aggregate challenger under a distinct versioned model label so genuine forward-validation history starts accumulating immediately; do not replace the Random Forest reference model
 3. compare aggregate models only on matched scored target hours and characterize performance by day/night and activity level before changing the aggregate champion
-4. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
-5. evaluate species-specific thresholds and add daylight/sunrise features where justified
-6. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
-7. create an off-host PostgreSQL backup copy and periodically test restores
-8. finish validating local Loki/Grafana before retiring the Cloud Loki path
-9. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
+4. add Black-crowned Night-Heron and Lesser Goldfinch to the live species reference set using only the standard Random Forest + XGBoost models so genuine forward-validation history starts accumulating; do not add species-specific challengers yet
+5. accumulate matched forward-validation for Black Phoebe and American Crow challengers before promoting them
+6. evaluate species-specific thresholds and add daylight/sunrise features where justified
+7. improve ingestion-health/completeness evidence so quiet periods can be distinguished from outages
+8. create an off-host PostgreSQL backup copy and periodically test restores
+9. finish validating local Loki/Grafana before retiring the Cloud Loki path
+10. compare the checked-in Pi weather/Alloy configuration against the actual installed Pi files before deploying repository changes there
 
 Longer term, the growing dataset can support stronger seasonal analysis, weather-aware models, richer species forecasts, and better automated monitoring.
 
