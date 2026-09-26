@@ -226,6 +226,7 @@ See:
 - [species experiment](docs/experiments/2026-09-14-species-models.md)
 - [species challenger comparison](docs/experiments/2026-09-18-species-challengers.md)
 - [American Crow bootstrap experiment](docs/experiments/2026-09-18-american-crow-bootstrap-ensemble.md)
+- [live forward-validation checkpoint](docs/experiments/2026-09-26-live-forward-validation.md)
 
 Historical experiment material under `ml/reports/` is retained as project history and should not be confused with the current v2 methodology.
 
