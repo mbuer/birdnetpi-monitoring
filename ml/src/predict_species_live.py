@@ -7,6 +7,7 @@ import psycopg
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
+from health_gate import mask_unreliable_zero
 from timing import latest_completed_hour
 
 
@@ -50,25 +51,49 @@ def load_species_data(conn, species):
         FROM detections
         WHERE station_id = %s
         GROUP BY 1
+    ),
+    species_rows AS (
+        SELECT
+            hour_local,
+            present,
+            detection_count
+        FROM bird_species_hourly
+        WHERE station_id = %s
+          AND species = %s
+    ),
+    health AS (
+        SELECT
+            hour_utc AT TIME ZONE 'America/Los_Angeles' AS hour_local,
+            health_state
+        FROM station_health_hourly
+        WHERE station_id = %s
+    ),
+    timeline AS (
+        SELECT hour_local FROM species_rows
+        UNION
+        SELECT hour_local FROM health
     )
     SELECT
-        s.hour_local,
-        s.present,
-        s.detection_count,
+        t.hour_local,
+        COALESCE(s.present, 0) AS present,
+        COALESCE(s.detection_count, 0) AS detection_count,
         COALESCE(o.total_detections, 0) AS total_detections,
-        COALESCE(o.species_count, 0) AS species_count
-    FROM bird_species_hourly s
+        COALESCE(o.species_count, 0) AS species_count,
+        h.health_state
+    FROM timeline t
+    LEFT JOIN species_rows s
+        ON s.hour_local = t.hour_local
     LEFT JOIN overall o
-        ON o.hour_local = s.hour_local
-    WHERE s.station_id = %s
-      AND s.species = %s
-    ORDER BY s.hour_local;
+        ON o.hour_local = t.hour_local
+    LEFT JOIN health h
+        ON h.hour_local = t.hour_local
+    ORDER BY t.hour_local;
     """
 
     with conn.cursor() as cur:
         cur.execute(
             query,
-            (STATION_ID, STATION_ID, species),
+            (STATION_ID, STATION_ID, species, STATION_ID),
         )
         rows = cur.fetchall()
         columns = [d.name for d in cur.description]
@@ -111,6 +136,12 @@ def prepare_dataset(raw, completed_hour):
             df[column],
             errors="coerce",
         ).fillna(0)
+
+    df = mask_unreliable_zero(
+        df,
+        value_column="present",
+        columns_to_mask=["present", "detection_count"],
+    )
 
     df["hour_of_day"] = df.index.hour
 
