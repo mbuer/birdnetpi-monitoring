@@ -10,7 +10,7 @@ The architecture keeps the Raspberry Pi focused on sensing and collection while 
 
 ## BirdNET Pi
 
-Current address: `192.168.1.136`
+Role: `BIRDNET_HOST` (live address intentionally local-only)
 
 Responsibilities:
 
@@ -27,7 +27,7 @@ The Pi remains the authoritative source for completed BirdNET detections.
 
 ## ubuntu-infra
 
-Current address: `192.168.1.137`
+Role: `INFRA_HOST` (live address intentionally local-only)
 
 Responsibilities:
 
@@ -150,7 +150,7 @@ The live deployment is intentionally scoped rather than open to the LAN.
 
 Known required clients include:
 
-- BirdNET Pi ingestion from `192.168.1.136/32`
+- BirdNET Pi ingestion from the exact `BIRDNET_HOST` address only
 - Grafana through its Docker network
 - local ML jobs through the infrastructure host/container path
 
