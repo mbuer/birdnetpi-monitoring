@@ -62,7 +62,7 @@ Grafana deployment itself is maintained in the separate `homelab-grafana` reposi
 
 ## AI Nexus / Birdynator
 
-AI Nexus is a separate secure agent platform maintained in the \`ai-nexus\` repository.
+AI Nexus is a separate secure agent platform maintained in the `ai-nexus` repository.
 
 For BirdNET work, treat AI Nexus as a downstream consumer:
 
