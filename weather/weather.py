@@ -15,11 +15,18 @@ from urllib3.util.retry import Retry
 
 API_URL = "https://api.open-meteo.com/v1/forecast"
 
-LATITUDE = 34.18
-LONGITUDE = -118.31
+def required_env(name):
+    value = os.getenv(name)
+    if value in (None, ""):
+        raise RuntimeError(f"Required environment variable is not set: {name}")
+    return value
 
-STATION_ID = "birdnet"
-STATION_TIMEZONE_NAME = "America/Los_Angeles"
+
+LATITUDE = float(required_env("BIRDNET_LATITUDE"))
+LONGITUDE = float(required_env("BIRDNET_LONGITUDE"))
+
+STATION_ID = os.getenv("BIRDNET_STATION_ID", "birdnet")
+STATION_TIMEZONE_NAME = required_env("BIRDNET_TIMEZONE")
 STATION_TIMEZONE = ZoneInfo(STATION_TIMEZONE_NAME)
 
 LOGFILE = "/var/log/weather/weather.log"
