@@ -102,9 +102,18 @@ Do not fabricate earlier health rows. Historical hours without retained evidence
 
 ## ML boundary
 
-The current ML models do not consume `station_health_hourly` yet.
+The ML pipeline now consumes `station_health_hourly` through provenance-aware zero gating.
 
-The health dataset is deployed and runtime-validated. Any later filtering, weighting, or exclusion of incomplete/unknown hours remains a separate ML-methodology change and must be evaluated explicitly.
+Current behavior:
+
+- positive activity/presence remains usable even when health is incomplete or unknown
+- during the explicit health-evidence era, zero activity/presence is only treated as a biological zero when health is `healthy`
+- missing health rows in that era are treated as `unknown`
+- affected zeroes propagate through lag/target construction so unreliable training rows are naturally excluded
+- zero-valued outcomes are not scored until healthy station evidence exists
+- pre-health historical rows remain usable under the legacy methodology
+
+This is intentionally narrower than strict healthy-only filtering or coverage weighting. More aggressive weighting/filtering would be a separate ML-methodology change and should be justified with evidence.
 
 
 ## Deployment status
