@@ -7,6 +7,24 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+require_command() {
+  local name="$1"
+  if ! command -v "$name" >/dev/null 2>&1; then
+    echo "Prerequisite missing: $name" >&2
+    exit 2
+  fi
+}
+
+require_command docker
+require_command curl
+require_command systemctl
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Prerequisite missing: Docker Compose v2 plugin" >&2
+  exit 2
+fi
+
 failures=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1"; failures=$((failures + 1)); }
