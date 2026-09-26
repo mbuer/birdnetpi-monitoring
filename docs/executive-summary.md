@@ -6,7 +6,7 @@ The project preserves BirdNET detections, enriches them with weather and station
 
 ## Current architecture
 
-\`\`\`text
+```text
 BirdNET Pi
 ├─ BirdNET analysis + native SQLite
 ├─ detection sync ───────────────┐
@@ -25,7 +25,7 @@ ubuntu-infra                  │  │
         v
 AI Nexus / Birdynator
 └─ separate downstream analysis
-\`\`\`
+```
 
 BirdNET remains authoritative for native detections. PostgreSQL is the durable analytical store. Loki is the operational log store. AI Nexus is a downstream consumer, not part of the collection path.
 
@@ -35,11 +35,11 @@ See [Architecture](architecture.md) for the detailed boundaries and failure mode
 
 The system explicitly distinguishes a healthy quiet hour from missing evidence.
 
-\`station_health_hourly\` stores Loki-derived BirdNET analysis coverage as:
+`station_health_hourly` stores Loki-derived BirdNET analysis coverage as:
 
-- \`healthy\`
-- \`incomplete\`
-- \`unknown\`
+- `healthy`
+- `incomplete`
+- `unknown`
 
 Current ML uses this provenance when handling zero observations. Positive detections remain useful, while explicit zeroes in the health era are only treated as biological zeroes when station health is healthy.
 
@@ -63,11 +63,11 @@ Selected species challengers currently exist for Black Phoebe and American Crow.
 
 Timing:
 
-\`\`\`text
+```text
 station health at :20
 ML at :30
 completed hour T -> target T+2
-\`\`\`
+```
 
 Stored forecasts are preserved as genuine forward evidence rather than overwritten by retrospective reruns.
 
@@ -92,25 +92,25 @@ Environment-specific addresses, coordinates, and credentials stay outside Git.
 
 Canonical workflows:
 
-\`\`\`bash
+```bash
 make repo-check
 make pi-bootstrap
 make pi-verify
 make infra-bootstrap
 make infra-verify
-\`\`\`
+```
 
 The Pi and infra verification suites both passed against the live hosts on 2026-09-26.
 
 Recovery model:
 
-\`\`\`text
+```text
 Git
 + local configuration / secrets
 + PostgreSQL backup when historical state is required
-\`\`\`
+```
 
-Grafana infrastructure remains in \`homelab-grafana\`. AI Nexus remains in \`ai-nexus\`.
+Grafana infrastructure remains in `homelab-grafana`. AI Nexus remains in `ai-nexus`.
 
 ## Highest-value remaining work
 
@@ -139,21 +139,21 @@ Grafana infrastructure remains in \`homelab-grafana\`. AI Nexus remains in \`ai-
 
 Read:
 
-1. \`AGENTS.md\`
+1. `AGENTS.md`
 2. this executive summary
-3. \`docs/architecture.md\`
-4. \`docs/decisions.md\`
+3. `docs/architecture.md`
+4. `docs/decisions.md`
 5. the relevant subsystem document
 
 Prefer the repository's current architecture over remembered chat history when the two disagree.```text
 BirdNET Pi
   |
   +-- BirdNET analysis
-  |     \`-- native birds.db
+  |     `-- native birds.db
   |
   +-- detection sync ---------> PostgreSQL on ubuntu-infra
   +-- weather collectors -----> PostgreSQL on ubuntu-infra
-  \`-- Grafana Alloy ---------> Loki on ubuntu-infra
+  `-- Grafana Alloy ---------> Loki on ubuntu-infra
 
 ubuntu-infra
   |
@@ -161,14 +161,14 @@ ubuntu-infra
   |     +-- detections / weather / forecasts
   |     +-- station-health evidence
   |     +-- analytical views
-  |     \`-- stored ML predictions
+  |     `-- stored ML predictions
   |
   +-- Loki
   +-- Prometheus
   +-- Grafana OSS
-  \`-- station-health + ML jobs
+  `-- station-health + ML jobs
           |
-          \`-- read-only evidence
+          `-- read-only evidence
                  |
                  v
           AI Nexus / Birdynator
@@ -180,7 +180,7 @@ The project preserves BirdNET detections, enriches them with weather and station
 
 ## Current architecture
 
-\`\`\`text
+```text
 BirdNET Pi
 ├─ BirdNET analysis + native SQLite
 ├─ detection sync ───────────────┐
@@ -199,7 +199,7 @@ ubuntu-infra                  │  │
         v
 AI Nexus / Birdynator
 └─ separate downstream analysis
-\`\`\`
+```
 
 BirdNET remains authoritative for native detections. PostgreSQL is the durable analytical store. Loki is the operational log store. AI Nexus is a downstream consumer, not part of the collection path.
 
@@ -209,11 +209,11 @@ See [Architecture](architecture.md) for the detailed boundaries and failure mode
 
 The system explicitly distinguishes a healthy quiet hour from missing evidence.
 
-\`station_health_hourly\` stores Loki-derived BirdNET analysis coverage as:
+`station_health_hourly` stores Loki-derived BirdNET analysis coverage as:
 
-- \`healthy\`
-- \`incomplete\`
-- \`unknown\`
+- `healthy`
+- `incomplete`
+- `unknown`
 
 Current ML uses this provenance when handling zero observations. Positive detections remain useful, while explicit zeroes in the health era are only treated as biological zeroes when station health is healthy.
 
@@ -237,11 +237,11 @@ Selected species challengers currently exist for Black Phoebe and American Crow.
 
 Timing:
 
-\`\`\`text
+```text
 station health at :20
 ML at :30
 completed hour T -> target T+2
-\`\`\`
+```
 
 Stored forecasts are preserved as genuine forward evidence rather than overwritten by retrospective reruns.
 
@@ -266,25 +266,25 @@ Environment-specific addresses, coordinates, and credentials stay outside Git.
 
 Canonical workflows:
 
-\`\`\`bash
+```bash
 make repo-check
 make pi-bootstrap
 make pi-verify
 make infra-bootstrap
 make infra-verify
-\`\`\`
+```
 
 The Pi and infra verification suites both passed against the live hosts on 2026-09-26.
 
 Recovery model:
 
-\`\`\`text
+```text
 Git
 + local configuration / secrets
 + PostgreSQL backup when historical state is required
-\`\`\`
+```
 
-Grafana infrastructure remains in \`homelab-grafana\`. AI Nexus remains in \`ai-nexus\`.
+Grafana infrastructure remains in `homelab-grafana`. AI Nexus remains in `ai-nexus`.
 
 ## Highest-value remaining work
 
@@ -313,10 +313,10 @@ Grafana infrastructure remains in \`homelab-grafana\`. AI Nexus remains in \`ai-
 
 Read:
 
-1. \`AGENTS.md\`
+1. `AGENTS.md`
 2. this executive summary
-3. \`docs/architecture.md\`
-4. \`docs/decisions.md\`
+3. `docs/architecture.md`
+4. `docs/decisions.md`
 5. the relevant subsystem document
 
 Prefer the repository's current architecture over remembered chat history when the two disagree.
