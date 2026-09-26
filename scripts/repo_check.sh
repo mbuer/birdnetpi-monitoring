@@ -23,8 +23,8 @@ else
   echo "PASS: no hard-coded Python station coordinates."
 fi
 
-if git grep -nE 'GRAFANA_CLOUD_PASSWORD|logs-prod-[0-9]+\.grafana\.net|loki\.write\.cloud' -- . >/dev/null; then
-  git grep -nE 'GRAFANA_CLOUD_PASSWORD|logs-prod-[0-9]+\.grafana\.net|loki\.write\.cloud' -- .
+if git grep -nE 'GRAFANA_CLOUD_PASSWORD|logs-prod-[0-9]+\.grafana\.net|loki\.write\.cloud' -- . ':!scripts/repo_check.sh' >/dev/null; then
+  git grep -nE 'GRAFANA_CLOUD_PASSWORD|logs-prod-[0-9]+\.grafana\.net|loki\.write\.cloud' -- . ':!scripts/repo_check.sh'
   echo "FAIL: active Grafana Cloud configuration marker found." >&2
   fail=1
 else
