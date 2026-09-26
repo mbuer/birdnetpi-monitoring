@@ -262,7 +262,7 @@ The wider Home Lab now includes AI Nexus / Birdynator as a consumer of BirdNET e
 
 Decision:
 
-- BirdNET and \`ubuntu-infra\` remain authoritative for detections, weather, station-health evidence, analytical views, and ML prediction/scoring
+- BirdNET and `ubuntu-infra` remain authoritative for detections, weather, station-health evidence, analytical views, and ML prediction/scoring
 - AI Nexus remains a separate security and execution boundary
 - Birdynator may consume BirdNET evidence through a constrained read-only datasource boundary
 - Birdynator does not collect station health and must not duplicate the upstream health collector
@@ -270,7 +270,7 @@ Decision:
 - Birdynator analysis runs belong to AI Nexus rather than the BirdNET historical datastore
 - raw BirdNET rows should not be copied into persistent agent memory merely to simplify analysis
 - a richer ML/health evidence interface is deferred until its schema, provenance, and usefulness are stable
-- future downstream evidence should preserve states such as \`healthy\`, \`incomplete\`, and \`unknown\` where they materially affect interpretation
+- future downstream evidence should preserve states such as `healthy`, `incomplete`, and `unknown` where they materially affect interpretation
 
 This keeps collection and provenance close to the source, prevents the agent platform from becoming an accidental second data plane, and allows AI workflows to evolve without destabilizing BirdNET monitoring.
 
