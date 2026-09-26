@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import psycopg
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from xgboost import XGBRegressor
 
 from data import load_hourly_data
@@ -110,6 +110,9 @@ def main():
             tree_method="hist",
             random_state=42,
             n_jobs=-1,
+        ),
+        "hist_gradient_boosting_v1_completed": HistGradientBoostingRegressor(
+            random_state=42,
         ),
     }
 
