@@ -320,6 +320,7 @@ The repository structure is intentionally simple. Prefer updating the documentat
 | [`database/README.md`](database/README.md) | Database schema, synchronization, grants, backup, restore, species/activity data contracts |
 | [`grafana/README.md`](grafana/README.md) | Dashboard exports, PostgreSQL requirements, datasource and time handling |
 | [`ml/README.md`](ml/README.md) | How to run experiments and live prediction/scoring code |
+| [`docs/decisions.md`](docs/decisions.md) | Architectural and development decisions that should survive across work sessions |
 | [`docs/ml.md`](docs/ml.md) | Stable ML methodology and validation rules |
 | [`docs/experiments/`](docs/experiments/) | Dated model comparisons and conclusions |
 | [`deploy/ubuntu-infra/README.md`](deploy/ubuntu-infra/README.md) | Deployment, rebuild, recovery, and operational checks |
