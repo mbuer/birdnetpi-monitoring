@@ -89,7 +89,7 @@ def build_live_training_data(
 
     # Live timing:
     #
-    # At 14:10:
+    # At 14:30:
     #   latest completed bucket = 13:00-14:00
     #   14:00-15:00 is already underway
     #   forecast target         = 15:00-16:00
