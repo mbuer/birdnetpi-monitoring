@@ -21,25 +21,31 @@ The most important boundary is simple:
 
 ```text
 BirdNET Pi
-├─ microphone -> BirdNET analysis -> native birds.db
-├─ detection sync ───────────────────────────────┐
-├─ weather + forecast collectors ────────────────┤
-└─ Grafana Alloy -> local Loki ───────────────┐  │
-                                               │  │
-ubuntu-infra                                   │  │
-├─ Loki <──────────────────────────────────────┘  │
-├─ PostgreSQL <───────────────────────────────────┘
-│  ├─ detections / weather / forecasts
-│  ├─ station-health evidence
-│  ├─ analytical views
-│  └─ stored ML predictions + scores
-├─ hourly station-health + ML jobs
-├─ Prometheus
-└─ Grafana OSS
+  |
+  +-- BirdNET analysis
+  |     `-- native birds.db
+  |
+  +-- detection sync ---------> PostgreSQL on ubuntu-infra
+  +-- weather collectors -----> PostgreSQL on ubuntu-infra
+  `-- Grafana Alloy ---------> Loki on ubuntu-infra
 
-             constrained read-only evidence
-BirdNET / ubuntu-infra ──────────────────────────> AI Nexus / Birdynator
-                                                   └─ separate analysis runs
+ubuntu-infra
+  |
+  +-- PostgreSQL
+  |     +-- detections / weather / forecasts
+  |     +-- station-health evidence
+  |     +-- analytical views
+  |     `-- stored ML predictions
+  |
+  +-- Loki
+  +-- Prometheus
+  +-- Grafana OSS
+  `-- station-health + ML jobs
+          |
+          `-- read-only evidence
+                 |
+                 v
+          AI Nexus / Birdynator
 ```
 
 Grafana deployment is maintained in the separate `homelab-grafana` repository. AI Nexus is maintained in the separate `ai-nexus` repository.
@@ -114,15 +120,15 @@ The current AI integration should therefore be understood as:
 
 ```text
 BirdNET / ubuntu-infra
-        │
-        │ authoritative evidence
+        |
+        | authoritative evidence
         v
 constrained read-only boundary
-        │
+        |
         v
 AI Nexus / Birdynator
-        │
-        └─ interpretation / analysis
+        |
+        `-- interpretation / analysis
 ```
 
 A broader ML-to-Birdynator evidence interface is intentionally deferred until the ML outputs and provenance contract are stable enough to expose cleanly. Future downstream evidence may include health state such as `healthy`, `incomplete`, or `unknown` so an AI analysis does not mistake missing station evidence for biological absence.
