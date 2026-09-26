@@ -12,19 +12,13 @@ The BirdNET Pi collects both current weather observations and forecast snapshots
 
 ## Runtime paths
 
-The current-weather service runs the installed copy at:
-
-```text
-/home/birduser/weather/weather.py
-```
-
 Weather JSONL is written to:
 
 ```text
 /var/log/weather/weather.log
 ```
 
-The forecast service runs from the checked-out repository path configured in its systemd unit.
+The bootstrap derives the runtime user, home directory, and repository checkout path rather than requiring one exact username or home path. Installed systemd units are rendered from the committed templates.
 
 ## Runtime configuration
 
@@ -53,21 +47,15 @@ sudo apt install -y python3-requests python3-psycopg
 
 `weather/requirements.txt` contains equivalent pip-installable dependencies for development or a virtual environment. A venv is optional unless the systemd units are deliberately changed to use it.
 
-## Current-weather installation
+## Installation
 
-From the repository checkout:
+The canonical installation path is the BirdNET Pi bootstrap:
 
 ```bash
-mkdir -p ~/weather
-cp weather/weather.py ~/weather/weather.py
-
-sudo mkdir -p /var/log/weather
-sudo chown birduser:birduser /var/log/weather
-
-sudo cp systemd/weather.service /etc/systemd/system/weather.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now weather.service
+make pi-bootstrap
 ```
+
+It installs the weather collector, forecast service/timer, dependencies, log directory, and rendered systemd units together so the deployed runtime matches Git.
 
 The Pi-side collectors load environment-specific configuration from:
 
@@ -77,18 +65,15 @@ The Pi-side collectors load environment-specific configuration from:
 
 Start from `config/runtime.example.env`, then set the real station coordinates, timezone, PostgreSQL host, and credentials locally. The runtime file must never be committed.
 
-## Forecast installation
+## Verify
 
-Install the committed forecast service and timer only after confirming that their repository path matches the Pi checkout location:
+Use the acceptance test first:
 
 ```bash
-sudo cp systemd/birdnet-forecast.service /etc/systemd/system/
-sudo cp systemd/birdnet-forecast.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now birdnet-forecast.timer
+make pi-verify
 ```
 
-## Verify
+For targeted troubleshooting:
 
 ```bash
 systemctl status weather.service --no-pager
@@ -97,6 +82,8 @@ systemctl status birdnet-forecast.timer --no-pager
 journalctl -u birdnet-forecast.service -n 50 --no-pager
 tail -n 5 /var/log/weather/weather.log
 ```
+
+The Pi weather/forecast path was runtime-verified against the committed deployment workflow on 2026-09-26.
 
 ## PostgreSQL data
 
