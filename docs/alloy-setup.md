@@ -2,7 +2,7 @@
 
 Grafana Alloy runs on the BirdNET Pi and forwards operational logs to Loki.
 
-The current Home Lab configuration forwards operational logs only to local Loki on `ubuntu-infra` (`192.168.1.137:3100`).
+The current Home Lab configuration forwards operational logs only to local Loki on `INFRA_HOST`.
 
 Grafana Cloud Loki was retired on 2026-09-26 after local Loki delivery was validated for both BirdNET journal data and weather logs.
 
@@ -36,10 +36,10 @@ sudo cp alloy/default-alloy /etc/default/alloy
 The local Loki endpoint does not currently use authentication inside the Home Lab:
 
 ```text
-http://192.168.1.137:3100/loki/api/v1/push
+${BIRDNET_LOKI_URL}/loki/api/v1/push
 ```
 
-If the infrastructure VM address changes, update this endpoint deliberately rather than treating the current address as a universal default.
+Set `BIRDNET_LOKI_URL` in the installed runtime environment. The live address must not be committed.
 
 ## What Alloy collects
 
