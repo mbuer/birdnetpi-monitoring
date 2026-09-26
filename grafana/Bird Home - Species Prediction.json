@@ -841,13 +841,13 @@
               "name": "afy5j1yt18b9cb"
             },
             "spec": {
-              "__legacyStringValue": "SELECT DISTINCT species FROM bird_species_predictions ORDER BY species;"
+              "__legacyStringValue": "SELECT species\nFROM (\n    SELECT DISTINCT species\n    FROM bird_species_predictions\n    UNION\n    SELECT 'Black-crowned Night-Heron'\n    UNION\n    SELECT 'Lesser Goldfinch'\n) AS live_species\nORDER BY species;"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "SELECT DISTINCT species FROM bird_species_predictions ORDER BY species;",
+          "definition": "SELECT species\nFROM (\n    SELECT DISTINCT species\n    FROM bird_species_predictions\n    UNION\n    SELECT 'Black-crowned Night-Heron'\n    UNION\n    SELECT 'Lesser Goldfinch'\n) AS live_species\nORDER BY species;",
           "options": [],
           "multi": false,
           "includeAll": false,
