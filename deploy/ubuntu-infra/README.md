@@ -75,23 +75,31 @@ Grafana deployment itself is maintained in the separate `homelab-grafana` reposi
 
 ```text
 BirdNET Pi
-├─ birds.db -> detection sync ───────────────┐
-├─ weather + forecast collectors ────────────┤
-└─ Grafana Alloy -> local Loki ───────────┐  │
-                                           │  │
-ubuntu-infra                               │  │
-├─ Loki <──────────────────────────────────┘  │
-├─ PostgreSQL <───────────────────────────────┘
-│  ├─ detections / weather / forecasts
-│  ├─ station-health evidence
-│  ├─ analytical views
-│  └─ prediction history
-├─ Prometheus
-├─ Grafana OSS
-└─ hourly station-health + ML prediction/scoring
+  |
+  +-- BirdNET analysis
+  |     \`-- native birds.db
+  |
+  +-- detection sync ---------> PostgreSQL on ubuntu-infra
+  +-- weather collectors -----> PostgreSQL on ubuntu-infra
+  \`-- Grafana Alloy ---------> Loki on ubuntu-infra
 
-BirdNET / ubuntu-infra
-└─ constrained read-only evidence -> AI Nexus / Birdynator
+ubuntu-infra
+  |
+  +-- PostgreSQL
+  |     +-- detections / weather / forecasts
+  |     +-- station-health evidence
+  |     +-- analytical views
+  |     \`-- stored ML predictions
+  |
+  +-- Loki
+  +-- Prometheus
+  +-- Grafana OSS
+  \`-- station-health + ML jobs
+          |
+          \`-- read-only evidence
+                 |
+                 v
+          AI Nexus / Birdynator
 ```
 
 PostgreSQL is the structured historical datastore. Loki is the operational log datastore. AI Nexus is a downstream analytical consumer and is not part of the collection path.
