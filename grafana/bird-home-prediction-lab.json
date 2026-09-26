@@ -1186,7 +1186,7 @@
         "spec": {
           "id": 7,
           "title": "Forecast vs Reality",
-          "description": "Random Forest and XGBoost forward forecasts compared with observed activity and persistence",
+          "description": "Historical observed/persistence context plus issued RF, XGBoost, and HistGradientBoosting forecasts. The dashboard default extends three hours into the future so upcoming forecast targets remain visible.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1455,6 +1455,29 @@
                       {
                         "id": "custom.fillOpacity",
                         "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "HistGradientBoosting"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "yellow",
+                          "mode": "fixed"
+                        }
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 3
+                      },
+                      {
+                        "id": "custom.pointSize",
+                        "value": 7
                       }
                     ]
                   }
@@ -2267,7 +2290,7 @@
     "timeSettings": {
       "timezone": "browser",
       "from": "now-2d",
-      "to": "now",
+      "to": "now+3h",
       "autoRefresh": "5m",
       "autoRefreshIntervals": [
         "1m",
