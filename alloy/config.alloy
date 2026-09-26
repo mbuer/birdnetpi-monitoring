@@ -1,9 +1,7 @@
 // BirdNET Alloy sample configuration.
 //
-// The current Home Lab design sends BirdNET operational logs to both
-// Grafana Cloud Loki and the local Loki instance on ubuntu-infra.
-// Replace the Grafana Cloud credential placeholders after copying this file
-// to /etc/alloy/config.alloy. Never commit real credentials.
+// The current Home Lab design sends BirdNET operational logs only to
+// the local Loki instance on ubuntu-infra.
 
 loki.source.journal "read" {
     relabel_rules = loki.relabel.journal.rules
@@ -119,27 +117,14 @@ loki.process "local" {
     }
 
     forward_to = [
-        loki.write.cloud.receiver,
         loki.write.local.receiver,
     ]
 }
 
 loki.process "weather" {
     forward_to = [
-        loki.write.cloud.receiver,
         loki.write.local.receiver,
     ]
-}
-
-loki.write "cloud" {
-    endpoint {
-        url = "https://logs-prod-021.grafana.net/loki/api/v1/push"
-
-        basic_auth {
-            username = "GRAFANA_CLOUD_USERNAME"
-            password = "GRAFANA_CLOUD_PASSWORD"
-        }
-    }
 }
 
 loki.write "local" {
