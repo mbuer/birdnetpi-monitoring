@@ -6,6 +6,7 @@ import psycopg
 MODEL_NAMES = (
     "random_forest_v2_completed",
     "xgboost_v2_completed",
+    "hist_gradient_boosting_v1_completed",
 )
 
 
@@ -34,7 +35,7 @@ def score_predictions():
                     scored_at = NOW()
                 FROM bird_activity_hourly AS h
                 WHERE
-                    p.model IN (%s, %s)
+                    p.model IN (%s, %s, %s)
                     AND p.actual_activity IS NULL
                     AND p.predicted_hour = h.hour_local
 
