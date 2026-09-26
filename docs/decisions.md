@@ -123,3 +123,25 @@ Decision:
 - do not retroactively assign health states to older periods without retained evidence
 - any future ML use of `station_health_hourly` is a separate methodology change and must be evaluated explicitly
 
+## 2026-09-26 — Use provenance-aware health gating instead of strict filtering
+
+Station-health persistence is now operational, but the verified health-history window is much shorter than the full ML history.
+
+Considered approaches:
+
+- strict filtering to healthy hours only
+- provenance-aware gating of unreliable zero observations
+- coverage-weighted training
+
+Decision:
+
+- preserve legacy pre-health history rather than discarding it
+- when explicit health evidence exists, keep positive detections/activity even if health is incomplete or unknown
+- when explicit health evidence exists, do not use a zero activity/presence observation as a biological zero unless health is `healthy`
+- propagate masked zeroes through lag/target construction so affected training rows are naturally excluded
+- do not score zero-valued aggregate or species outcomes in the health-evidence era until a healthy station-health row exists
+- continue scoring positive outcomes without requiring perfect station coverage
+- do not introduce coverage weighting yet
+
+This is intentionally conservative: it fixes the known false-zero failure mode without shrinking the historical training set to only the recent station-health window or adding model-weighting complexity before it is justified.
+
