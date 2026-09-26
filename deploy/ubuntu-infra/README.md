@@ -519,14 +519,14 @@ journalctl -u birdnet-station-health.service -n 50 --no-pager
 
 ## Initial verified backfill
 
-The data-quality audit established continuous local Loki evidence from 2026-09-13 12:00 through 2026-09-26 11:00 America/Los_Angeles, with 312/312 hourly samples and 239–240 analyzed 15-second segments per hour.
+The data-quality audit established continuous local Loki evidence for 312 consecutive completed hours from 2026-09-13 11:00 through 2026-09-26 11:00 America/Los_Angeles (end exclusive), with 312/312 hourly samples and 239–240 analyzed 15-second segments per hour.
 
 Backfill that evidence only after the table exists:
 
 ```bash
 bash health/collect_station_health.sh \
-  --start 2026-09-13T12:00:00-07:00 \
-  --end   2026-09-26T12:00:00-07:00
+  --start 2026-09-13T11:00:00-07:00 \
+  --end   2026-09-26T11:00:00-07:00
 ```
 
 Do not infer health for older hours whose Loki evidence is no longer retained.
