@@ -347,13 +347,14 @@ Current known debt includes:
 - some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
 - PostgreSQL roles and `pg_hba.conf` policy are not yet fully reproduced by committed automation
-- PostgreSQL backups are not yet replicated off-host
+- PostgreSQL recovery now includes a tested logical restore and Proxmox off-host VM backup path
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
-- some legacy Pi-local PostgreSQL backup artifacts remain in the repository for migration history
 - the future ML/health evidence boundary to Birdynator is not yet a stable public interface
 
 These are documented limitations, not an automatic work queue.
+
+The former Pi-local PostgreSQL instance was retired after the active collector path to `ubuntu-infra` was verified. PostgreSQL ownership is now unambiguous: the centralized instance on `ubuntu-infra` is the only active BirdNET PostgreSQL server.
 
 ## Scope and complexity budget
 
