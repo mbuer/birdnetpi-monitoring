@@ -274,3 +274,17 @@ Decision:
 
 This keeps collection and provenance close to the source, prevents the agent platform from becoming an accidental second data plane, and allows AI workflows to evolve without destabilizing BirdNET monitoring.
 
+## 2026-09-26 — Freeze infrastructure after three remaining essentials
+
+The monitoring stack is now reliable enough that continued hardening risks adding more complexity than practical value.
+
+Decision:
+
+- keep infrastructure work limited to three remaining essentials: off-host PostgreSQL backup plus one restore drill, reproducible narrow PostgreSQL access policy, and cleanup of clearly obsolete migration artifacts
+- after those are complete, treat the BirdNET infrastructure as frozen by default
+- do not add hardening, automation, abstraction, or verification depth merely because it is technically possible
+- reopen infrastructure work only for a concrete data-protection need, identified security exposure, observed operational failure, recovery problem, or real feature requirement
+- keep Docker/Alloy auto-installation, broad verification expansion, timestamp redesign, aggregate-view redesign, and additional Loki/network hardening out of active scope unless a concrete need emerges
+- prioritize Birdynator analysis, useful reporting, anomaly detection, and accumulation/evaluation of genuine forward ML evidence after the infrastructure essentials are finished
+
+This deliberately trades theoretical completeness for a smaller, easier-to-understand, easier-to-operate Home Lab system.
