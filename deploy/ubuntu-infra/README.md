@@ -223,7 +223,16 @@ Validate an archive with:
 pg_restore -l /var/backups/birdnet-postgres/birdnet-YYYY-MM-DD_HH-MM-SS.dump
 ```
 
-These backups currently live on the same infrastructure VM as PostgreSQL. Off-host replication remains an important disaster-recovery improvement.
+The daily dumps are local staging and short-term recovery copies.
+
+For off-host recovery, use the Proxmox backup-hook pattern documented in [Backup and recovery](../../docs/backup-recovery.md). Proxmox triggers a fresh validated logical dump through the QEMU Guest Agent immediately before capturing the VM to external backup storage. The hook aborts the VM backup if the logical dump fails.
+
+Operator commands:
+
+```bash
+make backup
+make restore-test
+```
 
 ---
 
@@ -481,8 +490,8 @@ Completed:
 
 Still intentionally open:
 
-- off-host PostgreSQL backups
-- periodic real restore testing
+- one verified Proxmox off-host backup run using the pre-backup logical-dump hook
+- one verified logical restore test
 - stronger ingestion-freshness monitoring
 - forward-validation of species challengers and additional species when data supports them
 - removal of obsolete Pi-local PostgreSQL components when no longer needed
