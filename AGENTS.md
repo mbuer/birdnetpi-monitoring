@@ -395,6 +395,22 @@ Monitoring infrastructure should not prevent the station from performing that jo
 
 Prefer recoverable asynchronous data flows over fragile tight coupling.
 
+## Complexity budget
+
+Do not turn this repository into an endless infrastructure-hardening project.
+
+Active infrastructure work is limited to:
+
+1. off-host PostgreSQL backup plus one tested restore
+2. reproducible narrow PostgreSQL roles/grants and host access policy
+3. cleanup of clearly obsolete Cloud-era and Pi-local migration artifacts
+
+After those are complete, treat the infrastructure as frozen unless there is a concrete data-protection need, identified security exposure, observed failure, recovery problem, or real feature requirement.
+
+Do not proactively add Docker/Alloy auto-installation, broad verification frameworks, timestamp redesign, aggregate-view redesign, or extra network hardening simply for completeness.
+
+Prefer future effort on Birdynator analysis, reports, anomaly detection, and evidence-driven ML evaluation.
+
 ---
 
 # Documentation Rules
