@@ -215,8 +215,6 @@ birdnet-postgres-backup.service
 birdnet-postgres-backup.timer
 ```
 
-The older `backup/backup_postgres.sh` and `birdnet-db-backup.*` units are retained only as Pi-local migration/recovery history. They are not the current centralized backup path.
-
 Validate an archive with:
 
 ```bash
@@ -490,11 +488,12 @@ Completed:
 
 Still intentionally open:
 
-- one verified Proxmox off-host backup run using the pre-backup logical-dump hook
-- one verified logical restore test
 - stronger ingestion-freshness monitoring
 - forward-validation of species challengers and additional species when data supports them
-- removal of obsolete Pi-local PostgreSQL components when no longer needed
+
+---
+
+The Pi-local PostgreSQL instance and its legacy backup timer were retired after the active Pi pipeline was verified against centralized PostgreSQL on `ubuntu-infra`. The Pi no longer runs a local PostgreSQL server.
 
 ---
 
