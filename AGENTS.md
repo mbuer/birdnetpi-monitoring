@@ -118,7 +118,7 @@ The exception is compact derived provenance that has long-term analytical value.
 
 # PostgreSQL
 
-Production BirdNET PostgreSQL runs on `ubuntu-infra`.
+Production BirdNET PostgreSQL runs on `ubuntu-infra`. The Pi no longer runs a local PostgreSQL server.
 
 Deployment: `deploy/ubuntu-infra/postgres/`  
 Container: `birdnet-postgres`  
@@ -403,9 +403,9 @@ Do not turn this repository into an endless infrastructure-hardening project.
 
 Active infrastructure work is limited to:
 
-1. off-host PostgreSQL backup plus one tested restore
-2. reproducible narrow PostgreSQL roles/grants and host access policy
-3. cleanup of clearly obsolete Cloud-era and Pi-local migration artifacts
+1. reproducible narrow PostgreSQL roles/grants and host access policy
+
+The off-host PostgreSQL recovery path and obsolete Pi-local migration cleanup are complete.
 
 After those are complete, treat the infrastructure as frozen unless there is a concrete data-protection need, identified security exposure, observed failure, recovery problem, or real feature requirement.
 
