@@ -288,3 +288,25 @@ Decision:
 - prioritize Birdynator analysis, useful reporting, anomaly detection, and accumulation/evaluation of genuine forward ML evidence after the infrastructure essentials are finished
 
 This deliberately trades theoretical completeness for a smaller, easier-to-understand, easier-to-operate Home Lab system.
+
+
+## 2026-09-26 — Retire the Pi-local PostgreSQL instance
+
+The BirdNET Pi still had an older local PostgreSQL 17 instance and daily backup timer from the pre-centralization architecture.
+
+Runtime inspection confirmed:
+
+- active collectors target PostgreSQL on `ubuntu-infra`
+- the Pi-local database had no meaningful client connections
+- the local schema only contained the older detection/weather tables
+- the active Pi verification suite passed after local PostgreSQL was stopped and removed
+
+Decision:
+
+- remove the Pi-local PostgreSQL cluster and packages
+- remove the legacy `birdnet-db-backup` timer/service and local SQL dump directory
+- remove the obsolete Pi-local backup script and units from Git
+- remove the stale Grafana Cloud environment file and temporary weather rollback copy
+- keep centralized PostgreSQL on `ubuntu-infra` as the only active BirdNET PostgreSQL service
+
+This reduces duplicate state and removes a misleading recovery path without changing the active BirdNET pipeline.
