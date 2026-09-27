@@ -383,7 +383,9 @@ Systemd units:
 - `birdnet-postgres-backup.service`
 - `birdnet-postgres-backup.timer`
 
-At least one backup should eventually exist outside the same VM/storage as PostgreSQL. Do not treat archive listing as equivalent to a tested restore.
+Use the Proxmox backup-hook pattern in `docs/backup-recovery.md` for the off-VM copy: create a fresh validated logical dump immediately before the VM backup, then store the VM archive on external Proxmox backup storage. Do not mount broad writable backup storage into the guest merely for convenience.
+
+Use `make restore-test` to prove the newest logical dump can be restored. Do not treat archive listing as equivalent to a tested restore.
 
 ---
 
