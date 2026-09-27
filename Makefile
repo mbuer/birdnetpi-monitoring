@@ -1,4 +1,4 @@
-.PHONY: help repo-check pi-bootstrap pi-verify infra-bootstrap infra-verify test
+.PHONY: help repo-check pi-bootstrap pi-verify infra-bootstrap infra-verify backup restore-test test
 
 help:
 	@printf '%s\n' \
@@ -8,6 +8,8 @@ help:
 	  '  make pi-verify        - verify Pi integration (sudo)' \
 	  '  make infra-bootstrap  - deploy PostgreSQL/Loki/ML timers (sudo)' \
 	  '  make infra-verify     - verify infra services (sudo)' \
+	  '  make backup           - create/validate BirdNET PostgreSQL dump' \
+	  '  make restore-test     - restore newest dump into temporary DB' \
 	  '  make test             - run ML regression tests'
 
 repo-check:
@@ -24,6 +26,12 @@ infra-bootstrap:
 
 infra-verify:
 	sudo bash deploy/ubuntu-infra/verify.sh
+
+backup:
+	bash backup/backup_infra_postgres.sh
+
+restore-test:
+	bash backup/restore_test.sh
 
 test:
 	.venv/bin/python -m unittest discover -s ml/tests -v
