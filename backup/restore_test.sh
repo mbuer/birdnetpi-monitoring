@@ -25,7 +25,7 @@ docker exec birdnet-postgres createdb -U birdnet -O birdnet "$TEST_DB"
 
 cat "$latest" | docker exec -i birdnet-postgres   pg_restore -U birdnet -d "$TEST_DB" --no-owner --exit-on-error
 
-docker exec birdnet-postgres psql -U birdnet -d "$TEST_DB" -v ON_ERROR_STOP=1 <<'SQL'
+docker exec -i birdnet-postgres psql -U birdnet -d "$TEST_DB" -v ON_ERROR_STOP=1 <<'SQL'
 SELECT
   to_regclass('public.detections') AS detections,
   to_regclass('public.weather_observations') AS weather_observations,
