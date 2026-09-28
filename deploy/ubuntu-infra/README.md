@@ -299,7 +299,7 @@ The repository `alloy/config.alloy` is the local-only reference configuration. I
 
 Historical Grafana Cloud Loki data is not being migrated into local Loki.
 
-Loki is still exposed directly on port `3100` inside the Home Lab. Network hardening remains future work.
+Loki is still exposed directly on port `3100` inside the Home Lab. This is a documented limitation; further network hardening is outside the frozen infrastructure scope unless a concrete need arises.
 
 ---
 
@@ -310,7 +310,6 @@ Grafana itself is deployed from the separate `homelab-grafana` repository.
 Current BirdNET dashboard exports:
 
 ```text
-grafana/Bird Home - Burbank Cloud.json
 grafana/Bird Home - Burbank Local.json
 grafana/bird-home-prediction-lab.json
 grafana/Bird Home - Species Prediction.json

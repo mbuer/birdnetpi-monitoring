@@ -18,12 +18,9 @@ PostgreSQL                -> Species Prediction
 
 | File | Purpose | Export format |
 |---|---|---|
-| `Bird Home - Burbank Cloud.json` | Original Grafana Cloud operational reference | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Burbank Local.json` | Active local Grafana OSS operational dashboard | `dashboard.grafana.app/v2` resource |
 | `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost + HistGradientBoosting forecast observability, outcomes, health, and established error metrics | `dashboard.grafana.app/v2` resource |
 | `Bird Home - Species Prediction.json` | Per-species baseline/challenger probabilities, decisions, and scored results | `dashboard.grafana.app/v2` resource |
-
-The two Bird Home operational exports retain the same internal dashboard identity. Their filenames alone do not make them separate Grafana dashboards. Check the import preview before loading both into the same Grafana instance.
 
 JSON validity does not by itself prove Grafana import compatibility.
 
@@ -37,9 +34,7 @@ The local operational dashboard uses:
 - Infinity for Open-Meteo weather data
 - Grafana OSS for visualization
 
-The Cloud export remains only as historical/reference material. The local observability migration is complete.
-
-The Local export references `Loki` and `Infinity`. The Cloud export uses the original Grafana Cloud datasource references.
+The local observability migration is complete. The Local export references `Loki` and `Infinity`.
 
 Infinity supplies direct Open-Meteo requests. Relative `/forecast?...` requests require the datasource base URL:
 
@@ -159,7 +154,7 @@ Current panels intentionally use different scopes.
 | Recent Predictions | Most recent Random Forest, XGBoost, and HistGradientBoosting forecasts, newest first; includes HGB error when scored while legacy Best remains RF/XGB/persistence |
 | ML / Station Health | Latest health evidence plus health alignment for the latest ML input hour, latest forecast target, and latest scored target |
 
-Because both live models create one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
+Because each live model creates one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
 
 “Daily MAE” is grouped by local calendar day. It is not a rolling moving average.
 

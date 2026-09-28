@@ -346,7 +346,6 @@ Current known debt includes:
 - analytical SQL still encodes Los Angeles wall-clock semantics
 - some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
-- PostgreSQL recovery includes a tested logical restore and Proxmox off-host VM backup path
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
 - the future ML/health evidence boundary to Birdynator is not yet a stable public interface

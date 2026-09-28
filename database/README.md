@@ -144,7 +144,7 @@ Important fields:
 
 Missing Loki evidence is stored as `unknown`; it is not interpreted as proof that BirdNET was down.
 
-This table is intended to preserve data-quality provenance for future ML use so a healthy zero-detection hour can be distinguished from an hour with incomplete or unavailable station evidence.
+This table preserves data-quality provenance used by the live ML health gate to distinguish a healthy zero-detection hour from an hour with incomplete or unavailable station evidence. See [ML methodology](../docs/ml.md).
 
 ### `weather_forecasts`
 
