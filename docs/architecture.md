@@ -331,7 +331,7 @@ make pi-verify
 make infra-verify
 ```
 
-The Pi and infra verification workflows were runtime-validated against the live hosts on 2026-09-26.
+The Pi and infra verification workflows were runtime-validated against the live hosts again on 2026-09-27 after the final PostgreSQL access-policy deployment.
 
 See:
 
