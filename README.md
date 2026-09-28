@@ -23,5 +23,7 @@ The project currently provides:
 - reproducible Pi and infrastructure deployment/verification workflows
 - a constrained downstream data boundary for AI Nexus / Birdynator
 
+Infrastructure status: **frozen by default**. The planned recovery, access-control, and legacy-cleanup work is complete; reopen infrastructure only for a concrete operational, security, recovery, or feature need.
+
 ## Architecture at a glance
 
