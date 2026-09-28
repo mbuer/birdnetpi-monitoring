@@ -346,8 +346,8 @@ Current known debt includes:
 - analytical SQL still encodes Los Angeles wall-clock semantics
 - some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
-- PostgreSQL roles, reader grants, and narrow `pg_hba.conf` policy now have committed bootstrap/verification automation; final live acceptance is tracked with the infrastructure homework
-- PostgreSQL recovery now includes a tested logical restore and Proxmox off-host VM backup path
+- PostgreSQL roles, reader grants, and narrow `pg_hba.conf` policy have committed bootstrap/verification automation and passed live acceptance
+- PostgreSQL recovery includes a tested logical restore and Proxmox off-host VM backup path
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
 - the future ML/health evidence boundary to Birdynator is not yet a stable public interface
@@ -360,9 +360,9 @@ The former Pi-local PostgreSQL instance was retired after the active collector p
 
 The system has reached the point where additional hardening can reduce practical reliability by increasing operational complexity.
 
-Active infrastructure scope is therefore limited to the final live acceptance of the reproducible narrow PostgreSQL access policy. Off-host recovery and obsolete migration cleanup are complete.
+The deliberately limited infrastructure homework is complete: off-host recovery, obsolete migration cleanup, and the reproducible narrow PostgreSQL access policy have all been verified.
 
-Once those are complete, the infrastructure should be treated as frozen. New infrastructure work needs a concrete reason: protecting data, closing an identified security gap, fixing an observed failure, or enabling a real feature.
+The infrastructure is now frozen by default. New infrastructure work needs a concrete reason: protecting data, closing an identified security gap, fixing an observed failure, or enabling a real feature.
 
 Items such as full prerequisite auto-installation, broader verification frameworks, timestamp redesign, aggregate-view redesign, and extra network hardening remain known debt rather than default roadmap items.
 
