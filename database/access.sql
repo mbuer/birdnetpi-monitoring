@@ -1,24 +1,24 @@
 \set ON_ERROR_STOP on
 
-DO $do$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'grafana_reader') THEN
-    CREATE ROLE grafana_reader LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  END IF;
+SELECT format(
+  'CREATE ROLE grafana_reader WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L',
+  :'grafana_password'
+)
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'grafana_reader')
+\gexec
 
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'birdynator_reader') THEN
-    CREATE ROLE birdynator_reader LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  END IF;
-END
-$do$;
+SELECT format(
+  'CREATE ROLE birdynator_reader WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L',
+  :'birdynator_password'
+)
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'birdynator_reader')
+\gexec
 
 ALTER ROLE grafana_reader
-  WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
-  PASSWORD :'grafana_password';
+  WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
 
 ALTER ROLE birdynator_reader
-  WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
-  PASSWORD :'birdynator_password';
+  WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
 
 REVOKE ALL PRIVILEGES ON SCHEMA public
   FROM grafana_reader, birdynator_reader;
