@@ -124,7 +124,7 @@ Deployment: `deploy/ubuntu-infra/postgres/`
 Container: `birdnet-postgres`  
 Database: `birdnet`  
 Application role: `birdnet`  
-Read-only Grafana role: `grafana_reader`
+Read-only roles: `grafana_reader` and `birdynator_reader`
 
 Applications use:
 
@@ -135,7 +135,7 @@ Applications use:
 
 Do not hard-code production passwords.
 
-Database schema and analytical objects are documented in `database/README.md`.
+Database schema and analytical objects are documented in `database/README.md`. Reproducible reader roles/grants live in `database/access.sql`; HBA rendering lives in `deploy/ubuntu-infra/postgres/configure_access.sh`. Keep real client CIDRs and passwords in the ignored PostgreSQL `.env`, never in Git.
 
 ---
 
@@ -401,9 +401,7 @@ Prefer recoverable asynchronous data flows over fragile tight coupling.
 
 Do not turn this repository into an endless infrastructure-hardening project.
 
-Active infrastructure work is limited to:
-
-1. reproducible narrow PostgreSQL roles/grants and host access policy
+Active infrastructure work is limited to final live acceptance of the reproducible narrow PostgreSQL roles/grants and host access policy.
 
 The off-host PostgreSQL recovery path and obsolete Pi-local migration cleanup are complete.
 
