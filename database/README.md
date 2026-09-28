@@ -557,7 +557,7 @@ Current retention:
 
 The logical database dump includes prediction tables and regular views. It does not include cluster-wide roles, runtime secrets, BirdNET audio, the native BirdNET SQLite database, Loki data, Grafana state, or the VM itself.
 
-Current dumps remain on the same infrastructure VM as PostgreSQL, so off-host backup replication remains important future work.
+Local dumps remain on the infrastructure VM for short-term recovery, while the Proxmox pre-backup hook captures a fresh validated dump inside the off-host VM backup on external storage.
 
 ---
 
@@ -647,16 +647,13 @@ The repository should contain enough code and schema to understand and rebuild t
 
 # Future Database Work
 
-Priorities include:
+The planned infrastructure database work is complete: narrow roles/grants and HBA rules are reproducible, the Pi-local PostgreSQL instance is retired, and recovery includes both a tested logical restore and an off-host Proxmox backup path.
 
-- make role creation and grants fully reproducible
-- preserve and document narrow live PostgreSQL access rules
-- add database and backup-health monitoring
-- replicate backups off `ubuntu-infra`
-- periodically test real restores
-- eventually retire the old Pi PostgreSQL instance
-- continue validating the deployed provenance-aware health gating before considering more complex coverage weighting
-- move analytical timestamps toward UTC plus explicit station timezone metadata
-- add materialized views or indexes only when real query patterns justify them
+Future database work is not an active hardening queue. Reopen it only when evidence or a real feature justifies it. Possible later work includes:
+
+- database/backup-health monitoring if operational experience shows a need
+- continued validation of provenance-aware health gating before considering more complex coverage weighting
+- moving analytical timestamps toward UTC plus explicit station timezone metadata
+- materialized views or indexes only when real query patterns justify them
 
 Avoid premature database complexity.
