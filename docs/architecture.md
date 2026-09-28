@@ -346,7 +346,7 @@ Current known debt includes:
 - analytical SQL still encodes Los Angeles wall-clock semantics
 - some prediction timestamps are `timestamp without time zone`, creating DST ambiguity
 - the aggregate activity view is weather-backed
-- PostgreSQL roles and `pg_hba.conf` policy are not yet fully reproduced by committed automation
+- PostgreSQL roles, reader grants, and narrow `pg_hba.conf` policy now have committed bootstrap/verification automation; final live acceptance is tracked with the infrastructure homework
 - PostgreSQL recovery now includes a tested logical restore and Proxmox off-host VM backup path
 - Loki is directly reachable inside the Home Lab
 - historical precipitation before the explicit inches fix has uncertain unit provenance
@@ -360,11 +360,7 @@ The former Pi-local PostgreSQL instance was retired after the active collector p
 
 The system has reached the point where additional hardening can reduce practical reliability by increasing operational complexity.
 
-Active infrastructure scope is therefore limited to:
-
-- off-host PostgreSQL backup plus a tested restore
-- reproducible narrow PostgreSQL access policy
-- removal of clearly obsolete migration artifacts
+Active infrastructure scope is therefore limited to the final live acceptance of the reproducible narrow PostgreSQL access policy. Off-host recovery and obsolete migration cleanup are complete.
 
 Once those are complete, the infrastructure should be treated as frozen. New infrastructure work needs a concrete reason: protecting data, closing an identified security gap, fixing an observed failure, or enabling a real feature.
 
