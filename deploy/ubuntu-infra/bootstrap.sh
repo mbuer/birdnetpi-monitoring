@@ -64,6 +64,9 @@ do
   docker exec -i birdnet-postgres     psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet     < "$ROOT/$sql"
 done
 
+echo "Configuring PostgreSQL access policy..."
+bash "$POSTGRES_DIR/configure_access.sh"
+
 echo "Preparing ML/health Python environment..."
 if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
   sudo -u "$INFRA_USER" python3 -m venv "$ROOT/.venv"
