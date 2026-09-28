@@ -401,11 +401,9 @@ Prefer recoverable asynchronous data flows over fragile tight coupling.
 
 Do not turn this repository into an endless infrastructure-hardening project.
 
-Active infrastructure work is limited to final live acceptance of the reproducible narrow PostgreSQL roles/grants and host access policy.
+The three planned infrastructure essentials are complete: off-host PostgreSQL recovery with a tested restore, reproducible narrow PostgreSQL roles/grants and host access policy, and obsolete Pi-local/Cloud-era cleanup.
 
-The off-host PostgreSQL recovery path and obsolete Pi-local migration cleanup are complete.
-
-After those are complete, treat the infrastructure as frozen unless there is a concrete data-protection need, identified security exposure, observed failure, recovery problem, or real feature requirement.
+Treat the infrastructure as frozen by default unless there is a concrete data-protection need, identified security exposure, observed failure, recovery problem, or real feature requirement.
 
 Do not proactively add Docker/Alloy auto-installation, broad verification frameworks, timestamp redesign, aggregate-view redesign, or extra network hardening simply for completeness.
 
