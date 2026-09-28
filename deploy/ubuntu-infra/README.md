@@ -10,14 +10,19 @@ The architecture keeps the Raspberry Pi focused on sensing and collection while 
 
 For a fresh infrastructure VM, first install Docker with the Compose v2 plugin and clone this repository. The bootstrap installs `make` and the remaining OS-level helper packages used by the documented operator commands.
 
-Create the PostgreSQL runtime secret file:
+Create the PostgreSQL runtime configuration file:
 
 ```bash
 cd deploy/ubuntu-infra/postgres
 cp .env.example .env
 chmod 600 .env
-# edit .env and replace the example password
+# edit .env:
+# - set POSTGRES_PASSWORD
+# - set reader passwords for fresh role creation
+# - set the BirdNET, Grafana, and Birdynator client CIDRs
 ```
+
+The real values remain local and ignored. Use `/32` for exact host clients such as the BirdNET Pi and AI Nexus.
 
 Then from the repository root:
 
@@ -26,7 +31,7 @@ make infra-bootstrap
 make infra-verify
 ```
 
-The bootstrap starts PostgreSQL and Loki, applies the complete committed database object set, creates the ML Python environment, prepares the backup directory, and installs/enables the station-health, ML, and PostgreSQL-backup timers.
+The bootstrap starts PostgreSQL and Loki, applies the complete committed database object set, recreates the PostgreSQL reader roles/grants and narrow HBA policy from local configuration, creates the ML Python environment, prepares the backup directory, and installs/enables the station-health, ML, and PostgreSQL-backup timers.
 
 Grafana provisioning remains in the separate `homelab-grafana` repository.
 
@@ -118,6 +123,7 @@ deploy/ubuntu-infra/
 |-- README.md
 |-- postgres/
 |   |-- compose.yaml
+|   |-- configure_access.sh
 |   |-- .env.example
 |   `-- .env          # runtime only, ignored
 |
@@ -195,9 +201,18 @@ Known required clients include:
 - Grafana through its Docker network
 - local ML jobs through the infrastructure host/container path
 
-The read-only Grafana role is `grafana_reader` and requires SELECT access to both analytical views and both prediction tables.
+The read-only roles are `grafana_reader` and `birdynator_reader`. Their object grants are defined in `database/access.sql`.
 
-Authentication rules are host-specific runtime configuration. During rebuild, compare the live `pg_hba.conf` and Docker network ranges before recreating them; do not replace them with broad `0.0.0.0/0` rules for convenience.
+`deploy/ubuntu-infra/postgres/configure_access.sh` applies the committed role/grant contract and renders `pg_hba.conf` from local CIDR values in the ignored PostgreSQL `.env`. It derives the PostgreSQL Docker gateway automatically for local ML/health access.
+
+The intended HBA policy is narrow:
+
+- BirdNET Pi -> database `birdnet`, role `birdnet`, configured exact client CIDR
+- Grafana -> database `birdnet`, role `grafana_reader`, configured Grafana Docker CIDR
+- local ML/health -> database `birdnet`, role `birdnet`, derived PostgreSQL bridge gateway
+- Birdynator -> database `birdnet`, role `birdynator_reader`, configured exact client CIDR
+
+Do not replace these rules with broad LAN-wide access for convenience.
 
 ---
 
