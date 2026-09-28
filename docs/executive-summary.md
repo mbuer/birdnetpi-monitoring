@@ -108,7 +108,7 @@ make infra-bootstrap
 make infra-verify
 ```
 
-The Pi and infra verification suites both passed against the live hosts on 2026-09-26.
+The Pi and infra verification suites passed against the live hosts on 2026-09-27 after the final PostgreSQL access-policy work. Grafana and Birdynator were also verified through their real read-only database paths.
 
 Recovery model:
 
@@ -120,15 +120,15 @@ Git
 
 Grafana infrastructure remains in `homelab-grafana`. AI Nexus remains in `ai-nexus`.
 
-## Simplified remaining scope
+## Infrastructure status
 
-Infrastructure work is deliberately limited to three remaining essentials:
+The three deliberately limited infrastructure essentials are complete:
 
-1. off-host PostgreSQL backup plus one real restore drill
+1. off-host PostgreSQL recovery plus a tested restore
 2. reproducible narrow PostgreSQL roles/grants and host access policy
-3. cleanup of clearly obsolete Cloud-era and Pi-local migration artifacts
+3. cleanup of obsolete Cloud-era and Pi-local migration artifacts
 
-After those are complete, treat the infrastructure as frozen unless a concrete failure, security exposure, recovery problem, or feature requirement justifies reopening it.
+The infrastructure is now frozen by default. Reopen it only for a concrete failure, security exposure, recovery problem, or requirement from a real feature.
 
 Do not pursue hardening for its own sake. Docker/Alloy auto-installation, large verification frameworks, timestamp redesign, aggregate-view redesign, and broader network hardening are not active priorities.
 
