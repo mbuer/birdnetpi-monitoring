@@ -512,7 +512,7 @@ bird_species_predictions
 
 See [Grafana documentation](../grafana/README.md).
 
-Role creation, credentials, connection rules, and grants are cluster/runtime configuration and must remain recoverable separately from database contents.
+Reader-role creation, exact grants, and connection rules are reproduced by `database/access.sql` and `deploy/ubuntu-infra/postgres/configure_access.sh`. Credentials remain local runtime secrets and are not part of database contents.
 
 ---
 
