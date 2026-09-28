@@ -17,8 +17,6 @@ set +a
 
 required=(
   POSTGRES_PASSWORD
-  GRAFANA_DB_PASSWORD
-  BIRDYNATOR_DB_PASSWORD
   BIRDNET_CLIENT_CIDR
   GRAFANA_CLIENT_CIDR
   BIRDYNATOR_CLIENT_CIDR
@@ -31,6 +29,25 @@ for name in "${required[@]}"; do
     exit 1
   fi
 done
+
+role_exists() {
+  local role="$1"
+  docker exec birdnet-postgres     psql -At -U birdnet -d birdnet -c     "SELECT 1 FROM pg_roles WHERE rolname='$role';"     | grep -qx 1
+}
+
+if ! role_exists grafana_reader; then
+  if [[ -z "${GRAFANA_DB_PASSWORD:-}" || "${GRAFANA_DB_PASSWORD}" == "change-me" || "${GRAFANA_DB_PASSWORD}" == "CHANGE_ME" ]]; then
+    echo "GRAFANA_DB_PASSWORD is required when creating grafana_reader." >&2
+    exit 1
+  fi
+fi
+
+if ! role_exists birdynator_reader; then
+  if [[ -z "${BIRDYNATOR_DB_PASSWORD:-}" || "${BIRDYNATOR_DB_PASSWORD}" == "change-me" || "${BIRDYNATOR_DB_PASSWORD}" == "CHANGE_ME" ]]; then
+    echo "BIRDYNATOR_DB_PASSWORD is required when creating birdynator_reader." >&2
+    exit 1
+  fi
+fi
 
 python3 - "$BIRDNET_CLIENT_CIDR" "$GRAFANA_CLIENT_CIDR" "$BIRDYNATOR_CLIENT_CIDR" <<'PY'
 import ipaddress
