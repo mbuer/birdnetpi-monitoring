@@ -77,7 +77,7 @@ fi
 postgres_gateway_cidr="${postgres_gateway}/32"
 
 echo "Applying PostgreSQL reader roles and grants..."
-docker exec -i birdnet-postgres   psql -v ON_ERROR_STOP=1        -v grafana_password="$GRAFANA_DB_PASSWORD"        -v birdynator_password="$BIRDYNATOR_DB_PASSWORD"        -U birdnet -d birdnet   < "$ROOT/database/access.sql"
+docker exec -i birdnet-postgres   psql -v ON_ERROR_STOP=1        -v grafana_password="${GRAFANA_DB_PASSWORD:-}"        -v birdynator_password="${BIRDYNATOR_DB_PASSWORD:-}"        -U birdnet -d birdnet   < "$ROOT/database/access.sql"
 
 tmp_hba="$(mktemp)"
 trap 'rm -f "$tmp_hba"' EXIT
