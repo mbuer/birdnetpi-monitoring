@@ -479,7 +479,7 @@ BirdNET itself should continue operating during an infrastructure rebuild becaus
 
 # Recovery Notes
 
-Database dumps contain database objects and data, but PostgreSQL cluster-wide roles and runtime secrets must be recreated separately.
+Database dumps contain database objects and data, but not cluster-wide roles or runtime secrets. `infra-bootstrap` recreates the committed reader-role/grant contract and HBA policy from the local ignored `.env`; the secrets themselves must still be restored separately.
 
 Prediction records are historical evidence. Do not regenerate historical predictions and present them as forecasts that were actually issued before the target occurred.
 
