@@ -48,10 +48,11 @@ Application role:
 birdnet
 ```
 
-Read-only Grafana role:
+Read-only consumer roles:
 
 ```text
 grafana_reader
+birdynator_reader
 ```
 
 Published port:
@@ -77,6 +78,7 @@ The database layer is split between the base schema, derived views, and predicti
 ```text
 database/
 |-- schema.sql
+|-- access.sql
 |-- predictions.sql
 |-- species_predictions.sql
 `-- views/
@@ -254,21 +256,18 @@ docker exec -i birdnet-postgres \
   < database/species_predictions.sql
 ```
 
-Then ensure Grafana has read-only access to the analytical objects:
+Then apply the committed reader-role and grant contract through the deployment access step:
 
 ```bash
-docker exec birdnet-postgres \
-  psql -v ON_ERROR_STOP=1 -U birdnet -d birdnet -c "
-GRANT USAGE ON SCHEMA public TO grafana_reader;
-GRANT SELECT ON
-  public.bird_activity_hourly,
-  public.bird_species_hourly,
-  public.bird_activity_predictions,
-  public.bird_species_predictions,
-  public.station_health_hourly
-TO grafana_reader;
-"
+bash deploy/ubuntu-infra/postgres/configure_access.sh
 ```
+
+`database/access.sql` preserves the current read-only boundaries:
+
+- `grafana_reader`: SELECT on the eight dashboard/source objects used by Grafana
+- `birdynator_reader`: SELECT only on `detections`, `weather_observations`, `bird_activity_hourly`, and `bird_species_hourly`
+
+Existing reader passwords are not rotated by an access refresh. Reader passwords from the local `.env` are used when a role must be created on a fresh cluster.
 
 Verify:
 
@@ -475,17 +474,16 @@ These numbers are historical checkpoints, not current totals.
 
 PostgreSQL publishes `5432/tcp`.
 
-The system currently needs access for more than the BirdNET Pi alone:
+The system needs access for:
 
-- BirdNET ingestion from the Pi
-- ML jobs on `ubuntu-infra`
-- Grafana through its Docker network
+- BirdNET ingestion from the exact configured Pi client
+- ML/health jobs on `ubuntu-infra`
+- Grafana through its configured Docker client network
+- Birdynator from the exact configured AI Nexus client
 
-Use narrow SCRAM-authenticated client rules rather than reopening PostgreSQL broadly to the LAN.
+`deploy/ubuntu-infra/postgres/configure_access.sh` renders the narrow SCRAM-authenticated HBA policy from local CIDRs and derives the PostgreSQL Docker gateway automatically. The bootstrap invokes this step after database objects are applied.
 
-The committed Compose file does not fully reproduce the live `pg_hba.conf` rules, so the active authentication configuration must be preserved and documented during rebuilds.
-
-The `birdnet` role is the current application/bootstrap role and should not automatically be treated as a least-privilege account.
+The `birdnet` role remains the PostgreSQL bootstrap/application superuser by deliberate recovery-simplicity choice. Remote access for that role is therefore constrained by database, role, and source in HBA rather than exposed broadly.
 
 ---
 
