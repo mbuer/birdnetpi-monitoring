@@ -310,3 +310,30 @@ Decision:
 - keep centralized PostgreSQL on `ubuntu-infra` as the only active BirdNET PostgreSQL service
 
 This reduces duplicate state and removes a misleading recovery path without changing the active BirdNET pipeline.
+
+
+## 2026-09-27 — Reproduce narrow PostgreSQL access policy from local configuration
+
+The live PostgreSQL deployment already used source-restricted SCRAM rules, but the exact roles, grants, and HBA policy were partly runtime state rather than a complete rebuild contract.
+
+Inspection established the active boundaries:
+
+- BirdNET Pi uses the `birdnet` database and `birdnet` role from one exact client address
+- Grafana uses `grafana_reader` from its Docker client network
+- local ML/health jobs use `birdnet` through the PostgreSQL Docker bridge gateway
+- Birdynator uses `birdynator_reader` from one exact AI Nexus client address
+- `grafana_reader` is read-only on the eight existing Grafana/source objects
+- `birdynator_reader` is read-only on detections, weather observations, and the two analytical views
+- the `birdnet` account is the PostgreSQL bootstrap superuser and cannot be demoted in place
+
+Decision:
+
+- keep `birdnet` as the bootstrap/application account for recovery simplicity
+- narrow its remote HBA access by database, role, and exact source instead of introducing another runtime writer role
+- define `grafana_reader` and `birdynator_reader` plus their exact grants in `database/access.sql`
+- render `pg_hba.conf` from environment-specific CIDRs stored only in the ignored PostgreSQL `.env`
+- derive the PostgreSQL Docker gateway automatically for local ML/health access
+- preserve existing reader passwords during an access refresh; require reader passwords only when creating those roles on a fresh cluster
+- have `infra-bootstrap` apply the access policy and `infra-verify` check the roles, grants, HBA syntax, expected source rules, and absence of broad remote access
+
+This keeps recovery simple while making the database-level access boundary reproducible and explicit without committing live addresses or secrets.
