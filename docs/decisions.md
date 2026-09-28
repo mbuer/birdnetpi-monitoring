@@ -337,3 +337,30 @@ Decision:
 - have `infra-bootstrap` apply the access policy and `infra-verify` check the roles, grants, HBA syntax, expected source rules, and absence of broad remote access
 
 This keeps recovery simple while making the database-level access boundary reproducible and explicit without committing live addresses or secrets.
+
+
+## 2026-09-27 — Freeze BirdNET infrastructure after final acceptance
+
+The final planned infrastructure homework item, reproducible narrow PostgreSQL access control, was applied and tested against the live system.
+
+Verified after the generated HBA policy replaced the earlier manual runtime edit:
+
+- `make repo-check` passed
+- `make infra-verify` passed, including reader-role constraints, Grafana grants, Birdynator grants, schema usage, HBA parsing, expected source rules, and absence of a broad remote HBA rule
+- `make pi-verify` passed from the BirdNET Pi
+- Grafana's real PostgreSQL datasource health check returned `Database Connection OK`
+- Birdynator authenticated as `birdynator_reader`
+- Birdynator could SELECT from `detections` and `bird_activity_hourly`
+- Birdynator could not SELECT from `bird_activity_predictions`
+- Birdynator could not INSERT into `detections`
+
+The other two infrastructure essentials were already complete: off-host recovery with a tested logical restore, and removal of obsolete Cloud-era/Pi-local migration artifacts.
+
+Decision:
+
+- consider the three planned infrastructure essentials complete
+- treat BirdNET monitoring infrastructure as frozen by default
+- reopen infrastructure work only for a concrete data-protection need, identified security exposure, observed operational failure, recovery problem, or real feature requirement
+- prioritize Birdynator analysis, useful reporting, anomaly detection, and evidence-driven ML evaluation
+
+This closes the infrastructure-hardening phase deliberately rather than continuing to add complexity for completeness.
