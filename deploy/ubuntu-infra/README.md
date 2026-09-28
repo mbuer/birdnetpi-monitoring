@@ -489,21 +489,25 @@ Before resuming detection synchronization after a restore, reconcile the Pi impo
 
 # Current Status
 
-Completed:
+Completed and runtime-verified:
 
 - centralized PostgreSQL and historical migration
 - remote detection/weather/forecast ingestion
-- PostgreSQL backups
+- PostgreSQL backups plus tested logical restore and off-host Proxmox capture
+- reproducible narrow PostgreSQL roles, grants, and HBA policy
 - local Loki and Grafana integration
-- Alloy local-only architecture deployed and runtime-verified
+- Alloy local-only architecture
 - aggregate hourly prediction/scoring
 - species reference and challenger prediction/scoring in the hourly cycle
 - aggregate and species prediction dashboards
 - timing/leakage regression tests
+- constrained Grafana and Birdynator read-only database paths
 
-Still intentionally open:
+The infrastructure is frozen by default. Future work should focus on analysis and features unless a concrete operational, security, or recovery need appears.
 
-- stronger ingestion-freshness monitoring
+Still intentionally open as feature/analysis work:
+
+- stronger ingestion-freshness monitoring if it becomes useful
 - forward-validation of species challengers and additional species when data supports them
 
 ---
