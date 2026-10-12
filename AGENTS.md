@@ -65,4 +65,4 @@ Keep the root README an overview and navigation page; put operational detail in 
 - [Pi deployment](deploy/birdnet-pi/README.md), [infra deployment](deploy/ubuntu-infra/README.md)
 - [Backup and recovery](docs/backup-recovery.md)
 
-Prefix commits written directly by ChatGPT through the GitHub connector with `Sol:`. User-created local commits keep normal messages; this prefix is informational, not a different trust level.
+Use normal commit messages without a `Sol:` prefix.

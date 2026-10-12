@@ -357,6 +357,9 @@ Run the full suite after changing timing, live feature construction, or either s
 | `src/predict_next_hour.py` | Live aggregate Random Forest + XGBoost + HistGradientBoosting prediction |
 | `src/score_predictions.py` | Score eligible aggregate predictions |
 | `src/compare_v2_xgboost.py` | Leakage-safe aggregate RF vs XGBoost comparison |
+| `src/weather_ablation.py` | Retrospective observed-weather ablation; no production change |
+| `src/feature_family_ablation.py` | Retrospective time/activity-family comparison |
+| `src/residual_model.py` | Retrospective residual RF; explicit cutoff and CSV outside Git |
 | `src/compare_species_models.py` | Generic species walk-forward comparison |
 | `src/species_candidates.py` | Rank species by live-prediction history/signal |
 | `src/optimize_species_xgboost.py` | Chronological randomized XGBoost/threshold optimization |
@@ -421,11 +424,29 @@ See [Architecture](../docs/architecture.md).
 Priorities now are:
 
 - accumulate matched live Random Forest, XGBoost, and HistGradientBoosting forward-validation history
-- compare aggregate models only on matched scored target hours after the new challenger has accumulated its own live history
+- refresh the aggregate forward-validation checkpoint as the matched dataset grows
+- retain the current aggregate RF and live features after the completed weather, feature-family, and residual experiments
+- treat any further modeling work as a new hypothesis with future validation, not repeated tuning on the inspected October window
+- evaluate target-hour forecast weather only if historical issue-time snapshots support a separate experiment
 - accumulate matched live challenger scoring for Black Phoebe and American Crow
 - evaluate species-specific thresholds without reusing diagnostic holdouts
-- validate the new provenance-aware station-health gating on live runs before considering stricter filtering or weighting
 - repeat model comparisons as the dataset grows
-- add sunrise/daylight and later weather features where justified
+
+New feature work must remain separate from the production feature list until
+the experiment is documented and a production decision is recorded.
+
+The completed October investigation is recorded in:
+
+- [Observed-weather ablation](../docs/experiments/2026-10-11-weather-observation-ablation.md)
+- [Feature-family ablation](../docs/experiments/2026-10-11-feature-family-ablation.md)
+- [Residual-model experiment](../docs/experiments/2026-10-11-residual-model.md)
+- [Residual method and execution contract](../docs/experiments/residual-model.md)
+
+The full residual run completed 859 forecasts in 19.5 minutes. All 23 regression
+tests and repository hygiene checks passed. No production model or live feature
+changed. Preserve raw reports, forecast CSVs, and code-state manifests outside
+Git; use a new output path for reruns.
+
+Use `docs/experiments/TEMPLATE.md` for meaningful new investigations.
 
 Keep every prediction path understandable, leakage-safe, and reproducible.

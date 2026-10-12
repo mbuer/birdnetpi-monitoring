@@ -1,5 +1,62 @@
 # Decision Log
 
+## 2026-10-11 — Retain aggregate RF after weather, feature-family, and residual tests
+
+The completed retrospective investigations use chronological T -> T+2
+validation and preserve production contracts. D reproduced C's aggregate
+reference metrics on 859 forecasts.
+
+Evidence:
+
+- B: observed weather worsened overall MAE for RF, XGB, and HGB
+- C: full RF improved MAE over time-only RF by only 0.21%; the daily solar/time pattern dominates this dataset
+- D: RF full MAE 4.456; solar climatology 4.598; residual RF 4.696; residual RF with observed weather 4.798
+- D: neither residual variant improved on RF full for unusually active or quiet hours
+
+Decision:
+
+- NO PRODUCTION CHANGE; retain Random Forest as the aggregate reference
+- retain the current live feature list and existing live challengers
+- do not promote the tested residual formulation or observed-weather additions
+- retain A/B/C/D code and dated results as retrospective development evidence
+- distinguish input-hour day/night in B/C from target-hour day/night in D
+- refresh matched stored forward-validation evidence before another modeling change
+- treat target-hour forecast weather as a separate test requiring genuine issue-time snapshots
+- do not turn repeated use of this inspected window into a claim of untouched holdout evidence
+
+See [weather](experiments/2026-10-11-weather-observation-ablation.md),
+[feature families](experiments/2026-10-11-feature-family-ablation.md), and
+[residual modeling](experiments/2026-10-11-residual-model.md).
+
+## 2026-10-11 — Keep one repository and gate weather work through ablation
+
+The BirdNET monitoring repository owns a coordinated set of collectors,
+database contracts, station-health provenance, ML workflows, BirdNET-specific
+Grafana dashboards, deployment logic, recovery documentation, and experiment
+history.
+
+Decision:
+
+- keep these components in one repository for now
+- preserve clear subsystem boundaries instead of splitting ML into a separate repository
+- treat a future repository split as justified only if ML develops an independent lifecycle, deployment contract, or ownership boundary
+- standardize meaningful ML investigations through `docs/experiments/TEMPLATE.md`
+- keep stable methodology in `docs/ml.md`, operational instructions in `ml/README.md`, and dated findings in `docs/experiments/`
+- investigate weather as a retrospective feature ablation before changing the live aggregate feature list
+- distinguish issue-time observed weather from target-hour forecast weather
+- never use future observed target-hour weather as an input to a historical simulation
+- require an explicit documented production decision before changing the live feature set
+
+The first planned weather comparison is:
+
+- A — current baseline features
+- B — baseline + weather observed at completed hour T
+- C — baseline + forecast weather for target hour T+2
+
+A and B can be compared first. C requires historical forecast snapshots that
+were actually available at the simulated issue time.
+
+
 ## 2026-09-26 — ML development sequence
 
 The current ML stack already has live aggregate and species forecasting, stored forward predictions, scoring, and challenger models.

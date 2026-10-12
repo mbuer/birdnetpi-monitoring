@@ -524,11 +524,30 @@ Curated experiment results belong in:
 
 `docs/experiments/`
 
+Use `docs/experiments/TEMPLATE.md` for meaningful new investigations. The
+template records the question, code state, dataset cutoff, matched row count,
+feature sets, validation method, leakage controls, metrics, interpretation,
+decision, and production impact.
+
 Raw generated output does not need to be committed when the experiment can be reproduced from code and documented parameters.
 
 ---
 
 # Current Experiment Records
+
+Aggregate retrospective investigations completed on 2026-10-11:
+
+- [Observed-weather ablation](experiments/2026-10-11-weather-observation-ablation.md)
+- [Feature-family ablation](experiments/2026-10-11-feature-family-ablation.md)
+- [Residual-model experiment](experiments/2026-10-11-residual-model.md)
+
+Observed weather and the tested residual formulation did not improve overall
+MAE. Full RF is primarily a solar/time-pattern estimator on this dataset;
+its small time-only difference does not justify changing live features.
+Random Forest and the current feature list remain the production reference.
+These retrospective forecasts are separate from stored forward-validation
+evidence. B/C day/night groups refer to input hour T; D also reports target-hour
+groups. Prefer the target-hour grouping when assessing forecast outcomes.
 
 Aggregate model comparison:
 
