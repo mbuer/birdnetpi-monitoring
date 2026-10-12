@@ -1,0 +1,319 @@
+# BirdNET Grafana Dashboards
+
+This directory contains the BirdNET-specific dashboard exports.
+
+Grafana deployment, plugin installation, and shared datasource provisioning belong to the separate `homelab-grafana` repository.
+
+The dashboards intentionally separate operational monitoring from analytical and ML views:
+
+```text
+Loki + Infinity/Open-Meteo -> Bird Home - Burbank
+PostgreSQL                -> Prediction Lab
+PostgreSQL                -> Species Prediction
+```
+
+---
+
+## Dashboard Files
+
+| File | Purpose | Export format |
+|---|---|---|
+| `Bird Home - Burbank Local.json` | Active local Grafana OSS operational dashboard | `dashboard.grafana.app/v2` resource |
+| `bird-home-prediction-lab.json` | Aggregate Random Forest + XGBoost + HistGradientBoosting forecast observability, outcomes, health, and established error metrics | `dashboard.grafana.app/v2` resource |
+| `Bird Home - Species Prediction.json` | Per-species baseline/challenger probabilities, decisions, and scored results | `dashboard.grafana.app/v2` resource |
+
+JSON validity does not by itself prove Grafana import compatibility.
+
+---
+
+# Operational Bird Home Dashboard
+
+The local operational dashboard uses:
+
+- Loki for BirdNET logs and recent detections
+- Infinity for Open-Meteo weather data
+- Grafana OSS for visualization
+
+The local observability migration is complete. The Local export references `Loki` and `Infinity`.
+
+Infinity supplies direct Open-Meteo requests. Relative `/forecast?...` requests require the datasource base URL:
+
+```text
+https://api.open-meteo.com/v1
+```
+
+The current Home Lab local Loki endpoint is:
+
+```text
+${BIRDNET_LOKI_URL}
+```
+
+The live Pi configuration now writes operational logs only to local Loki. The local-only path was runtime-verified on 2026-09-26 for fresh BirdNET journal and weather log delivery.
+
+Useful Loki Explore checks include:
+
+```logql
+{unit="birdnet_analysis.service"}
+```
+
+```logql
+{job="weather"} | json
+```
+
+Operational log counts are not expected to exactly match PostgreSQL analytical counts. The two paths represent different data products.
+
+---
+
+# PostgreSQL Datasource
+
+The analytical dashboards use the PostgreSQL database:
+
+```text
+birdnet
+```
+
+Current datasource:
+
+```text
+BirdNET PostgreSQL
+UID: afy5j1yt18b9cb
+```
+
+The datasource UID is embedded in dashboard JSON. When importing into another Grafana instance, verify or remap datasource references.
+
+Grafana should use the read-only role:
+
+```text
+grafana_reader
+```
+
+See [database documentation](../database/README.md) for object installation and grants.
+
+---
+
+# Prediction Lab
+
+File:
+
+`bird-home-prediction-lab.json`
+
+This dashboard visualizes aggregate BirdNET activity forecasts produced by the live v2 prediction pipeline.
+
+Required PostgreSQL objects:
+
+- `bird_activity_hourly`
+- `bird_activity_predictions`
+
+The live aggregate model labels are:
+
+```text
+random_forest_v2_completed
+xgboost_v2_completed
+hist_gradient_boosting_v1_completed
+```
+
+All three models predict the same target hour from the same completed-hour feature frame. HistGradientBoosting is currently surfaced for forecast issuance and freshness visibility while it accumulates genuine forward-validation history; the existing RF/XGBoost/persistence performance comparisons remain unchanged for now.
+
+The dashboard compares:
+
+- Random Forest forecast
+- XGBoost forecast
+- HistGradientBoosting forecast visibility
+- observed activity
+- persistence baseline
+- per-model absolute prediction error, including HGB forward-error visibility once scored
+- established RF/XGB MAE plus HGB scored-forward sample count
+- model edge over persistence
+- model win rate
+- recent prediction records
+- latest station-health state, analysis coverage, and aggregate forecast/scoring freshness
+
+The aggregate pipeline uses the completed-hour T → T+2 timing convention documented in [ML methodology](../docs/ml.md).
+
+Pending forecasts are expected before the target hour has completed and the scoring grace period has elapsed.
+
+A newly enabled model can therefore show a current forecast while its MAE, edge, win rate, and best-error fields remain empty until at least one prediction is scored.
+
+A missing or stale forecast should not automatically be interpreted as zero predicted activity.
+
+---
+
+## Prediction Lab Query Scope
+
+Current panels intentionally use different scopes.
+
+| Panel/group | Query scope |
+|---|---|
+| Next Hour Forecast | Latest aggregate target hour with Random Forest, XGBoost, and HistGradientBoosting visibility |
+| Current Activity | Latest observed aggregate activity |
+| Live Model MAE / Model Edge | All scored rows, separated by model |
+| Scored Hours | Distinct scored target hours, not total model rows |
+| Forecast vs Reality / Prediction Error / Daily MAE | Selected Grafana time range, separated by model where applicable |
+| Model Win Rate / Persistence MAE / Best Forecast Error | Established RF/XGB live-performance comparison |
+| HGB Scored Forecasts | Count of genuine scored HGB forward forecasts; observability only, not ranking |
+| Recent Predictions | Most recent Random Forest, XGBoost, and HistGradientBoosting forecasts, newest first; includes HGB error when scored while legacy Best remains RF/XGB/persistence |
+| ML / Station Health | Latest health evidence plus health alignment for the latest ML input hour, latest forecast target, and latest scored target |
+
+Because each live model creates one row per target hour, dashboard metrics must not treat row count as forecast-hour count. Shared quantities such as persistence and observed activity should be counted once per target hour, while model metrics remain separated by `model`.
+
+“Daily MAE” is grouped by local calendar day. It is not a rolling moving average.
+
+Zero observed activity is valid. Where `station_health_hourly` contains coverage evidence, the dashboard can now distinguish a healthy quiet period from incomplete or unavailable station evidence; older hours without retained health provenance remain uncertain.
+
+---
+
+# Species Prediction Dashboard
+
+File:
+
+`Bird Home - Species Prediction.json`
+
+This dashboard visualizes stored live predictions for individual bird species.
+
+Required PostgreSQL objects:
+
+- `bird_species_hourly`
+- `bird_species_predictions`
+
+The dashboard exposes variables for:
+
+```text
+$species
+$model
+$status
+```
+
+`$species` is populated from stored prediction rows and explicitly includes Black-crowned Night-Heron and Lesser Goldfinch so they are selectable before their first stored forecasts arrive. `$model` allows model-specific filtering, while `$status` separates baseline and challenger rows where applicable.
+
+Reference model labels are:
+
+```text
+random_forest_species_v1
+xgboost_species_v1
+```
+
+Current challenger labels include:
+
+```text
+xgboost_tuned_species_v1
+xgboost_bootstrap_species_v1
+```
+
+The dashboard currently includes:
+
+- latest baseline XGBoost and Random Forest probabilities
+- forecast target time
+- latest challenger decision when a live challenger exists
+- probability history with model/status filtering
+- scored model metrics: accuracy, precision, recall, and F1
+- one-row-per-target-hour head-to-head history across baseline and challenger models
+
+The present/absent decision currently uses the stored prediction threshold, which is initially `0.5`.
+
+This threshold is not assumed to be optimal for all species. Sparse species can have useful probability ranking while still performing poorly at a fixed 0.5 classification threshold. See [species experiment results](../docs/experiments/2026-09-14-species-models.md).
+
+---
+
+## Why Live Model Metrics May Show No Data
+
+A newly imported Species Prediction dashboard can legitimately show no data in the Live Model Metrics panel. Challenger rows also remain absent from the metrics table until at least one challenger forecast has become scoreable.
+
+A prediction is not scoreable until:
+
+1. the target hour has completed
+2. the scoring grace period has elapsed
+3. the target outcome is available in `bird_species_hourly`
+4. the scoring script has updated the prediction row
+
+Until then:
+
+```text
+actual_present = NULL
+correct = NULL
+```
+
+This is expected behavior rather than a dashboard error.
+
+Species prediction and scoring are integrated into the same hourly ML cycle as aggregate forecasting for the currently scheduled species.
+
+---
+
+# Time Handling
+
+Prediction target hours are currently stored as Los Angeles wall-clock timestamps without timezone.
+
+For Grafana time-series queries, convert them to an instant using:
+
+```sql
+predicted_hour AT TIME ZONE 'America/Los_Angeles'
+```
+
+This handles normal timezone conversion for display.
+
+It does not recover ambiguity already introduced by the repeated autumn DST hour.
+
+The operational and analytical dashboards may also use the viewer's browser timezone for display, so clearly distinguish display timezone from the local timestamp semantics stored in PostgreSQL.
+
+---
+
+# Validating Dashboard JSON
+
+From the repository root:
+
+```bash
+python3 -m json.tool grafana/bird-home-prediction-lab.json > /dev/null
+python3 -m json.tool "grafana/Bird Home - Species Prediction.json" > /dev/null
+```
+
+All current dashboard exports use Grafana's `dashboard.grafana.app/v2` resource format, so use an import method compatible with that format.
+
+After importing any dashboard, verify:
+
+- datasource mapping
+- variable queries
+- panel SQL or LogQL
+- expected recent data
+- timestamps
+- pending versus scored predictions
+
+A successful import validates configuration, not model correctness.
+
+---
+
+## AI Nexus boundary
+
+Grafana dashboards are human-facing views over the same upstream evidence that may later be consumed by AI Nexus / Birdynator. AI Nexus does not scrape Grafana as its source of truth and does not own dashboard-derived station health. The authoritative analytical evidence remains in the BirdNET/ubuntu-infra data layer.
+
+See [Architecture](../docs/architecture.md).
+
+---
+
+# Dashboard Ownership
+
+This repository owns BirdNET-specific dashboard definitions.
+
+The separate `homelab-grafana` repository owns shared Grafana infrastructure such as:
+
+- Grafana container deployment
+- datasource provisioning
+- plugin installation
+- shared infrastructure configuration
+
+Keep that separation unless the architecture is deliberately changed.
+
+---
+
+# Current Limitations
+
+Important limitations across the analytical dashboards include:
+
+- local wall-clock prediction timestamps have DST ambiguity
+- scoring uses an ingestion grace period rather than a formal completeness signal
+- late detections can change historical reality after a prediction has already been scored
+- aggregate activity depends on weather-backed hourly coverage
+- aggregate model histories start at different times; HistGradientBoosting is intentionally not included in rankings or conclusions until it has accumulated enough matched forward evidence
+- species prediction thresholds are still experimental
+
+These dashboards should therefore be treated as experimental analytical tools rather than authoritative ecological forecasting systems.
+
+For model methodology and limitations, see [docs/ml.md](../docs/ml.md).

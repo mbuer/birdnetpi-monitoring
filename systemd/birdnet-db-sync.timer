@@ -1,0 +1,12 @@
+# /etc/systemd/system/birdnet-db-sync.timer
+
+[Unit]
+Description=Sync BirdNET detections to PostgreSQL every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,44 @@
+{
+  "Black Phoebe": {
+    "enabled": true,
+    "strategy": "tuned_xgboost",
+    "model": "xgboost_tuned_species_v1",
+    "threshold": 0.5,
+    "params": {
+      "n_estimators": 500,
+      "max_depth": 3,
+      "learning_rate": 0.01,
+      "min_child_weight": 8.0,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9,
+      "gamma": 0.0,
+      "reg_alpha": 0.05,
+      "reg_lambda": 5.0,
+      "class_weight_factor": 2.0
+    }
+  },
+  "American Crow": {
+    "enabled": true,
+    "strategy": "balanced_bootstrap_ensemble",
+    "model": "xgboost_bootstrap_species_v1",
+    "threshold": 0.5,
+    "members": 15,
+    "params": {
+      "n_estimators": 250,
+      "max_depth": 5,
+      "learning_rate": 0.08,
+      "min_child_weight": 2.0,
+      "subsample": 1.0,
+      "colsample_bytree": 0.75,
+      "gamma": 0.0,
+      "reg_alpha": 0.2,
+      "reg_lambda": 2.0,
+      "class_weight_factor": 0.0
+    }
+  },
+  "Anna's Hummingbird": {
+    "enabled": false,
+    "strategy": "experimental_only",
+    "note": "Keep retrospective for now; precision remains too low despite improved recall/F1."
+  }
+}

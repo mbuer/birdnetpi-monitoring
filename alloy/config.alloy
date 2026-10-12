@@ -1,0 +1,134 @@
+// BirdNET Alloy sample configuration.
+//
+// The current Home Lab design sends BirdNET operational logs only to
+// the local Loki instance on ubuntu-infra.
+
+loki.source.journal "read" {
+    relabel_rules = loki.relabel.journal.rules
+    forward_to    = [loki.process.local.receiver]
+}
+
+loki.relabel "journal" {
+    forward_to = []
+
+    rule {
+        source_labels = ["__journal__systemd_unit"]
+        target_label  = "unit"
+    }
+}
+
+local.file_match "weather" {
+    path_targets = [
+        {
+            __path__ = "/var/log/weather/weather.log",
+            job      = "weather",
+        },
+    ]
+}
+
+loki.source.file "weather" {
+    targets    = local.file_match.weather.targets
+    forward_to = [loki.process.weather.receiver]
+}
+
+loki.process "local" {
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"}"
+
+        stage.regex {
+            expression = ".*\\((?<species_latin>[A-Za-z]+ [A-Za-z-]+)_(?<species>[^,]+), (?<confidence>[0-9.]+)\\)"
+        }
+
+        stage.labels {
+            values = {
+                species       = "",
+                species_latin = "",
+                confidence    = "",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.5\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "0.5",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.6\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "0.6",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.7\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "0.7",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.8\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "0.8",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 0.9\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "0.9",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"} |= \", 1.\""
+
+        stage.static_labels {
+            values = {
+                confidence_interval = "1",
+            }
+        }
+    }
+
+    stage.match {
+        selector = "{unit=\"birdnet_analysis.service\"}"
+
+        stage.pack {
+            labels = ["confidence"]
+        }
+    }
+
+    forward_to = [
+        loki.write.local.receiver,
+    ]
+}
+
+loki.process "weather" {
+    forward_to = [
+        loki.write.local.receiver,
+    ]
+}
+
+loki.write "local" {
+    endpoint {
+        url = sys.env("BIRDNET_LOKI_URL") + "/loki/api/v1/push"
+    }
+}

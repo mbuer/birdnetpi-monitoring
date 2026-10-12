@@ -1,0 +1,925 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "bird-home-species-prediction",
+    "namespace": "default",
+    "uid": "ec593678-fc2a-42c3-9823-d8792461cf06",
+    "resourceVersion": "1789445070966008",
+    "generation": 4,
+    "creationTimestamp": "2026-09-15T04:00:05Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "1032390445379584"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "user:bfy29hcvl91c0a",
+      "grafana.app/saved-from-ui": "Grafana v13.2.1 (56cd3e9288)",
+      "grafana.app/updatedBy": "user:bfy29hcvl91c0a",
+      "grafana.app/updatedTimestamp": "2026-09-15T04:04:30Z"
+    }
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana",
+            "version": "v0",
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "spec": {}
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "builtIn": true
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "id": 1,
+          "title": "XGBoost — Next Forecast",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    probability * 100 AS \"XGBoost Probability\"\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND model = 'xgboost_species_v1'\nORDER BY prediction_created_at DESC\nLIMIT 1;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "id": 2,
+          "title": "Random Forest — Next Forecast",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    probability * 100 AS \"Random Forest Probability\"\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND model = 'random_forest_species_v1'\nORDER BY prediction_created_at DESC\nLIMIT 1;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "id": 3,
+          "title": "Forecast Target",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    EXTRACT(\n        EPOCH FROM (\n            predicted_hour AT TIME ZONE 'America/Los_Angeles'\n        )\n    ) * 1000 AS \"Target\"\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY prediction_created_at DESC\nLIMIT 1;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "dateTimeAsIso",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "id": 4,
+          "title": "Challenger — Next Forecast",
+          "description": "Latest challenger decision for the selected species; blank if no live challenger exists.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    predicted_present AS \"Forecast\"\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND model NOT IN ('random_forest_species_v1','xgboost_species_v1')\nORDER BY prediction_created_at DESC\nLIMIT 1;",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "Absent",
+                          "color": "green",
+                          "index": 0
+                        },
+                        "1": {
+                          "text": "Present",
+                          "color": "red",
+                          "index": 1
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "id": 5,
+          "title": "Species Probability History",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n    predicted_hour AT TIME ZONE 'America/Los_Angeles' AS time,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS metric,\n    probability * 100 AS value\nFROM bird_species_predictions\nWHERE species = '$species'\n  AND (\n  '$model' = '__all'\n  OR model = '$model'\n)\nAND (\n  '$status' = 'all'\n  OR ('$status' = 'baseline' AND model IN ('random_forest_species_v1','xgboost_species_v1'))\n  OR ('$status' = 'challenger' AND model NOT IN ('random_forest_species_v1','xgboost_species_v1'))\n)\n  AND $__timeFilter(predicted_hour AT TIME ZONE 'America/Los_Angeles')\nORDER BY time;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "lastNotNull",
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "id": 6,
+          "title": "Live Model Metrics",
+          "description": "Scored forward-validation metrics for the selected species/model/status.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH scored AS (\n    SELECT\n        model,\n        predicted_present,\n        actual_present,\n        correct\n    FROM bird_species_predictions\n    WHERE species = '$species'\n      AND scored_at IS NOT NULL\n      AND (\n  '$model' = '__all'\n  OR model = '$model'\n)\nAND (\n  '$status' = 'all'\n  OR ('$status' = 'baseline' AND model IN ('random_forest_species_v1','xgboost_species_v1'))\n  OR ('$status' = 'challenger' AND model NOT IN ('random_forest_species_v1','xgboost_species_v1'))\n)\n),\ncounts AS (\n    SELECT\n        model,\n        COUNT(*) AS scored,\n        COUNT(*) FILTER (WHERE predicted_present = 1 AND actual_present = 1) AS tp,\n        COUNT(*) FILTER (WHERE predicted_present = 1 AND actual_present = 0) AS fp,\n        COUNT(*) FILTER (WHERE predicted_present = 0 AND actual_present = 1) AS fn,\n        COUNT(*) FILTER (WHERE correct IS TRUE) AS correct\n    FROM scored\n    GROUP BY model\n)\nSELECT\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS \"Model\",\n    scored AS \"Scored\",\n    ROUND(100.0 * correct / NULLIF(scored, 0), 1) AS \"Accuracy %\",\n    ROUND(100.0 * tp / NULLIF(tp + fp, 0), 1) AS \"Precision %\",\n    ROUND(100.0 * tp / NULLIF(tp + fn, 0), 1) AS \"Recall %\",\n    ROUND(100.0 * (2.0 * tp) / NULLIF((2.0 * tp) + fp + fn, 0), 1) AS \"F1 %\"\nFROM counts\nORDER BY \"Model\";"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "id": 7,
+          "title": "Prediction History — Head to Head",
+          "description": "One row per target hour. Challenger columns populate when a challenger exists for the selected species.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "afy5j1yt18b9cb"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH hourly AS (\n    SELECT\n        predicted_hour,\n        MAX(probability) FILTER (WHERE model = 'random_forest_species_v1') AS rf_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_species_v1') AS xgb_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_tuned_species_v1') AS tuned_probability,\n        MAX(probability) FILTER (WHERE model = 'xgboost_bootstrap_species_v1') AS bootstrap_probability,\n        MAX(predicted_present) FILTER (WHERE model = 'random_forest_species_v1') AS rf_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_species_v1') AS xgb_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_tuned_species_v1') AS tuned_prediction,\n        MAX(predicted_present) FILTER (WHERE model = 'xgboost_bootstrap_species_v1') AS bootstrap_prediction,\n        MAX(actual_present) AS actual_present\n    FROM bird_species_predictions\n    WHERE species = '$species'\n    GROUP BY predicted_hour\n)\nSELECT\n    to_char(predicted_hour, 'YYYY-MM-DD HH24:MI') AS \"Target Hour\",\n    ROUND((rf_probability * 100)::numeric, 1) AS \"RF %\",\n    ROUND((xgb_probability * 100)::numeric, 1) AS \"XGB %\",\n    ROUND((COALESCE(tuned_probability, bootstrap_probability) * 100)::numeric, 1) AS \"Challenger %\",\n    CASE\n        WHEN tuned_probability IS NOT NULL THEN 'Tuned XGBoost'\n        WHEN bootstrap_probability IS NOT NULL THEN 'Bootstrap XGBoost'\n        ELSE NULL\n    END AS \"Challenger\",\n    CASE actual_present\n        WHEN 1 THEN 'Present'\n        WHEN 0 THEN 'Absent'\n        ELSE 'Pending'\n    END AS \"Actual\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN rf_prediction = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"RF Correct\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN xgb_prediction = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"XGB Correct\",\n    CASE\n        WHEN actual_present IS NULL THEN 'Pending'\n        WHEN COALESCE(tuned_prediction, bootstrap_prediction) IS NULL THEN '—'\n        WHEN COALESCE(tuned_prediction, bootstrap_prediction) = actual_present THEN 'Yes'\n        ELSE 'No'\n    END AS \"Challenger Correct\"\nFROM hourly\nORDER BY predicted_hour DESC;"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.1",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "Target Hour"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-2"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 12,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-3"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 18,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-4"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 5,
+              "width": 14,
+              "height": 9,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-5"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 14,
+              "y": 5,
+              "width": 10,
+              "height": 9,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-6"
+              }
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "x": 0,
+              "y": 14,
+              "width": 24,
+              "height": 10,
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-7"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "BirdNET",
+      "ML",
+      "Species"
+    ],
+    "timeSettings": {
+      "timezone": "browser",
+      "from": "now-7d",
+      "to": "now+3h",
+      "autoRefresh": "5m",
+      "autoRefreshIntervals": [
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h"
+      ],
+      "hideTimepicker": false,
+      "fiscalYearStartMonth": 0
+    },
+    "title": "Bird Home - Species Prediction",
+    "variables": [
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "species",
+          "current": {
+            "text": "Black Phoebe",
+            "value": "Black Phoebe"
+          },
+          "label": "Species",
+          "hide": "dontHide",
+          "refresh": "onDashboardLoad",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "afy5j1yt18b9cb"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT species\nFROM (\n    SELECT DISTINCT species\n    FROM bird_species_predictions\n    UNION\n    SELECT 'Black-crowned Night-Heron'\n    UNION\n    SELECT 'Lesser Goldfinch'\n) AS live_species\nORDER BY species;"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "alphabeticalAsc",
+          "definition": "SELECT species\nFROM (\n    SELECT DISTINCT species\n    FROM bird_species_predictions\n    UNION\n    SELECT 'Black-crowned Night-Heron'\n    UNION\n    SELECT 'Lesser Goldfinch'\n) AS live_species\nORDER BY species;",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "model",
+          "current": {
+            "text": "All models",
+            "value": "__all"
+          },
+          "label": "Model",
+          "hide": "dontHide",
+          "refresh": "onTimeRangeChanged",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "afy5j1yt18b9cb"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT '__all' AS __value, 'All models' AS __text\nUNION ALL\nSELECT DISTINCT\n    model AS __value,\n    CASE\n        WHEN model = 'random_forest_species_v1' THEN 'Random Forest'\n        WHEN model = 'xgboost_species_v1' THEN 'XGBoost'\n        WHEN model = 'xgboost_tuned_species_v1' THEN 'Tuned XGBoost'\n        WHEN model = 'xgboost_bootstrap_species_v1' THEN 'Bootstrap XGBoost'\n        ELSE model\n    END AS __text\nFROM bird_species_predictions\nWHERE species = '$species'\nORDER BY __text;"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "alphabeticalAsc",
+          "definition": "Dynamic model list for selected species using Grafana __value/__text aliases",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "status",
+          "current": {
+            "text": "All",
+            "value": "all"
+          },
+          "label": "Status",
+          "hide": "dontHide",
+          "refresh": "never",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana-postgresql-datasource",
+            "version": "v0",
+            "datasource": {
+              "name": "afy5j1yt18b9cb"
+            },
+            "spec": {
+              "__legacyStringValue": "SELECT 'all' AS __value, 'All' AS __text\nUNION ALL SELECT 'baseline' AS __value, 'Baseline' AS __text\nUNION ALL SELECT 'challenger' AS __value, 'Challenger' AS __text;"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "Baseline/challenger filter using Grafana __value/__text aliases",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
+          "allowCustomValue": false
+        }
+      }
+    ]
+  }
+}

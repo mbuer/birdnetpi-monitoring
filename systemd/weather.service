@@ -1,0 +1,21 @@
+# /etc/systemd/system/weather.service
+
+[Unit]
+Description=BirdNET Weather Logger
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=birduser
+EnvironmentFile=/etc/birdnet-monitoring/runtime.env
+WorkingDirectory=/home/birduser/weather
+ExecStart=/usr/bin/python3 -u /home/birduser/weather/weather.py
+Restart=always
+RestartSec=30
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

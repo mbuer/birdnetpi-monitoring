@@ -1,0 +1,207 @@
+# Experiment: Species Classification — v2
+
+**Date:** 2026-09-14  
+**Status:** Completed  
+**Prediction horizon:** T → T+2  
+**Validation:** Chronological walk-forward
+
+**Follow-up:** Species-specific tuning, bootstrap tests, and the current live challenger choices are documented in [2026-09-18-species-challengers.md](2026-09-18-species-challengers.md). This file remains the original v2 baseline experiment.
+
+## Objective
+
+Test whether individual bird species can be predicted for the next full future hour using the same leakage-safe timing convention as the aggregate activity model.
+
+Species evaluated:
+
+- House Finch
+- Black Phoebe
+- American Crow
+
+The target is binary:
+
+- `1` = species detected during the target hour
+- `0` = species not detected
+
+## Dataset
+
+Source:
+
+`bird_species_hourly`
+
+The species view provides a continuous hourly timeline and explicitly represents hours with no detections.
+
+It is independent of weather availability and retains `station_id`, allowing the same structure to support additional species and future BirdNET stations.
+
+| Item | Value |
+|---|---:|
+| Raw hours | 471 |
+| Valid feature rows | 445 |
+| Walk-forward forecasts | 252 |
+| Initial training rows | 192 |
+
+## Features
+
+The classifier uses:
+
+- `hour_of_day`
+- current species presence
+- species presence lag 1h
+- species presence lag 2h
+- species presence lag 3h
+- species presence lag 24h
+- current species detection count
+- total bird detections
+- number of species detected
+
+Weather is not included in this experiment.
+
+## Models
+
+### Prevalence
+
+Uses historical species prevalence as the probability estimate.
+
+### Persistence
+
+Assumes the species presence state remains unchanged.
+
+### Random Forest
+
+- 300 trees
+- `min_samples_leaf = 3`
+- `random_state = 42`
+
+### XGBoost
+
+- 300 estimators
+- `max_depth = 3`
+- `learning_rate = 0.03`
+- `subsample = 0.8`
+- `colsample_bytree = 0.8`
+- `objective = binary:logistic`
+- `tree_method = hist`
+
+XGBoost version: **3.4.1**
+
+No hyperparameter tuning was performed.
+
+---
+
+## House Finch
+
+Positive target hours:
+
+**69 / 252 — 27.4%**
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| Persistence | 0.549 | 0.565 | 0.557 | 0.695 | 0.430 |
+| Random Forest | **0.724** | 0.609 | 0.661 | **0.898** | **0.740** |
+| XGBoost | 0.719 | **0.667** | **0.692** | 0.890 | 0.695 |
+
+### Interpretation
+
+Both ML models substantially outperform persistence.
+
+Random Forest provides the strongest probability ranking, with the best ROC-AUC and PR-AUC.
+
+XGBoost produces the best F1 score and recall, identifying more positive House Finch hours at the default 0.5 threshold.
+
+House Finch prediction is already viable with the current dataset.
+
+---
+
+## Black Phoebe
+
+Positive target hours:
+
+**38 / 252 — 15.1%**
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| Persistence | 0.395 | 0.395 | 0.395 | 0.644 | 0.247 |
+| Random Forest | 0.364 | 0.421 | 0.390 | 0.835 | 0.412 |
+| XGBoost | **0.411** | **0.605** | **0.489** | **0.841** | **0.438** |
+
+### Interpretation
+
+Black Phoebe is more difficult to predict because positive hours are less common.
+
+Despite the smaller positive class, both ML models learn useful structure.
+
+XGBoost performs best across the principal classification metrics and improves recall substantially compared with Random Forest and persistence.
+
+---
+
+## American Crow
+
+Positive target hours:
+
+**25 / 252 — 9.9%**
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| Persistence | 0.154 | 0.160 | 0.157 | 0.532 | 0.108 |
+| Random Forest | 0.000 | 0.000 | 0.000 | 0.768 | 0.241 |
+| XGBoost | 0.143 | 0.040 | 0.062 | 0.783 | 0.254 |
+
+### Interpretation
+
+American Crow is substantially sparser than House Finch and Black Phoebe.
+
+The models still show useful probability-ranking ability, with ROC-AUC around 0.77–0.78, but the default 0.5 decision threshold performs poorly.
+
+This suggests that sparse species should initially be treated as probability forecasts rather than hard present/absent predictions.
+
+Threshold tuning should be evaluated before using binary alerts for species at this prevalence level.
+
+---
+
+## Species Comparison
+
+| Species | Positive Rate | Best F1 | Best ROC-AUC | Best PR-AUC |
+|---|---:|---|---|---|
+| House Finch | 27.4% | XGBoost — 0.692 | RF — 0.898 | RF — 0.740 |
+| Black Phoebe | 15.1% | XGBoost — 0.489 | XGBoost — 0.841 | XGBoost — 0.438 |
+| American Crow | 9.9% | Persistence — 0.157 | XGBoost — 0.783 | XGBoost — 0.254 |
+
+## Conclusions
+
+Species-level prediction is already useful for commonly observed species in the current dataset.
+
+The experiments show that:
+
+- species presence contains predictable temporal structure
+- ML clearly outperforms persistence for House Finch and Black Phoebe
+- model performance differs by species
+- one model should not automatically be assumed best for every species
+- XGBoost currently provides stronger threshold-based classification for Black Phoebe
+- Random Forest remains particularly strong for House Finch probability ranking
+- sparse species can still have useful probability ranking even when a 0.5 classification threshold performs poorly
+- prevalence and class imbalance must be considered when interpreting accuracy and threshold-based metrics
+
+No universal species model is promoted.
+
+## Next Steps
+
+1. Evaluate alternative probability thresholds, especially for sparse species.
+2. Add sunrise and daylight-related features.
+3. Later test weather features.
+4. Continue accumulating data and repeat the same experiments.
+5. Compare performance across additional species as sufficient positive examples become available.
+6. Use live stored predictions for forward validation rather than relying only on retrospective experiments.
+
+## Reproducibility
+
+Species dataset:
+
+`database/views/bird_species_hourly.sql`
+
+Experiment script:
+
+`ml/src/compare_species_models.py`
+
+Example:
+
+```bash
+.venv/bin/python ml/src/compare_species_models.py --species "House Finch"

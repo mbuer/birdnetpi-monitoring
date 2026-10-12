@@ -1,0 +1,12 @@
+[Unit]
+Description=Collect BirdNET weather forecast
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=birduser
+EnvironmentFile=/etc/birdnet-monitoring/runtime.env
+WorkingDirectory=/home/birduser/birdnetPi-monitoring
+ExecStart=/usr/bin/python3 /home/birduser/birdnetPi-monitoring/weather/forecast.py
+TimeoutStartSec=1min

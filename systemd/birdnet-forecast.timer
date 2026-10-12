@@ -1,0 +1,12 @@
+# /etc/systemd/system/birdnet-forecast.timer
+
+[Unit]
+Description=Collect BirdNET weather forecast hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
